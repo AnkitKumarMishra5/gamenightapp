@@ -1,0 +1,12 @@
+# Game Night. © 2026 Ankit Kumar Mishra. All rights reserved.
+User-agent: *
+Allow: /
+
+# Room links are private invites, the dashboard is the owner's, and health checks are
+# noise. None of it belongs in an index.
+Disallow: /healthz
+Disallow: /admin/
+Disallow: /api/
+Disallow: /*?join=
+
+Sitemap: %ORIGIN%/sitemap.xml

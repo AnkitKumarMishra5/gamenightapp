@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: gamenightapp
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: GN_REDIS_URL
+        sync: false
+      - key: GN_REDIS_TOKEN
+        sync: false
+      - key: GN_ID_SECRET
+        generateValue: true

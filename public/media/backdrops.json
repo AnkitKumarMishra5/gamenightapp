@@ -1,0 +1,25 @@
+[
+  {
+    "kind": "image",
+    "src": "/media/backdrop-1.webp",
+    "fallback": "/media/backdrop-1.jpg",
+    "people": true
+  },
+  {
+    "kind": "image",
+    "src": "/media/backdrop-2.webp",
+    "fallback": "/media/backdrop-2.jpg",
+    "people": true
+  },
+  {
+    "kind": "image",
+    "src": "/media/backdrop-3.webp",
+    "fallback": "/media/backdrop-3.jpg",
+    "people": true
+  },
+  {
+    "kind": "video",
+    "src": "/media/backdrop-4.mp4",
+    "people": true
+  }
+]

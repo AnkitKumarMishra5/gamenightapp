@@ -1,0 +1,18 @@
+node_modules/
+
+# Secrets and local overrides
+.env
+.env.*
+!.env.example
+
+# Usage log and the id salt that pseudonymises it — never commit either
+.data/
+
+# OS and editor noise
+.DS_Store
+**/.DS_Store
+*.log
+npm-debug.log*
+.claude/
+.vscode/
+.idea/

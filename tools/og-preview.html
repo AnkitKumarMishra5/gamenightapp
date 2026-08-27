@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Game Night — social preview source</title>
+<!--
+  Source artwork for the 1200x630 link preview (WhatsApp, iMessage, Twitter/X,
+  LinkedIn, Slack). Rendered to public/icons/og-image.png by `npm run brand`.
+  Edit here, re-run the script, and every share surface updates.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1200px; height: 630px; overflow: hidden; position: relative;
+    font-family: 'Outfit', -apple-system, sans-serif; color: #eef0ff;
+    background: radial-gradient(1100px 700px at 72% -12%, #1b2350 0%, #0b0e1a 58%);
+    display: flex; align-items: center; padding: 0 78px; gap: 54px;
+  }
+  .blob { position: absolute; border-radius: 50%; filter: blur(85px); }
+  .b1 { width: 620px; height: 620px; left: -170px; top: -210px; background: radial-gradient(circle, rgba(139,92,246,0.55), transparent 62%); }
+  .b2 { width: 520px; height: 520px; right: -110px; bottom: -190px; background: radial-gradient(circle, rgba(34,211,238,0.42), transparent 62%); }
+  .b3 { width: 420px; height: 420px; right: 300px; top: -160px; background: radial-gradient(circle, rgba(244,114,182,0.32), transparent 62%); }
+
+  .logo { width: 210px; height: 210px; flex: none; position: relative; filter: drop-shadow(0 22px 44px rgba(99,102,241,0.5)); }
+  .logo img { width: 100%; height: 100%; display: block; }
+
+  .copy { position: relative; z-index: 2; }
+  .kicker { font-size: 27px; font-weight: 700; letter-spacing: 11px; text-transform: uppercase; color: #a7abce; margin-bottom: 4px; }
+  .byline-kicker { font-size: 23px; letter-spacing: 4px; text-transform: none; margin-top: 12px; color: #b9bce0; }
+  h1 {
+    font-size: 96px; font-weight: 800; line-height: 1; letter-spacing: -1.5px;
+    background: linear-gradient(100deg, #a78bfa 0%, #818cf8 42%, #22d3ee 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .tagline { font-size: 32px; font-weight: 600; color: #dfe2ff; margin-top: 18px; }
+  .tagline b { color: #fff; }
+  .chips { display: flex; gap: 12px; margin-top: 26px; }
+  .chip {
+    font-size: 21px; font-weight: 700; padding: 11px 20px; border-radius: 999px;
+    background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.18);
+  }
+  .byline {
+    position: absolute; left: 78px; bottom: 40px; display: flex; align-items: center; gap: 14px;
+    font-size: 22px; color: #a7abce; z-index: 2;
+  }
+  .byline img {
+    width: 52px; height: 52px; border-radius: 50%; object-fit: cover;
+    border: 2px solid rgba(255,255,255,0.35); box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+  }
+  .byline b { color: #eef0ff; font-weight: 700; }
+  .rule { width: 46px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, #8b5cf6, #22d3ee); }
+</style>
+</head>
+<body>
+  <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+
+  <div class="logo"><img src="/icons/logo.svg" alt="" /></div>
+
+  <div class="copy">
+    <h1>Game Night</h1>
+    <div class="kicker byline-kicker">by Ankit Kumar Mishra</div>
+    <div class="tagline">Your crew, your rules — <b>one room code away.</b></div>
+    <div class="chips">
+      <span class="chip">🕵️ Blend In</span>
+      <span class="chip">🏝️ The Island</span>
+      <span class="chip">5&nbsp;min setup</span>
+    </div>
+  </div>
+
+  <div class="byline">
+    <img src="/icons/author-192.png" alt="" />
+    Built by <b>Ankit Kumar Mishra</b> · github.com/AnkitKumarMishra5
+  </div>
+</body>
+</html>

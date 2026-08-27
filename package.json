@@ -1,0 +1,34 @@
+{
+  "name": "gamenightapp",
+  "version": "1.0.0",
+  "description": "Game Night: real-time multiplayer party games. Blend In, The Island and more, playable in a browser with a room code. Node.js, Socket.IO, installable PWA.",
+  "main": "server/index.js",
+  "scripts": {
+    "test": "node tests/e2e.mjs",
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "bots": "node tools/bots.mjs",
+    "brand": "node tools/gen-brand.mjs",
+    "test:ai": "node tests/ai-smoke.mjs",
+    "backdrop": "node tools/backdrop.mjs",
+    "og:check": "node tools/og-check.mjs"
+  },
+  "keywords": [],
+  "author": "Ankit Kumar Mishra <akmishra5514@gmail.com> (https://www.linkedin.com/in/ankitkumarmishra/)",
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AnkitKumarMishra5/gamenightapp"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.3"
+  }
+}

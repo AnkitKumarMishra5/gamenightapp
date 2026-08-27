@@ -1,0 +1,38 @@
+Copyright © 2026 Ankit Kumar Mishra. All rights reserved.
+
+Game Night (the "Software") — including its source code, game engines, artwork, logo,
+generated soundtracks, word and pattern datasets, copy and design — is the exclusive
+property of Ankit Kumar Mishra and is protected by copyright law.
+
+WHAT YOU MAY DO
+  • View and read this source code.
+  • Run it locally for personal, non-commercial evaluation.
+  • Quote short excerpts with attribution, for commentary, review or teaching.
+
+WHAT YOU MAY NOT DO WITHOUT PRIOR WRITTEN PERMISSION
+  • Copy, publish, host, deploy or distribute this Software or any substantial part of it.
+  • Create derivative works, ports, forks or adaptations for public or commercial use.
+  • Use it commercially, or in any product or service you offer to others.
+  • Remove, obscure or alter any copyright, authorship or attribution notice.
+  • Use the "Game Night" name, the logo, or the author's name, photograph or likeness to
+    promote anything, or in any way that suggests endorsement or affiliation.
+
+No licence, express or implied, is granted beyond the permissions stated above. Publishing
+this code publicly is not a waiver of any right. If you want to use any part of it, ask —
+permission is often given for non-commercial and educational use.
+
+    Ankit Kumar Mishra
+    akmishra5514@gmail.com
+    https://github.com/AnkitKumarMishra5
+
+THIRD-PARTY COMPONENTS
+This project depends on separately licensed open-source packages (Express, Socket.IO and
+their dependencies, each under its own licence — see node_modules), and loads the Outfit
+typeface from Google Fonts under the SIL Open Font License. Those licences apply to those
+components, not to this Software.
+
+NO WARRANTY
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES
+OR OTHER LIABILITY ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
