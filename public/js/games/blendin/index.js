@@ -1,9 +1,14 @@
 // Blend In screen rendering. Receives the personalized room snapshot and a ctx
 // with { emit, me, isHost, player(id) } from main.js.
 import { h, shake, animOnce, waitingFor, aiThinking } from '../../core/ui.js';
-import { memes, REACTION_SOUNDS } from '../../core/memes.js';
 
 const REACTIONS = ['😂', '🤔', '😱', '🧐', '🔥', '💀'];
+// How long the reaction palette stays reachable after the pointer leaves it.
+const REACTION_MENU_LINGER_MS = 2500;
+// Which clue's palette is open, by clue id. Held outside the render because the whole
+// board is rebuilt on every snapshot: without this, anyone else reacting or giving a clue
+// re-created the element and the palette you were reaching for vanished.
+const openDrawers = new Set();
 
 const ROLE_LABEL = { insider: 'Insider', outsider: 'Outsider', blank: 'Blank' };
 const ROLE_EMOJI = { insider: '😇', outsider: '🕵️', blank: '🃏' };
@@ -36,6 +41,11 @@ export function renderBlendIn(snap, ctx) {
 // ---------- shared pieces ----------
 
 const DIFFICULTY_EMOJI = { easy: '🌱', medium: '🎯', hard: '🔥', ultra: '💀' };
+
+// A vote is the one irreversible move in the game, so it takes two taps: pick, then
+// confirm. Held here rather than on the server because nothing is committed until the
+// player says so. Cleared as soon as the vote lands or the phase moves on.
+let pendingVote = null;
 
 function dealingPhase(bi) {
   const level = bi.difficulty || 'medium';
@@ -181,18 +191,57 @@ function reactionBar(clue, ctx) {
     onClick: () => sendReaction(clue, emoji, ctx),
   }, emoji, h('span', { class: 'rc-count' }, String(n))));
 
-  return h('div', { class: 'reaction-bar' },
-    chips,
-    h('div', { class: 'react-add' },
-      h('button', { class: 'react-trigger', title: 'Add a reaction' }, '＋'),
-      h('div', { class: 'react-menu' },
-        REACTIONS.map((emoji) => h('button', {
-          class: `react-opt ${mine === emoji ? 'mine' : ''}`,
-          onClick: () => sendReaction(clue, emoji, ctx),
-        }, emoji)),
-      ),
+  // Hover alone was too fragile: there is a gap between the ＋ and the palette, and
+  // crossing it closed the menu mid-reach. So the open state is held in JS, the palette
+  // lingers after the pointer leaves, and a click pins it open.
+  const isOpen = openDrawers.has(clue.id);
+  const add = h('div', {
+    class: `react-add ${isOpen ? 'open' : ''}`,
+    dataset: { drawer: clue.id },
+  },
+    h('button', {
+      class: 'react-trigger', title: 'Add a reaction',
+      onClick: (e) => {
+        e.stopPropagation();
+        const pinning = !add.classList.contains('pinned');
+        add.classList.toggle('pinned', pinning);
+        add.classList.add('open');
+        openDrawers.add(clue.id);
+      },
+    }, '＋'),
+    h('div', { class: 'react-menu' },
+      REACTIONS.map((emoji) => h('button', {
+        class: `react-opt ${mine === emoji ? 'mine' : ''}`,
+        onClick: () => {
+        openDrawers.delete(clue.id);
+        add.classList.remove('open', 'pinned');
+        sendReaction(clue, emoji, ctx);
+      },
+      }, emoji)),
     ),
   );
+
+  let closeTimer = null;
+  const hold = () => {
+    clearTimeout(closeTimer);
+    openDrawers.add(clue.id);
+    add.classList.add('open');
+  };
+  const release = () => {
+    clearTimeout(closeTimer);
+    if (add.classList.contains('pinned')) return;
+    closeTimer = setTimeout(() => {
+      openDrawers.delete(clue.id);
+      // The node may have been replaced by a re-render, so close whichever one is live.
+      document.querySelector(`.react-add[data-drawer="${clue.id}"]`)?.classList.remove('open');
+    }, REACTION_MENU_LINGER_MS);
+  };
+  add.addEventListener('pointerenter', hold);
+  add.addEventListener('pointerleave', release);
+  add.addEventListener('focusin', hold);
+  add.addEventListener('focusout', release);
+
+  return h('div', { class: 'reaction-bar' }, chips, add);
 }
 
 function sendReaction(clue, emoji, ctx) {
@@ -292,21 +341,49 @@ function votePhase(bi, ctx) {
   const selectable = canVote ? candidates.filter((id) => id !== ctx.me.id) : null;
   const pct = bi.votersNeeded ? Math.round((bi.votesCast / bi.votersNeeded) * 100) : 0;
 
+  // Once the vote is cast, or if it is no longer ours to cast, drop any pending pick.
+  if (!canVote) pendingVote = null;
+  if (pendingVote && !selectable?.includes(pendingVote)) pendingVote = null;
+
+  const target = pendingVote ? ctx.player(pendingVote) : null;
+
   return h('div', { class: 'card' },
     h('h2', { class: 'subtitle', style: 'text-align:center' },
       isRunoff ? '⚖️ Tie-breaker! Vote between the tied players' : '🗳️ Who is the impostor?'),
     h('p', { class: 'hint', style: 'text-align:center; margin:6px 0 14px' },
       bi.you?.alive
-        ? (bi.youVoted ? `Vote locked in ✅ (${bi.votesCast}/${bi.votersNeeded})` : 'Tap a player to vote them out. Votes are anonymous.')
+        ? (bi.youVoted ? `Vote locked in ✅ (${bi.votesCast}/${bi.votersNeeded})`
+          : pendingVote ? 'Confirm below, or pick someone else.'
+          : 'Tap a player to vote them out. Votes are anonymous.')
         : 'You\'re spectating this vote.'),
     playersStrip(bi, ctx, {
       selectable,
-      selected: bi.yourVote,
-      onSelect: async (id) => {
-        const res = await ctx.emit('bi:vote', { targetId: id });
-        if (res.ok) ctx.sound.tap();
+      selected: pendingVote || bi.yourVote,
+      onSelect: (id) => {
+        // First tap only picks. Nothing reaches the server until it is confirmed.
+        pendingVote = pendingVote === id ? null : id;
+        ctx.sound.tap();
+        ctx.rerender();
       },
     }),
+    target && h('div', { class: 'vote-confirm' },
+      h('p', { class: 'vc-ask' }, 'Vote out ', h('b', {}, `${target.avatar} ${target.name}`), '?'),
+      h('p', { class: 'vc-warn' }, 'This cannot be taken back.'),
+      h('div', { class: 'vc-actions' },
+        h('button', {
+          class: 'btn btn-ghost', onClick: () => { pendingVote = null; ctx.sound.tap(); ctx.rerender(); },
+        }, 'Cancel'),
+        h('button', {
+          class: 'btn btn-bi btn-lg',
+          onClick: async (e) => {
+            const id = pendingVote;
+            e.currentTarget.disabled = true;
+            const res = await ctx.emit('bi:vote', { targetId: id });
+            if (res.ok) { pendingVote = null; ctx.sound.pop(); } else { e.currentTarget.disabled = false; shake(e.currentTarget); }
+          },
+        }, '🗳️ Lock it in'),
+      ),
+    ),
     h('div', { class: 'vote-progress' }, h('div', { class: 'vp-fill', style: `width:${pct}%` })),
     h('p', { class: 'hint', style: 'text-align:center; margin-top:8px' }, `${bi.votesCast} of ${bi.votersNeeded} votes are in`),
   );

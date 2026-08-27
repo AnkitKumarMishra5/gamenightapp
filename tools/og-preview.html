@@ -17,12 +17,29 @@
     background: radial-gradient(1100px 700px at 72% -12%, #1b2350 0%, #0b0e1a 58%);
     display: flex; align-items: center; padding: 0 78px; gap: 54px;
   }
-  .blob { position: absolute; border-radius: 50%; filter: blur(85px); }
+  /* The friends photo behind everything. Heavily darkened and blurred, because a link
+     preview is read at thumbnail size and unblurred faces behind a headline are noise.
+     Served by the dev server during `npm run brand`; the <base> tag resolves the path. */
+  .photo {
+    position: absolute; inset: 0; z-index: 0;
+    background-image: url('/media/backdrop-1.jpg');
+    background-size: cover; background-position: center 30%;
+    filter: blur(2px) saturate(0.95) brightness(0.62);
+    transform: scale(1.04);   /* hides the soft edge the blur leaves */
+  }
+  /* A gradient scrim, darkest on the left where the text sits. */
+  .scrim {
+    position: absolute; inset: 0; z-index: 1;
+    background:
+      linear-gradient(100deg, rgba(11,14,26,0.93) 0%, rgba(11,14,26,0.78) 42%, rgba(11,14,26,0.30) 100%),
+      radial-gradient(900px 600px at 74% -10%, rgba(27,35,80,0.45) 0%, transparent 62%);
+  }
+  .blob { position: absolute; z-index: 1; border-radius: 50%; filter: blur(85px); }
   .b1 { width: 620px; height: 620px; left: -170px; top: -210px; background: radial-gradient(circle, rgba(139,92,246,0.55), transparent 62%); }
   .b2 { width: 520px; height: 520px; right: -110px; bottom: -190px; background: radial-gradient(circle, rgba(34,211,238,0.42), transparent 62%); }
   .b3 { width: 420px; height: 420px; right: 300px; top: -160px; background: radial-gradient(circle, rgba(244,114,182,0.32), transparent 62%); }
 
-  .logo { width: 210px; height: 210px; flex: none; position: relative; filter: drop-shadow(0 22px 44px rgba(99,102,241,0.5)); }
+  .logo { width: 210px; height: 210px; flex: none; position: relative; z-index: 2; filter: drop-shadow(0 22px 44px rgba(99,102,241,0.5)); }
   .logo img { width: 100%; height: 100%; display: block; }
 
   .copy { position: relative; z-index: 2; }
@@ -53,6 +70,8 @@
 </style>
 </head>
 <body>
+  <div class="photo"></div>
+  <div class="scrim"></div>
   <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
 
   <div class="logo"><img src="/icons/logo.svg" alt="" /></div>

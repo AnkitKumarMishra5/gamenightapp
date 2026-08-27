@@ -512,6 +512,20 @@ export function removePlayerFromGame(room, targetId) {
 // Re-check auto-advance conditions when a player connects or disconnects:
 // the reveal phase waits on all CONNECTED players, and voting completes when
 // every connected alive player has voted.
+// True when the game is running but nobody who could move it along is connected. Someone
+// rejoining an abandoned room would otherwise land on a vote that can never finish, with
+// no control on screen to escape it.
+export function isStalled(room) {
+  const state = room.state;
+  if (!state || room.game !== 'blendin') return false;
+  // gameOver has its own buttons, and dealing is over in a second.
+  if (state.phase === 'gameOver' || state.phase === 'dealing') return false;
+  // One person cannot play a social deduction game, whoever they are. This catches both
+  // the spectator alone in an abandoned room and the last player still standing.
+  const present = [...room.players.values()].filter((p) => p.connected).length;
+  return present < 2 || aliveConnected(room, state).length === 0;
+}
+
 export function onConnectivityChange(room) {
   const state = room.state;
   if (!state || room.game !== 'blendin' || state.phase === 'gameOver') return;

@@ -286,6 +286,35 @@ export const memes = {
     bout(t + 0.41, 300, 4, 0.08, EH);
   },
 
+  // A crowd cheer: broadband noise swelling and falling, with a few whistles over it.
+  cheer() {
+    const ctx = ready(); if (!ctx) return;
+    const out = bus(ctx, 0.85);
+    const t = ctx.currentTime;
+    const n = noise(ctx, 1.6, (j, len) => {
+      const x = j / len;
+      return Math.min(1, x * 6) * (1 - x) ** 0.8;      // fast swell, slow fall
+    });
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 1100; bp.Q.value = 0.5;
+    const g = ctx.createGain(); g.gain.value = 0.5;
+    n.connect(bp).connect(g).connect(out);
+    n.start(t);
+    // Two whistles cutting through, the way they do in a real crowd.
+    for (const [at, f] of [[0.35, 2100], [0.8, 2600]]) {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f * 0.8, t + at);
+      osc.frequency.exponentialRampToValueAtTime(f, t + at + 0.12);
+      const wg = ctx.createGain();
+      wg.gain.setValueAtTime(0.0001, t + at);
+      wg.gain.exponentialRampToValueAtTime(0.06, t + at + 0.05);
+      wg.gain.exponentialRampToValueAtTime(0.0001, t + at + 0.3);
+      osc.connect(wg).connect(out);
+      osc.start(t + at); osc.stop(t + at + 0.35);
+    }
+  },
+
   // Awkward silence.
   crickets() {
     const ctx = ready(); if (!ctx) return;
@@ -551,18 +580,28 @@ export const MEME_CATALOG = [
   { id: 'buzzer', emoji: '🚫', name: 'Buzzer', where: 'A wrong pattern guess', recorded: true },
   { id: 'emotionalDamage', emoji: '🩹', name: 'Emotional damage', where: 'Three wrong guesses and you are out' },
   { id: 'recordScratch', emoji: '💿', name: 'Record scratch', where: 'An unrecognised item; an AI error' },
+  { id: 'cheer', emoji: '🎉', name: 'Crowd cheer', where: 'The 🔥 reaction', recorded: true },
   { id: 'bruh', emoji: '🫠', name: 'Bruh', where: 'The judge cannot make sense of what you typed' },
 ];
 
 // Which sound each reaction fires. Keep these in step with REACTIONS on the server.
+// Each reaction draws from a pool, and every id in a pool may itself have several
+// recorded variants, so the same emoji rarely sounds the same twice.
 export const REACTION_SOUNDS = {
-  '😂': 'laughTrack',
-  '🤔': 'crickets',
-  '😱': 'gasp',
-  '🧐': 'suspense',
-  '🔥': 'airhorn',
-  '💀': 'boom',
+  '😂': ['laughTrack', 'laughTrack', 'laughTrack', 'applause', 'rimshot'],
+  '🤔': ['crickets', 'crickets', 'crickets', 'suspense', 'bruh'],
+  '😱': ['gasp', 'gasp', 'gasp', 'boo', 'recordScratch'],
+  '🧐': ['suspense', 'suspense', 'drumroll', 'sinister', 'crickets'],
+  '🔥': ['airhorn', 'airhorn', 'cheer', 'applause', 'levelUp'],
+  '💀': ['boom', 'boom', 'boom', 'emotionalDamage', 'sadTrombone'],
 };
+
+// The pool is weighted by repetition (the signature sound appears more than once), so
+// picking uniformly still favours it while leaving room for a surprise.
+export function reactionSound(emoji) {
+  const pool = REACTION_SOUNDS[emoji];
+  return Array.isArray(pool) ? pool[(Math.random() * pool.length) | 0] : pool || 'pop';
+}
 
 // ---------------------------------------------------------------------------
 // Real recordings, when there are any
@@ -572,14 +611,19 @@ export const REACTION_SOUNDS = {
 // public/media/sfx/ (boom.mp3, airhorn.mp3, laughTrack.mp3 …) and it is used instead.
 // Files are fetched once, decoded, then cached; if anything fails the synth still plays,
 // so a missing or broken file never leaves a silent gap in a game.
-const samples = new Map();      // id -> AudioBuffer
-let sampleIndex = null;         // Set of ids the server says exist
+const samples = new Map();      // id -> [AudioBuffer, ...] decoded variants
+let sampleIndex = null;         // id -> [url, ...] every variant the server has
 
 export async function loadSampleIndex() {
   try {
     const res = await fetch('/api/sfx');
     const { files } = await res.json();
-    sampleIndex = new Map(files.map((f) => [f.id, f.src]));
+    const byId = new Map();
+    for (const f of files) {
+      if (!byId.has(f.id)) byId.set(f.id, []);
+      byId.get(f.id).push(f.src);
+    }
+    sampleIndex = byId;
   } catch {
     sampleIndex = new Map();
   }
@@ -594,21 +638,45 @@ function playSample(buffer) {
   return true;
 }
 
-export function playMeme(name) {
-  const synth = () => { const fn = memes[name]; if (fn) fn(); };
+const randomOf = (arr) => arr[(Math.random() * arr.length) | 0];
 
-  const cached = samples.get(name);
-  if (cached) { playSample(cached); return; }
-  if (!sampleIndex?.has(name)) { synth(); return; }
-
-  // First use of this sample: play the synth now so nothing is late, and decode in the
-  // background so every later use is the real recording.
-  synth();
-  const url = sampleIndex.get(name);
-  sampleIndex.delete(name);           // never fetch the same one twice
-  fetch(url)
+// Fetch and decode one variant, then remember it. Called lazily so a sound costs nothing
+// until it actually plays, and the pool fills out over a session.
+function loadVariant(name, url) {
+  return fetch(url)
     .then((r) => r.arrayBuffer())
     .then((buf) => ready()?.decodeAudioData(buf))
-    .then((decoded) => { if (decoded) samples.set(name, decoded); })
-    .catch(() => { /* keep using the synth */ });
+    .then((decoded) => {
+      if (!decoded) return;
+      if (!samples.has(name)) samples.set(name, []);
+      samples.get(name).push(decoded);
+    })
+    .catch(() => { /* the synth stays as the fallback */ });
+}
+
+export function playMeme(name) {
+  const synth = () => { const fn = memes[name]; if (fn) fn(); };
+  const decoded = samples.get(name);
+  const pending = sampleIndex?.get(name);
+
+  // Reach for a variant that is not loaded yet roughly half the time, so the pool keeps
+  // widening instead of settling on whichever one arrived first.
+  if (decoded?.length && (!pending?.length || Math.random() > 0.5)) {
+    playSample(randomOf(decoded));
+    if (pending?.length) {
+      const url = randomOf(pending);
+      pending.splice(pending.indexOf(url), 1);
+      loadVariant(name, url);
+    }
+    return;
+  }
+
+  if (!pending?.length) { synth(); return; }
+
+  // Nothing decoded yet: play the synth so the moment is not silent, and fetch a variant
+  // for next time.
+  if (!decoded?.length) synth(); else playSample(randomOf(decoded));
+  const url = randomOf(pending);
+  pending.splice(pending.indexOf(url), 1);
+  loadVariant(name, url);
 }

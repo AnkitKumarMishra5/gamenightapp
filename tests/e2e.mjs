@@ -889,6 +889,25 @@ async function testMalformedPayloads() {
   const clue = host.bi.clues[0];
   check('over-long clue truncated to 30 chars', clue && clue.text.length <= 30, String(clue?.text?.length));
   await cleanup(players);
+  // A nameless join must be refused. The client now sends people to the naming step first,
+  // even when they arrive on an invite link, but the server is the thing that has to hold:
+  // a blank name previously surfaced as a placeholder standing in for a real name.
+  const anon = await new Player('', '🙂').connect();
+  const blank = await anon.emit('room:create', { name: '', avatar: '🙂', playerId: 'p_anon', token: 't_anon' });
+  check('creating a room with no name is refused', !blank.ok, blank.error);
+  check('and the refusal says what to do', /name/i.test(blank.error || ''), blank.error);
+  const spaces = await anon.emit('room:create', { name: '   ', avatar: '🙂', playerId: 'p_anon2', token: 't_anon2' });
+  check('whitespace does not count as a name', !spaces.ok, spaces.error);
+
+  const { code: realCode } = await (async () => {
+    const h2 = await new Player('Host', '🦊').connect();
+    const r = await h2.create();
+    return { code: r.code, h2 };
+  })();
+  const joinBlank = await anon.emit('room:join', { code: realCode, name: '', avatar: '🙂', playerId: 'p_anon3', token: 't_anon3' });
+  check('joining a room with no name is refused', !joinBlank.ok, joinBlank.error);
+  anon.disconnect();
+
 }
 
 async function testGameSwitching() {
@@ -1022,6 +1041,53 @@ async function testBlendInWords() {
   check('playing again deals a different pair', first !== second, `${first} then ${second}`);
 
   await cleanup(players);
+}
+
+// ============================================================
+// abandoned rounds
+// ============================================================
+// Everyone drops mid-game, then one person comes back. They used to land on a vote reading
+// "0 of 0 votes are in" with every control dead and no way to the lobby.
+async function testAbandonedRound() {
+  console.log('\n▶ Rooms: rejoining a round everyone walked away from');
+  const { players, host, code } = await makeRoom(5);
+  await startBlendIn(players, host);
+  for (const p of players) await p.emit('bi:ready');
+  await until(host, (s) => s.blendin.phase === 'describing', 'describing');
+
+  // Everyone leaves without leaving the room, the way closing a tab does.
+  for (const p of players) p.disconnect();
+  await sleep(300);
+
+  // A non-host comes back to the same room.
+  const returner = new Player(players[2].name, players[2].avatar, 'vidreturner001');
+  returner.playerId = players[2].playerId;
+  returner.token = players[2].token;
+  await returner.connect();
+  const rejoin = await returner.join(code);
+  check('the abandoned room can be rejoined', rejoin.ok, rejoin.error);
+  await until(returner, (s) => Boolean(s.code), 'snapshot received');
+
+  check('the returning player is handed the room', returner.snap.you?.isHost === true,
+    `hostId=${returner.snap.hostId} me=${returner.snap.you?.id}`);
+  check('the round is reported as stalled', returner.snap.stalled === true);
+
+  const out = await returner.emit('room:backToLobby');
+  check('they can get back to the lobby', out.ok, out.error);
+  await until(returner, (s) => !s.blendin, 'back in the lobby');
+  check('the game is cleared', returner.snap.blendin === null || returner.snap.blendin === undefined);
+  check('the room survived, so a new game can start', Boolean(returner.snap.code));
+
+  // And a live game must NOT be reported as stalled or escapable by a non-host.
+  const fresh = await makeRoom(5);
+  await startBlendIn(fresh.players, fresh.host);
+  check('a live game is not stalled', fresh.host.snap.stalled === false);
+  const guest = fresh.players.find((p) => p !== fresh.host);
+  const denied = await guest.emit('room:backToLobby');
+  check('a guest cannot end a live game', !denied.ok, denied.error);
+
+  returner.disconnect();
+  await cleanup(fresh.players);
 }
 
 // ============================================================
@@ -1271,7 +1337,7 @@ async function main() {
     testLeaveDuringReveal, testBlankLeavesDuringGuess, testAliveLeavesDuringGuess,
     testBlendInSettings, testIslandAI, testIslandSolving, testIslandHostMode,
     testIslandSurprise, testBlendInExtras, testScoring, testIslandGuessLimit,
-    testIslandHints, testBlendInWords, testMechanicalRules,
+    testIslandHints, testBlendInWords, testMechanicalRules, testAbandonedRound,
     testRoomsAndHosting, testRoomClosing, testMalformedPayloads, testGameSwitching,
     testUsageDashboard,
   ];

@@ -383,6 +383,21 @@ export function removePlayerFromGame(room, targetId) {
 }
 
 // Skip over the current player if they disconnect mid-turn (no pending judgment).
+// Same idea as Blend In: a round nobody present can advance is a dead end. In host mode
+// the gamemaster leaving also stalls it, since only they can judge.
+export function isStalled(room) {
+  const state = room.state;
+  if (!state || room.game !== 'island') return false;
+  if (state.phase === 'reveal') return false;   // the reveal screen already offers a way on
+  // Only the gamemaster can judge, so their leaving strands a host-mode round.
+  if (state.mode === 'host' && !room.players.get(state.gmId)?.connected) return true;
+  const present = [...room.players.values()].filter((p) => p.connected).length;
+  if (present < ISLAND_MIN_PLAYERS) return true;
+  const canPlay = (state.order || []).filter((id) => room.players.get(id)?.connected
+    && !(state.knockedOut || []).includes(id));
+  return canPlay.length === 0;
+}
+
 export function onConnectivityChange(room) {
   const state = room.state;
   if (!state || room.game !== 'island' || state.phase !== 'playing' || state.pendingJudge) return;

@@ -45,6 +45,18 @@ export function getRoom(code) {
   return room;
 }
 
+// A room belongs to whoever is actually in it. If everyone drifted off and someone comes
+// back, they take the crown, otherwise they are stuck in a room whose owner is long gone
+// and every owner-only control is dead.
+export function claimHostIfAbandoned(room, playerId) {
+  const anyoneElse = [...room.players.values()].some((p) => p.connected && p.id !== playerId);
+  if (anyoneElse) return false;
+  if (room.hostId === playerId) return false;
+  room.hostId = playerId;
+  if (room.hostGraceTimer) { clearTimeout(room.hostGraceTimer); room.hostGraceTimer = null; }
+  return true;
+}
+
 export function addPlayer(room, { name, avatar, playerId, token }) {
   const cleanName = cleanText(name, 18);
   if (!cleanName) throw new GameError('Pick a name first!');
@@ -134,6 +146,14 @@ export function adminOverview() {
 // What a link preview may say about a room. Deliberately tiny and secret-free: who is
 // hosting, how many are in, which game. Anyone with the code could join and see all of
 // this anyway, and nothing here reveals a word, a role or a pattern.
+// Whichever game is running, is it beyond saving by the people currently present?
+export function gameIsStalled(room) {
+  if (!room?.game || !room.state) return false;
+  if (room.game === 'blendin') return blendin.isStalled(room);
+  if (room.game === 'island') return island.isStalled(room);
+  return false;
+}
+
 export function invitePreview(code) {
   const room = rooms.get(String(code || '').toUpperCase().trim());
   if (!room) return null;
@@ -161,6 +181,8 @@ export function snapshot(room, forPlayerId) {
     game: room.game,
     settings: room.settings,
     aiAvailable: aiAvailable(),
+    // Lets the client offer a way out of a game nobody present can finish.
+    stalled: gameIsStalled(room),
     limits: { biMin: blendin.BI_MIN_PLAYERS, biMax: blendin.BI_MAX_PLAYERS, islandMin: island.ISLAND_MIN_PLAYERS, roomMax: MAX_PLAYERS },
     // Sent to the client so the difficulty picker is generated from one list rather than
     // duplicated in the UI.

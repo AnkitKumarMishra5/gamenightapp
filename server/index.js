@@ -18,7 +18,7 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-const { rooms, createRoom, getRoom, addPlayer, removePlayer, transferHost, sweepRooms, closeRoomIfEmpty, snapshot, adminOverview, invitePreview } = await import('./core/rooms.js');
+const { rooms, createRoom, getRoom, addPlayer, removePlayer, transferHost, sweepRooms, closeRoomIfEmpty, snapshot, adminOverview, invitePreview, gameIsStalled, claimHostIfAbandoned } = await import('./core/rooms.js');
 const blendin = await import('./games/blendin/engine.js');
 const island = await import('./games/island/engine.js');
 const islandAI = await import('./games/island/ai.js');
@@ -244,7 +244,12 @@ function detectSfx() {
     return {
       files: fs.readdirSync(dir)
         .filter((f) => /\.(mp3|m4a|ogg|wav|webm)$/i.test(f))
-        .map((f) => ({ id: path.basename(f, path.extname(f)), src: `/media/sfx/${f}` })),
+        // "laughTrack.m4a" and "laughTrack-3.m4a" are both the laugh: a trailing -N marks
+        // a variant, so dropping more files in widens the pool with no code change.
+        .map((f) => ({
+          id: path.basename(f, path.extname(f)).replace(/-\d+$/, ''),
+          src: `/media/sfx/${f}`,
+        })),
     };
   } catch { return { files: [] }; }
 }
@@ -502,8 +507,10 @@ io.on('connection', (socket) => {
         code: room.code,
         players: room.players.size,
       });
+      const tookOver = claimHostIfAbandoned(room, playerId);
       attachToRoom(socket, room, playerId);
       const fx = [];
+      if (tookOver) fx.push({ kind: 'host-claimed', playerId });
       if (room.game === 'blendin') fx.push(...(blendin.onConnectivityChange(room)?.fx || []));
       if (room.game === 'island') fx.push(...(island.onConnectivityChange(room)?.fx || []));
       broadcast(room);
@@ -584,7 +591,11 @@ io.on('connection', (socket) => {
   }));
 
   socket.on('room:backToLobby', action(socket, (room, playerId) => {
-    if (room.hostId !== playerId) throw new GameError('Only the room owner can do that.');
+    // Normally the owner's call. But a game nobody present can advance is a dead end, and
+    // insisting on the owner there just traps whoever came back.
+    if (room.hostId !== playerId && !gameIsStalled(room)) {
+      throw new GameError('Only the room owner can do that.');
+    }
     room.state = null;
   }));
 

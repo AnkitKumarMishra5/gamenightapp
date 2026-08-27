@@ -1055,9 +1055,19 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
   box-shadow: var(--shadow-lg); backdrop-filter: blur(10px);
   opacity: 0; pointer-events: none; transition: opacity 0.16s, transform 0.16s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
-.react-add:hover .react-menu, .react-add:focus-within .react-menu {
+/* An invisible bridge across the 6px gap, so travelling from the ＋ to the palette never
+   leaves the hover area. Without it the menu closed mid-reach. */
+.react-menu::after {
+  content: ''; position: absolute; left: -6px; right: -6px; top: 100%; height: 12px;
+}
+/* JS owns the open state (see reactionBar) so the palette can linger after the pointer
+   leaves. The hover rule stays as a no-JS fallback. */
+.react-add:hover .react-menu,
+.react-add:focus-within .react-menu,
+.react-add.open .react-menu {
   opacity: 1; pointer-events: auto; transform: translateX(-50%) scale(1);
 }
+.react-add.pinned .react-trigger { color: var(--ink); border-style: solid; background: var(--glass-2); }
 .react-opt {
   width: 30px; height: 30px; border-radius: 50%; font-size: 16px; display: grid; place-items: center;
   transition: transform 0.15s cubic-bezier(0.3, 1.7, 0.5, 1), background 0.15s;
@@ -1242,3 +1252,37 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
   .ai-core .ai-ring { opacity: 0.35; transform: scale(1); }
   .ai-core .ai-scan { opacity: 0; }
 }
+
+/* ---------- arrived on an invite link ---------- */
+.invited-banner {
+  display: flex; align-items: center; gap: 11px;
+  margin: 4px 0 16px; padding: 11px 13px; border-radius: var(--r-md);
+  background: rgba(34, 211, 238, 0.09); border: 1px solid rgba(34, 211, 238, 0.3);
+}
+.invited-banner .ib-key { font-size: 19px; line-height: 1; }
+.invited-banner .ib-title { font-size: 13.5px; font-weight: 700; color: var(--cyan); letter-spacing: 0.4px; }
+.invited-banner .ib-sub { font-size: 11.5px; color: var(--ink-faint); margin-top: 1px; }
+
+/* ---------- vote confirmation ---------- */
+/* A vote cannot be undone, so it gets a deliberate second step rather than firing on the
+   first tap. */
+.vote-confirm {
+  margin-top: 14px; padding: 14px; border-radius: var(--r-md); text-align: center;
+  background: rgba(244, 114, 182, 0.08); border: 1px solid rgba(244, 114, 182, 0.32);
+  animation: vc-in 0.22s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.vote-confirm .vc-ask { font-size: 15.5px; font-weight: 600; }
+.vote-confirm .vc-warn { font-size: 11.5px; color: var(--ink-faint); margin-top: 3px; }
+.vote-confirm .vc-actions { display: flex; gap: 10px; margin-top: 12px; }
+.vote-confirm .vc-actions .btn { flex: 1; }
+@keyframes vc-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .vote-confirm { animation: none; } }
+
+/* ---------- abandoned round ---------- */
+.stalled-card {
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px;
+  border-color: rgba(251, 191, 36, 0.4); background: rgba(251, 191, 36, 0.07);
+}
+.stalled-card .sc-emoji { font-size: 40px; line-height: 1; }
+.stalled-card .sc-title { font-size: 17px; font-weight: 800; margin-top: 6px; }
+.stalled-card .sc-sub { font-size: 13px; color: var(--ink-dim); margin-top: 3px; }

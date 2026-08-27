@@ -9,7 +9,7 @@ import {
 } from './core/ambience.js';
 import { startBackdrop } from './core/backdrop.js';
 import { showRules } from './core/rules-modal.js';
-import { memes, playMeme, loadSampleIndex, REACTION_SOUNDS } from './core/memes.js';
+import { memes, playMeme, loadSampleIndex, reactionSound } from './core/memes.js';
 import { GAMES, gameById } from './games/registry.js';
 
 const AVATARS = ['🦊', '🐼', '🦁', '🐸', '🐙', '🦄', '🐳', '🦉', '🐯', '🦋', '🐺', '🦖', '🐨', '🐹', '🦜', '🍩', '🌵', '👾', '🤖', '👻', '🎃', '🍕', '⚡', '🌈'];
@@ -214,7 +214,7 @@ socket.on('fx', (fx) => {
     case 'clue': if (!mine) sound.pop(); break;
     case 'reaction': {
       // Only the reactor and the room hear it once — the server sends it to everyone.
-      if (fx.added) playMeme(REACTION_SOUNDS[fx.emoji] || 'pop');
+      if (fx.added) playMeme(reactionSound(fx.emoji));
       break;
     }
     case 'vote-start': memes.suspense(); break;
@@ -312,6 +312,9 @@ function ctx() {
   return {
     emit,
     sound,
+    // Lets a game module re-draw after local-only state changes, such as a vote that has
+    // been picked but not yet confirmed.
+    rerender: render,
     me: snap.you || { id: identity.playerId },
     isHost: snap.you?.isHost || false,
     hostId: snap.hostId,
@@ -393,6 +396,9 @@ function render() {
   if (!store.snap) renderLanding();
   else if (!store.snap.game || !inGame) renderLobby();
   else renderGame();
+  // A game nobody present can finish needs a visible way out, above whatever dead screen
+  // the round happens to be stuck on.
+  if (store.snap?.stalled && inGame) app.prepend(stalledEscape());
   restoreInputs(app, saved);
   if (!store.snap) { wireReveals(); wireParallax(); wireTilt(); }
   // Jump to the top when the screen genuinely changes (landing → lobby → game phase),
@@ -402,6 +408,27 @@ function render() {
     lastViewKey = viewKey;
     window.scrollTo({ top: 0 });
   }
+  applyPrefill();
+}
+
+// Shown when everyone who could act has gone. Rejoining an abandoned round otherwise
+// dropped you on a vote with "0 of 0 votes are in" and no control that did anything.
+function stalledEscape() {
+  return h('div', { class: 'card stalled-card' },
+    h('span', { class: 'sc-emoji' }, '🫥'),
+    h('div', {},
+      h('div', { class: 'sc-title' }, 'This round was abandoned'),
+      h('div', { class: 'sc-sub' }, 'Everyone who was playing has gone. Nothing here can move forward.'),
+    ),
+    h('button', {
+      class: 'btn btn-primary', style: 'margin-top:12px',
+      onClick: async (e) => {
+        e.currentTarget.disabled = true;
+        const res = await emit('room:backToLobby');
+        if (!res.ok) { e.currentTarget.disabled = false; toast(res.error, 'error'); }
+      },
+    }, '🏠 Back to the lobby'),
+  );
 }
 
 // ---------- app bar ----------
@@ -958,6 +985,7 @@ function stepDots(active) {
 
 // ----- step 1: who are you -----
 function stepIdentity() {
+  const invited = sessionStorage.getItem('gn_prefill_code');
   const name = h('input', {
     class: 'input', type: 'text', maxlength: 18, placeholder: 'e.g. Ankit',
     value: prefs.name, 'data-preserve': 'home-name', autocomplete: 'off', enterkeyhint: 'go',
@@ -980,6 +1008,7 @@ function stepIdentity() {
     prefs.name = v;
     prefs.avatar = chosen;
     landingStep = 2;
+    if (invited) joinOpen = true;
     sound.pop();
     sendHello();          // now that we know who they are
     render();
@@ -988,6 +1017,15 @@ function stepIdentity() {
 
   return h('div', { class: 'card step-card' },
     stepDots(1),
+    // Someone arriving on an invite link needs to know why they are being asked for a
+    // name before they get to the room they were sent to.
+    invited && h('div', { class: 'invited-banner' },
+      h('span', { class: 'ib-key' }, '🔑'),
+      h('div', {},
+        h('div', { class: 'ib-title' }, `You're invited to room ${invited}`),
+        h('div', { class: 'ib-sub' }, 'Name yourself and you go straight in.'),
+      ),
+    ),
     h('h2', { class: 'subtitle' }, '👋 First, name yourself'),
     h('p', { class: 'hint', style: 'margin:6px 0 14px' }, 'This is how your friends will see you in the game.'),
     h('label', { class: 'label' }, 'Your name'),
@@ -1075,7 +1113,7 @@ function stepPlay() {
     h('div', { class: 'identity-chip' },
       h('span', { class: 'ic-avatar' }, prefs.avatar),
       h('div', { class: 'ic-body' },
-        h('div', { class: 'ic-name' }, prefs.name || 'Player'),
+        h('div', { class: 'ic-name' }, prefs.name || 'Nameless so far'),
         h('div', { class: 'hint' }, 'That\'s you'),
       ),
       h('button', {
@@ -1584,15 +1622,27 @@ if (urlJoin && !sessionStorage.getItem('gn_room')) {
 }
 const prefill = sessionStorage.getItem('gn_prefill_code');
 if (prefill) {
-  landingStep = 2;
+  // An invite is not a reason to skip naming yourself. Jumping straight to the join step
+  // with no name set meant the identity card showed a placeholder as though that were
+  // their name, and the join was rejected by the server anyway. So: name first, and the
+  // code waits in sessionStorage until the join box actually exists to receive it.
   joinOpen = true;
+  if (prefs.name) landingStep = 2;
 }
 render();
-if (prefill && !store.snap) {
-  const codeEl = app.querySelector('[data-preserve="home-code"]');
-  if (codeEl) codeEl.value = prefill;
+
+// ---------- invited code ----------
+// Called after every render. The code survives the naming step because it is only cleared
+// once it has been written into a field that exists.
+function applyPrefill() {
+  const code = sessionStorage.getItem('gn_prefill_code');
+  if (!code || store.snap) return;
+  const el = app.querySelector('[data-preserve="home-code"]');
+  if (!el) return;                       // still on the naming step, keep it for later
+  el.value = code;
   sessionStorage.removeItem('gn_prefill_code');
 }
+applyPrefill();
 
 // ---------- rotating cinematic backdrop ----------
 // The server lists whatever is in public/media (see `npm run backdrop`). Images hold for
