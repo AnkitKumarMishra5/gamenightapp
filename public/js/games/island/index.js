@@ -1,5 +1,5 @@
 // The Island screen rendering.
-import { h, shake, animOnce, waitingFor } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, aiThinking } from '../../core/ui.js';
 
 export function renderIsland(snap, ctx) {
   const is = snap.island;
@@ -65,7 +65,7 @@ function setupPhase(is, ctx) {
       onClick: async (e) => {
         const b = e.currentTarget;
         b.disabled = true;
-        b.replaceChildren(h('span', { class: 'spin-emoji' }, '🌀'), ' The AI is inventing a pattern…');
+        b.replaceChildren(h('span', { class: 'spin-emoji' }, '🤖'), ' Inventing a pattern…');
         const res = await ctx.emit('is:setupAI');
         if (!res.ok) {
           b.disabled = false;
@@ -143,10 +143,12 @@ function judgePanel(is, ctx) {
 
   if (!pj.youJudge) {
     return h('div', { class: 'card', style: 'text-align:center' },
-      h('span', { class: 'spin-emoji', style: 'font-size:26px' }, is.mode === 'ai' ? '🤖' : '🧑‍⚖️'),
-      h('p', { style: 'margin-top:8px; font-weight:700' },
-        is.mode === 'ai' ? 'The AI judge is deliberating…' : `${ctx.player(is.gmId).name} is judging…`),
-      attempt?.type === 'pattern' && h('p', { class: 'hint' }, `${who.name} thinks they cracked the pattern! 🤞`),
+      is.mode === 'ai'
+        ? aiThinking('The judge is deliberating',
+            attempt?.type === 'pattern'
+              ? `${who.name} thinks they cracked it`
+              : `Weighing “${attempt?.text || 'that'}” against the rule`)
+        : aiThinking(`${ctx.player(is.gmId).name} is judging`, 'Waiting on a human for once', '🧑‍⚖️'),
       ctx.isHost && is.mode === 'ai' && h('button', {
         class: 'btn btn-ghost btn-sm', style: 'margin-top:8px',
         onClick: () => ctx.emit('is:cancelPending'),

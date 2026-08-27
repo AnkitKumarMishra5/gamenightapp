@@ -105,3 +105,24 @@ export function shake(el) {
 export function waitingFor(hostName, what) {
   return h('p', { class: 'waiting-note' }, `⏳ ${hostName || 'The room owner'} ${what}`);
 }
+
+// A visible "the machine is working" state, used wherever the app is waiting on the AI.
+// Built from transforms and opacity only so it stays smooth on a phone, and it collapses
+// to a static badge under prefers-reduced-motion.
+export function aiThinking(title, sub, emoji = '🤖') {
+  return h('div', { class: 'ai-think', role: 'status', 'aria-live': 'polite' },
+    h('div', { class: 'ai-core' },
+      h('span', { class: 'ai-ring r1' }),
+      h('span', { class: 'ai-ring r2' }),
+      h('span', { class: 'ai-ring r3' }),
+      h('span', { class: 'ai-scan' }),
+      h('span', { class: 'ai-face' }, emoji),
+    ),
+    h('div', { class: 'ai-copy' },
+      h('div', { class: 'ai-title' }, title,
+        h('span', { class: 'ai-dots' },
+          h('i', {}), h('i', {}), h('i', {}))),
+      sub && h('div', { class: 'ai-sub' }, sub),
+    ),
+  );
+}

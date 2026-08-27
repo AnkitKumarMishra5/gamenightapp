@@ -10,6 +10,7 @@
 import { chatJSON, MOCK } from '../../lib/openai.js';
 import { normalize, pick } from '../../lib/util.js';
 import { ISLAND_PATTERNS } from './patterns.js';
+import { mechanicalRule } from './rules.js';
 
 
 const GEN_SYSTEM = `You are the gamemaster of the party game "The Island". You invent a secret pattern that links words, plus two opening items that both fit it.
@@ -208,7 +209,23 @@ function obviouslyNotAWord(item) {
   return null;
 }
 
+// Neutral acknowledgements for locally decided verdicts. They must never hint at the
+// mechanism, or a player learns the rule from the flavour text instead of the game.
+const LOCAL_YES = ['The boat takes it.', 'Aboard.', 'That one can come.', 'Room for that.'];
+const LOCAL_NO = ['The boat says no.', 'Left on the shore.', 'Not that one.', 'Denied.'];
+
 export async function judgeItem(pattern, item, mockHints = null) {
+  // A spelling rule is decidable, so decide it. Sending "does QUEST contain a Q" to a
+  // language model invites a confidently wrong answer with no way for a player to appeal,
+  // and it costs a round trip to get it. The model keeps the rules about sound, meaning
+  // and category, which are the ones code genuinely cannot settle.
+  const rule = mechanicalRule(pattern);
+  if (rule) {
+    if (obviouslyNotAWord(item)) return { valid: false, fits: false, remark: '' };
+    const fits = rule.test(item);
+    return { valid: true, fits, remark: pick(fits ? LOCAL_YES : LOCAL_NO), by: rule.id };
+  }
+
   if (MOCK || !process.env.OPENAI_API_KEY) {
     if (obviouslyNotAWord(item)) return { valid: false, fits: false, remark: '' };
     // Deterministic mock: item fits when listed among the pattern's known examples.

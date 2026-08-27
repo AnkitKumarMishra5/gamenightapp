@@ -1,6 +1,6 @@
 // Blend In screen rendering. Receives the personalized room snapshot and a ctx
 // with { emit, me, isHost, player(id) } from main.js.
-import { h, shake, animOnce, waitingFor } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, aiThinking } from '../../core/ui.js';
 import { memes, REACTION_SOUNDS } from '../../core/memes.js';
 
 const REACTIONS = ['😂', '🤔', '😱', '🧐', '🔥', '💀'];
@@ -41,12 +41,9 @@ function dealingPhase(bi) {
   const level = bi.difficulty || 'medium';
   return h('div', { class: 'stack' },
     h('div', { class: 'card dealing-card' },
-      h('div', { class: 'dealing-cards' },
-        [0, 1, 2].map((i) => h('span', { class: 'dealing-card-face', style: `--i:${i}` }, '🃏')),
-      ),
-      h('h2', { class: 'subtitle', style: 'margin-top:14px' }, 'Dealing tonight\'s words…'),
-      h('p', { class: 'hint' },
-        `${DIFFICULTY_EMOJI[level] || '🎯'} ${level} difficulty. Nobody sees anything until every word is out.`),
+      aiThinking('Dealing tonight\'s words',
+        `${DIFFICULTY_EMOJI[level] || '🎯'} ${level} difficulty. Nobody sees anything until every word is out.`,
+        '🃏'),
     ),
   );
 }

@@ -18,7 +18,7 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-const { rooms, createRoom, getRoom, addPlayer, removePlayer, transferHost, sweepRooms, closeRoomIfEmpty, snapshot, adminOverview } = await import('./core/rooms.js');
+const { rooms, createRoom, getRoom, addPlayer, removePlayer, transferHost, sweepRooms, closeRoomIfEmpty, snapshot, adminOverview, invitePreview } = await import('./core/rooms.js');
 const blendin = await import('./games/blendin/engine.js');
 const island = await import('./games/island/engine.js');
 const islandAI = await import('./games/island/ai.js');
@@ -102,10 +102,54 @@ function originFor(req) {
   return `${proto}://${host}`;
 }
 
+const DEFAULT_OG = {
+  title: 'Game Night: party games for your crew',
+  desc: 'Your crew, your rules, one room code away. Play Blend In and The Island live with '
+    + 'friends on any device. Built by Ankit Kumar Mishra.',
+};
+
+// Escaping matters here: these strings land inside an HTML attribute, and the host name is
+// whatever a player typed.
+const attr = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[c]));
+
+const GAME_LABEL = { blendin: 'Blend In', island: 'The Island' };
+
+// A shared invite deserves its own preview. Rather than trusting a name in the URL, the
+// server looks the room up by its code: no personal data in the link, nothing to escape
+// from a query string, and the numbers are live at the moment the link is unfurled.
+function ogFor(req) {
+  const code = String(req.query.join || '').toUpperCase().trim();
+  if (!/^[A-Z0-9]{5}$/.test(code)) return DEFAULT_OG;
+  const room = invitePreview(code);
+  // An expired or mistyped code falls back to the normal card rather than advertising a
+  // room that is not there.
+  if (!room) return DEFAULT_OG;
+
+  const name = room.hostName || 'A friend';
+  const others = Math.max(0, room.players - 1);
+  const crowd = others === 0
+    ? `${name} is waiting in room ${room.code}`
+    : `${name} and ${others} other${others > 1 ? 's' : ''} are in room ${room.code}`;
+  const game = GAME_LABEL[room.game];
+
+  return {
+    title: `${room.hostAvatar || '🎭'} ${name} invited you to Game Night`,
+    desc: `${crowd}.`
+      + (game ? ` Tonight: ${game}.` : '')
+      + ' No download, no sign-up, just the code.',
+  };
+}
+
 app.get(['/', '/index.html'], (req, res) => {
   // No visit is logged here on purpose. The page reports itself a moment later via
   // /api/hello, carrying the browser id that makes one person one row instead of two.
-  res.type('html').send(indexTemplate.replaceAll('%ORIGIN%', originFor(req)));
+  const og = ogFor(req);
+  res.type('html').send(indexTemplate
+    .replaceAll('%ORIGIN%', originFor(req))
+    .replaceAll('%OG_TITLE%', attr(og.title))
+    .replaceAll('%OG_DESC%', attr(og.desc)));
 });
 
 // Same substitution, because a crawler needs the real host in both of these too.

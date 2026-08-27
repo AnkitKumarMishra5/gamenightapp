@@ -1025,6 +1025,78 @@ async function testBlendInWords() {
 }
 
 // ============================================================
+// island: the deterministic rule engine
+// ============================================================
+// Spelling rules are decidable, so they must never reach the model. A model asked
+// "does QUEST contain a Q" can say no, and did.
+async function testMechanicalRules() {
+  console.log('\n▶ Island: spelling rules are decided in code, not by the model');
+  const { mechanicalRule } = await import('../server/games/island/rules.js');
+  const { ISLAND_PATTERNS } = await import('../server/games/island/patterns.js');
+
+  // The strongest available check: the bank ships curated examples and non-examples for
+  // every pattern, so any disagreement means the parser is wrong.
+  let intercepted = 0;
+  const disagreements = [];
+  for (const p of ISLAND_PATTERNS) {
+    const rule = mechanicalRule(p);
+    if (!rule) continue;
+    intercepted += 1;
+    for (const e of [...(p.starters || []), ...(p.examples || [])]) {
+      if (!rule.test(e)) disagreements.push(`${p.name}: "${e}" should fit`);
+    }
+    for (const e of (p.nonExamples || [])) {
+      if (rule.test(e)) disagreements.push(`${p.name}: "${e}" should not fit`);
+    }
+  }
+  check('a useful share of bank patterns is decided locally', intercepted >= 12, `${intercepted} of ${ISLAND_PATTERNS.length}`);
+  check('every local verdict agrees with the bank curation', disagreements.length === 0,
+    disagreements.slice(0, 4).join(' | '));
+
+  // The exact regression: a letter rule must accept a word containing that letter.
+  const q = mechanicalRule({ name: 'Contains the letter Q', description: 'The item must contain the letter Q anywhere in the word.' });
+  check('a letter rule is recognised', Boolean(q));
+  check('QUEST contains a Q', q.test('quest') === true);
+  check('case does not matter', q.test('QUEST') === true && q.test('Quest') === true);
+  check('a word without the letter is rejected', q.test('table') === false);
+
+  // "Q, X, or Z" must not parse the "or" as the letter O.
+  const rare = mechanicalRule({ name: 'Rare letters', description: 'The item contains at least one of the letters Q, X, or Z anywhere in its spelling.' });
+  check('a letter list keeps all its letters', rare.test('zebra') && rare.test('box') && rare.test('quilt'),
+    'zebra/box/quilt should all fit');
+  check('a letter list rejects a word with none of them', rare.test('violin') === false);
+
+  // Exclusion must not be read as inclusion.
+  const noE = mechanicalRule({ name: 'Never the letter E', description: 'The item contains no letter E anywhere in its spelling.' });
+  check('an exclusion rule is inverted correctly', noE.test('flamingo') === true && noE.test('tent') === false);
+
+  // Rules code cannot settle must still go to the model.
+  const deferred = [
+    ['Two syllables', 'pronounced with exactly two syllables'],
+    ['Rhymes with a body part', 'rhymes with a common part of the human body'],
+    ['Things that can break', 'the item can break, literally or idiomatically'],
+    ['Homophones exist', 'the word has a homophone, pronounced identically'],
+    ['Hidden animals', 'the spelling contains a hidden animal name as consecutive letters'],
+  ];
+  check('sound and meaning rules are left to the model',
+    deferred.every(([name, description]) => mechanicalRule({ name, description }) === null),
+    deferred.filter(([n, d]) => mechanicalRule({ name: n, description: d })).map(([n]) => n).join(', '));
+
+  // A chain rule depends on history, so it cannot be judged from the item alone.
+  check('chain rules are never intercepted',
+    mechanicalRule({ name: 'Ever-longer items', description: 'Chain rule: each new item must have strictly MORE letters than the previous accepted item.' }) === null);
+
+  // And the whole path end to end, including the "is this even a word" screen.
+  const { judgeItem } = await import('../server/games/island/ai.js');
+  const pattern = { name: 'Contains the letter Q', description: 'The item must contain the letter Q anywhere in the word.', starters: ['Queen', 'Aqua'] };
+  const good = await judgeItem(pattern, 'quest');
+  check('the judge decides a letter rule locally', good.fits === true && good.by === 'contains-letters');
+  check('a local verdict still carries a remark', typeof good.remark === 'string' && good.remark.length > 0);
+  const gibberish = await judgeItem(pattern, 'qq');
+  check('gibberish is still rejected before the rule runs', gibberish.valid === false);
+}
+
+// ============================================================
 // usage dashboard
 // ============================================================
 const hello = (body) => fetch(`${URL}/api/hello`, {
@@ -1199,7 +1271,7 @@ async function main() {
     testLeaveDuringReveal, testBlankLeavesDuringGuess, testAliveLeavesDuringGuess,
     testBlendInSettings, testIslandAI, testIslandSolving, testIslandHostMode,
     testIslandSurprise, testBlendInExtras, testScoring, testIslandGuessLimit,
-    testIslandHints, testBlendInWords,
+    testIslandHints, testBlendInWords, testMechanicalRules,
     testRoomsAndHosting, testRoomClosing, testMalformedPayloads, testGameSwitching,
     testUsageDashboard,
   ];

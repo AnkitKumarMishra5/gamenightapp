@@ -722,7 +722,7 @@ export const ISLAND_PATTERNS = [
   },
   {
     "name": "One vowel only",
-    "description": "The item's name contains exactly one vowel letter in total; count every occurrence of A, E, I, O, U (so TENT with two E's fails). Y counts as a consonant.",
+    "description": "The item's name contains exactly one vowel letter in total; count every occurrence of A, E, I, O, U (so TEETH with two E's fails). Y counts as a consonant.",
     "starters": [
       "Sphinx",
       "Drum"

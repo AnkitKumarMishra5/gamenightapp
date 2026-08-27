@@ -131,6 +131,24 @@ export function adminOverview() {
     });
 }
 
+// What a link preview may say about a room. Deliberately tiny and secret-free: who is
+// hosting, how many are in, which game. Anyone with the code could join and see all of
+// this anyway, and nothing here reveals a word, a role or a pattern.
+export function invitePreview(code) {
+  const room = rooms.get(String(code || '').toUpperCase().trim());
+  if (!room) return null;
+  const players = [...room.players.values()];
+  const host = room.players.get(room.hostId);
+  return {
+    code: room.code,
+    hostName: host?.name || null,
+    hostAvatar: host?.avatar || null,
+    players: players.filter((p) => p.connected).length,
+    game: room.game,
+    inProgress: Boolean(room.state),
+  };
+}
+
 export function snapshot(room, forPlayerId) {
   const you = room.players.get(forPlayerId);
   return {
