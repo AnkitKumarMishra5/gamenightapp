@@ -28,6 +28,8 @@ const { GameError, cleanText } = await import('./lib/util.js');
 const analytics = await import('./core/analytics.js');
 const { statsPage } = await import('./core/dashboard.js');
 
+// A host that assigns the port sets PORT. An empty or junk value falls back rather than
+// crashing, which is what lets `npm start` work with no configuration at all.
 const PORT = Number(process.env.PORT) || 3456;
 const HOST_GRACE_MS = 45_000;
 const AI_COOLDOWN_MS = 1_200;
@@ -720,6 +722,9 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Game Night running at http://localhost:${PORT}`);
+  const bound = server.address()?.port ?? PORT;
+  console.log(process.env.RENDER || process.env.NODE_ENV === 'production'
+    ? `Game Night listening on port ${bound}`
+    : `Game Night running at http://localhost:${bound}`);
   console.log(`The Island's AI gamemaster: ${aiStatus()}`);
 });
