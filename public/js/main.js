@@ -941,7 +941,18 @@ function landingHero() {
     h('div', { class: 'hero-float-field', 'aria-hidden': 'true' },
       ['🕵️', '🏝️', '🎩', '🃏', '💡', '🗳️'].map((e, i) => h('span', { class: 'hero-float', style: `--i:${i}` }, e))),
     h('img', { class: 'hero-logo', src: '/icons/logo.svg', width: 96, height: 96, alt: '' }),
-    h('h1', { class: 'title' }, staggerText(BRAND.short, 'gradient-text')),
+    h('h1', { class: 'title wordmark', 'aria-label': BRAND.short },
+      // Two word groups so a narrow screen breaks between them, never mid-word, and each
+      // letter gets its own delay for the drop-in.
+      BRAND.short.split(' ').map((word, w, all) => h('span', { class: 'wm-word' },
+        [...word].map((ch, i) => h('span', {
+          class: 'wm-ch',
+          style: `--d:${(all.slice(0, w).join(' ').length + (w ? 1 : 0) + i) * 55}ms; --r:${(i % 2 ? 1 : -1) * (6 + (i % 3) * 3)}deg`,
+          'aria-hidden': 'true',
+        }, ch)),
+      )),
+      h('span', { class: 'wm-shine', 'aria-hidden': 'true' }),
+    ),
     h('div', { class: 'hero-byline' }, BRAND.byline),
     h('p', { class: 'hero-tag' }, 'Your crew, your rules. ', h('b', {}, 'One room code away.')),
     h('p', {}, 'Real-time party games like ', h('b', {}, 'Blend In'), ' and ', h('b', {}, 'The Island'), ': host a night in under a minute, no app store required.'),
@@ -1188,13 +1199,6 @@ function developerCard() {
   );
 }
 
-function staggerText(text, cls = '') {
-  return h('span', { class: `stagger ${cls}` },
-    [...text].map((ch, i) => h('span', {
-      class: 'stagger-ch',
-      style: `--d:${i * 45}ms`,
-    }, ch === ' ' ? '\u00A0' : ch)));
-}
 
 // A labelled preview built from the same components the real screens use: the clue board
 // with its reaction bar for Blend In, the starter banner, player tiles, packing list and

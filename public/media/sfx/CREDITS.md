@@ -55,3 +55,31 @@ and files are fetched lazily the first time a sound plays.
 
 Every other sound in the app is synthesized in the browser by `public/js/core/memes.js`
 and ships no audio at all.
+
+## Pixabay clips
+
+These are the recognisable spoken meme sounds, from [Pixabay](https://pixabay.com/sound-effects/)
+under the [Pixabay Content License](https://pixabay.com/service/license-summary/): free for
+commercial use, no attribution required. Credited anyway, because the uploaders deserve it.
+
+| File | Source | Uploader |
+| --- | --- | --- |
+| `bruh.m4a` | What!? Meme | Pixabay user 50986408 |
+| `bruh-2.m4a` | Fah! | JohnnyBacon156 |
+| `boom-5.m4a` | Thud Sound Effect | DRAGON-STUDIO |
+| `boom-6.m4a` | Thud sound effect | u_60prvfn0xb |
+| `gasp-5.m4a` | AA (with reverb) meme | Pixabay user 50986408 |
+| `gasp-6.m4a` | Woooooaah! | Alex_Jauk |
+| `airhorn-4.m4a` | goofy ahh car horn | Ennismore |
+| `suspense-4.m4a` | sus meme sound | Shelvis_makes_games |
+| `suspense-5.m4a` | waterphone | u_a7pk5xrn16 |
+| `levelUp.m4a` | I got this! | JohnnyBacon156 |
+| `levelUp-2.m4a` | Yeah Boy | Universfield |
+| `applause-2.m4a` | ISNT THAT AMAZING MEME SFX | Roninthebro |
+| `emotionalDamage-2.m4a` | WOWOWOWOWOWOWOW | freesound_community |
+
+The licence permits using these in a project like this one. It does **not** permit
+re-offering them as stock audio, so do not lift this folder into a sound library.
+Processed the same way as the CC0 clips: silence trimmed from both ends (these are spoken
+one-liners, so the whole utterance is kept rather than a loud window), normalised to about
+−1 dBFS, capped at 2.6 seconds, 64 kbps mono AAC.

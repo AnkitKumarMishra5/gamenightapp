@@ -23,6 +23,7 @@
   --grad-danger: linear-gradient(135deg, #f87171, #f43f5e);
   --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.5);
   --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --display: 'Baloo 2', 'Outfit', ui-rounded, system-ui, sans-serif;
   --r-lg: 22px;
   --card-pad: clamp(18px, 4vw, 26px);
   --r-md: 16px;
@@ -218,7 +219,17 @@ h2.subtitle { font-size: clamp(19px, 4.6vw, 24px); font-weight: 800; }
 .hero-logo {
   width: clamp(76px, 17vw, 104px); height: auto; display: inline-block; border-radius: 24px;
   filter: drop-shadow(0 14px 34px rgba(99, 102, 241, 0.5));
-  animation: logo-float 5s ease-in-out infinite;
+  /* Lands first with a spin and an overshoot, then settles into the idle float. The float
+     is delayed rather than blended so the two never fight over transform. */
+  animation:
+    logo-land 0.85s cubic-bezier(0.16, 1.5, 0.36, 1) backwards,
+    logo-float 5s ease-in-out 0.85s infinite;
+}
+@keyframes logo-land {
+  0%   { opacity: 0; transform: translateY(-70px) rotate(-160deg) scale(0.4); }
+  60%  { opacity: 1; transform: translateY(8px) rotate(12deg) scale(1.1); }
+  80%  { transform: translateY(-4px) rotate(-5deg) scale(0.97); }
+  100% { opacity: 1; transform: none; }
 }
 @keyframes logo-float {
   0%, 100% { transform: translateY(0) rotate(-2.5deg); }
@@ -476,15 +487,68 @@ h2.subtitle { font-size: clamp(19px, 4.6vw, 24px); font-weight: 800; }
   background: rgba(5, 7, 15, 0.85); backdrop-filter: blur(8px); text-align: center; padding: 24px;
 }
 
-/* ---------- landing: staggered headline ---------- */
-.stagger-ch { display: inline-block; animation: ch-in 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) backwards; animation-delay: var(--d, 0ms); }
-@keyframes ch-in { from { opacity: 0; transform: translateY(26px) rotate(8deg) scale(0.7); } }
-.hero-tag { margin-top: 10px; font-size: 17.5px; color: var(--ink); font-weight: 500; animation: screen-in 0.5s 0.35s backwards; }
-.hero p { animation: screen-in 0.5s 0.5s backwards; }
+/* ---------- landing: the wordmark entrance ---------- */
+/* The name is set in a rounded display face and dropped in letter by letter. Each letter
+   arrives on a spring with its own tilt, the gradient keeps drifting once they land, and a
+   highlight sweeps across on cue. Transforms and opacity only, so it stays cheap. */
+h1.wordmark {
+  position: relative; display: inline-block;
+  font-family: var(--display);
+  /* Bigger than the old headline because a rounded display face carries it, and this is
+     the one piece of type that should feel like a logo rather than a heading. */
+  font-size: clamp(40px, 11vw, 78px); font-weight: 800; line-height: 1.02;
+  letter-spacing: -1.5px; padding: 0 6px;
+}
+.wordmark .wm-word { display: inline-block; white-space: nowrap; }
+.wordmark .wm-word + .wm-word { margin-left: 0.28em; }
+
+.wm-ch {
+  display: inline-block;
+  background: var(--grad-brand); background-size: 260% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation:
+    wm-drop 0.72s cubic-bezier(0.16, 1.5, 0.36, 1) var(--d, 0ms) backwards,
+    wm-flow 9s ease-in-out calc(var(--d, 0ms) + 700ms) infinite;
+  will-change: transform;
+}
+@keyframes wm-drop {
+  0%   { opacity: 0; transform: translateY(-58px) rotate(var(--r, 8deg)) scale(0.62); }
+  55%  { opacity: 1; transform: translateY(6px) rotate(calc(var(--r, 8deg) * -0.15)) scale(1.06); }
+  75%  { transform: translateY(-3px) scale(0.98); }
+  100% { opacity: 1; transform: none; }
+}
+/* Keeps the gradient alive instead of frozen, so the name never looks like a static PNG. */
+@keyframes wm-flow {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+/* A highlight that sweeps once the letters have landed. */
+.wm-shine {
+  position: absolute; inset: 0; pointer-events: none; border-radius: 10px;
+  background: linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.42) 50%, transparent 62%);
+  background-size: 260% 100%; background-repeat: no-repeat;
+  mix-blend-mode: overlay; opacity: 0;
+  animation: wm-shine 2.6s ease-out 900ms 2;
+}
+@keyframes wm-shine {
+  0%   { background-position: -140% 0; opacity: 0; }
+  12%  { opacity: 1; }
+  55%  { background-position: 240% 0; opacity: 0; }
+  100% { background-position: 240% 0; opacity: 0; }
+}
+
+/* Reduced motion: the name simply appears, gradient and all, with nothing moving. */
+@media (prefers-reduced-motion: reduce) {
+  .wm-ch { animation: none; opacity: 1; }
+  .wm-shine { display: none; }
+}
+.hero-tag { margin-top: 10px; font-size: 17.5px; color: var(--ink); font-weight: 500; animation: screen-in 0.6s 1.15s backwards; }
+.hero p { animation: screen-in 0.6s 1.3s backwards; }
 .hero-byline {
   font-size: clamp(12.5px, 3.2vw, 15px); font-weight: 600; letter-spacing: 2.6px;
   color: var(--ink-dim); margin-top: 8px;
-  animation: byline-in 0.8s 0.25s cubic-bezier(0.2, 1.2, 0.4, 1) backwards;
+  animation: byline-in 0.9s 0.95s cubic-bezier(0.2, 1.2, 0.4, 1) backwards;
 }
 @keyframes byline-in { from { opacity: 0; letter-spacing: 10px; transform: translateY(-4px); } }
 
@@ -698,9 +762,12 @@ h2.subtitle { font-size: clamp(19px, 4.6vw, 24px); font-weight: 800; }
   transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1);
   animation: none; /* parallax owns the transform while the pointer is over the hero */
 }
-.hero:not(:hover) .hero-logo { animation: logo-float 5s ease-in-out infinite; }
+.hero:not(:hover) .hero-logo { animation: logo-land 0.85s cubic-bezier(0.16, 1.5, 0.36, 1) backwards, logo-float 5s ease-in-out 0.85s infinite; }
 .hero-float-field { transform: translate3d(calc(var(--px) * -16px), calc(var(--py) * -10px), 0); transition: transform 0.6s ease-out; }
-.hero .title { transform: translate3d(calc(var(--px) * 4px), calc(var(--py) * 3px), 0); transition: transform 0.4s ease-out; }
+/* The parallax lives on a wrapper axis the letters do not use, so it cannot cancel the
+   per-letter drop animation. */
+.hero .title { transition: transform 0.4s ease-out; }
+.hero .title .wm-word { transform: translate3d(calc(var(--px) * 5px), calc(var(--py) * 3px), 0); transition: transform 0.4s ease-out; }
 
 /* ---------- card tilt ---------- */
 .tilt { --tx: 0deg; --ty: 0deg; transform-style: preserve-3d; }

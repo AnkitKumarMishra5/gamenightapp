@@ -2,10 +2,10 @@
 // The app's sound effects.
 //
 // Two layers. Anything acoustic — a crowd laughing, booing, gasping, applauding, a gong,
-// a snare — is a real CC0 recording from public/media/sfx/, because no amount of
-// oscillator maths sounds like a room full of people. Everything else is synthesized
-// here: the short musical stings and cartoon noises are cheaper and cleaner made from
-// oscillators than sampled, and they cost nothing to download.
+// a snare, and the spoken meme one-liners — is a real recording from public/media/sfx/,
+// because no amount of oscillator maths sounds like a room full of people. Everything else
+// is synthesized here: the short musical stings and cartoon noises are cheaper and cleaner
+// made from oscillators than sampled, and they cost nothing to download.
 //
 // The synthesized version of every sound is kept even where a recording exists. It plays
 // on the very first use while the file decodes, and it is the fallback if a file is
@@ -588,12 +588,12 @@ export const MEME_CATALOG = [
 // Each reaction draws from a pool, and every id in a pool may itself have several
 // recorded variants, so the same emoji rarely sounds the same twice.
 export const REACTION_SOUNDS = {
-  '😂': ['laughTrack', 'laughTrack', 'laughTrack', 'applause', 'rimshot'],
-  '🤔': ['crickets', 'crickets', 'crickets', 'suspense', 'bruh'],
-  '😱': ['gasp', 'gasp', 'gasp', 'boo', 'recordScratch'],
+  '😂': ['laughTrack', 'laughTrack', 'laughTrack', 'applause', 'rimshot', 'bruh'],
+  '🤔': ['crickets', 'crickets', 'suspense', 'bruh', 'recordScratch'],
+  '😱': ['gasp', 'gasp', 'gasp', 'boo', 'recordScratch', 'emotionalDamage'],
   '🧐': ['suspense', 'suspense', 'drumroll', 'sinister', 'crickets'],
   '🔥': ['airhorn', 'airhorn', 'cheer', 'applause', 'levelUp'],
-  '💀': ['boom', 'boom', 'boom', 'emotionalDamage', 'sadTrombone'],
+  '💀': ['boom', 'boom', 'boom', 'emotionalDamage', 'sadTrombone', 'bruh'],
 };
 
 // The pool is weighted by repetition (the signature sound appears more than once), so
