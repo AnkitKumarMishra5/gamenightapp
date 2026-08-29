@@ -508,6 +508,10 @@ export function snapshot(room, forPlayerId) {
     // never read as more ballots than voters.
     voteCount: state.phase === 'day'
       ? aliveConnected(room, state).filter((id) => state.votes[id]).length : 0,
+    // Who has cast, never what they cast: the ballot itself stays sealed.
+    votedIds: state.phase === 'day' ? Object.keys(state.votes) : [],
+    // Same idea at night: a count of who has turned in, never their pick.
+    submittedIds: state.phase === 'night' ? Object.keys(state.night) : [],
     votersTotal: state.phase === 'day' ? aliveConnected(room, state).length : 0,
     youVoted: Boolean(state.votes[forPlayerId]),
     yourVote: state.votes[forPlayerId] || null,

@@ -1848,7 +1848,7 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
   transition: transform 0.44s cubic-bezier(0.36, 0.06, 0.22, 1);
   transform: rotateY(0deg);
 }
-.ct-seat.mine.live.showing .ct-card.dealt { transform: rotateY(180deg); }
+.ct-seat.mine.live.showing .ct-card.dealt { transform: rotateY(-180deg); }
 /* The faces swap at the midpoint of the turn, where the card is edge-on. */
 .ct-seat.mine.live .ct-face.back { opacity: 1; transition: opacity 0s linear 0.22s; }
 .ct-seat.mine.live .ct-face.front { opacity: 0; transition: opacity 0s linear 0.22s; }
@@ -1972,7 +1972,7 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 
 /* Its own row under the stage, so it can never sit on top of a card. */
 .ct-caption {
-  text-align: center; min-height: 1.3em;
+  text-align: center; min-height: 1.3em; margin-top: 26px;
   font-size: 13.5px; color: var(--ink-dim); font-weight: 700; letter-spacing: 0.3px;
 }
 
@@ -2004,7 +2004,7 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 .peek-card .ct-face.front { transition: opacity 0s linear 0.22s; }
 .peek-card .pk-mark { font-size: 52cqi; color: rgba(var(--gold), 0.5); }
 .peek-card.showing .ct-slot { transform: rotateX(-6deg) scale(1.06); }
-.peek-card.showing .ct-card { transform: rotateY(180deg) translateY(-8px); }
+.peek-card.showing .ct-card { transform: rotateY(-180deg) translateY(-8px); }
 .peek-card.showing .ct-face.back { opacity: 0; }
 .peek-card.showing .ct-face.front { opacity: 1; }
 .pk-hint {

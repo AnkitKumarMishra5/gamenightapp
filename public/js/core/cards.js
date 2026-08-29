@@ -395,7 +395,9 @@ export function cardTable({
 
   // The stock keeps its own corner once the round is out, with a label, rather than being
   // shrunk into a crumb beside the table.
-  const deckLabel = h('div', { class: 'ct-stock', 'aria-hidden': 'true' }, deckName);
+  // An unnamed stock stays unnamed: a caption under a pile nobody can touch reads as
+  // a button and gets tapped.
+  const deckLabel = h('div', { class: 'ct-stock', 'aria-hidden': 'true' }, deckName || '');
   const status = h('p', { class: 'ct-caption' }, caption || 'Shuffling…');
 
   const table = h('div', { class: `card-table shuffling ${reduced() ? 'still' : ''}` },

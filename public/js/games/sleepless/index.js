@@ -42,8 +42,6 @@ const seen = { night: null, dawn: null, verdict: null, over: null, round: null }
 
 // Local-only UI state: nothing here is committed until the server hears about it.
 let pendingVote = null;      // picked but not yet confirmed (two-step, like Blend In)
-let repicking = false;       // "change my night pick" is open
-let revoting = false;        // "change my vote" is open
 let nightAnswer = '';        // what is typed into tonight's sum, before it is sent
 let nightTarget = null;      // Prowler/Medic tap target, before it is sent
 
@@ -54,8 +52,6 @@ function resetRoundState(sl) {
   if (seen.round === roundKey(sl)) return;
   seen.round = roundKey(sl);
   pendingVote = null;
-  repicking = false;
-  revoting = false;
   nightAnswer = '';
   nightTarget = null;
 }
@@ -188,6 +184,7 @@ function grid(sl, ctx, { selectable = null, selected = null, onSelect = null, sk
   const tiles = sl.players.map((p, i) => {
     const info = ctx.player(p.id);
     const canSelect = selectable?.includes(p.id);
+    const done = (sl.votedIds || []).includes(p.id) || (sl.submittedIds || []).includes(p.id);
     return h('div', {
       class: [
         'player-tile', animOnce(`sl-tile:${sl.dealId}:${p.id}`),
@@ -201,12 +198,14 @@ function grid(sl, ctx, { selectable = null, selected = null, onSelect = null, sk
       onClick: canSelect ? () => onSelect(p.id) : undefined,
     },
       info.isHost && h('span', { class: 'crown' }, '👑'),
+      done && p.alive && h('span', { class: 'pt-voted', title: 'Turned in' }, '✓'),
       h('div', { class: 'pt-avatar' }, p.alive ? info.avatar : (p.left ? '🚪' : '💀')),
       h('div', { class: 'pt-name' }, info.name, p.id === ctx.me.id && h('span', { class: 'pt-you' }, ' (you)')),
       h('div', { class: 'pt-sub' },
         p.left ? 'left the game'
           : !p.alive ? 'sleeping forever'
           : !p.connected ? h('span', { class: 'pt-offline' }, '⚡ disconnected')
+          : done ? (sl.phase === 'day' ? 'voted' : 'asleep')
           : ''),
     );
   });
@@ -248,7 +247,7 @@ function dealingPhase(sl, ctx) {
     caption: sl.startQuip || 'Shuffling the roles…',
     peekMs: 6000,
     holdHint: 'Hold to check your role',
-    deckName: 'Roles',
+    deckName: '',
     onDone: () => { api.done = true; updateDealing(api.sl); },
   });
 
@@ -329,14 +328,10 @@ function nightPhase(sl, ctx) {
     );
   }
 
-  if (me.alive && sl.youSubmitted && !repicking) {
+  if (me.alive && sl.youSubmitted) {
     return h('div', { class: 'card sl-night-card' },
       h('h2', { class: 'subtitle', style: 'text-align:center' }, `You settle in… ${sl.submitted}/${sl.submittedTotal} asleep`),
       sleepDots(),
-      h('button', {
-        class: 'btn btn-ghost btn-sm btn-block', style: 'margin-top:12px',
-        onClick: () => { repicking = true; ctx.sound.tap(); ctx.rerender(); },
-      }, 'Change your pick'),
     );
   }
 
@@ -364,7 +359,7 @@ function nightPhase(sl, ctx) {
       answer: Number(nightAnswer),
       targetId: needsTarget ? nightTarget : undefined,
     });
-    if (res.ok) { repicking = false; nightAnswer = ''; ctx.sound.pop(); }
+    if (res.ok) { nightAnswer = ''; ctx.sound.pop(); }
     else { shake(btn || answerBox); ctx.sound.tap(); ctx.toast(res.error); }
   };
 
@@ -426,7 +421,7 @@ function dawnBanner(sl, ctx) {
 function voteBoard(sl, ctx) {
   const me = sl.you;
   const alive = me?.alive;
-  const canVote = alive && (!sl.youVoted || revoting);
+  const canVote = alive && !sl.youVoted;
 
   // Anything picked but no longer pickable is dropped, so a stale confirm can never fire.
   if (!canVote) pendingVote = null;
@@ -442,7 +437,7 @@ function voteBoard(sl, ctx) {
     h('h2', { class: 'subtitle', style: 'text-align:center' }, '🗳️ Who doesn\'t sleep at night?'),
     h('p', { class: 'hint', style: 'text-align:center; margin:6px 0 14px' },
       !alive ? 'You\'re spectating this vote.'
-        : sl.youVoted && !revoting ? `Vote locked in ✅ (${sl.voteCount}/${sl.votersTotal})`
+        : sl.youVoted ? `Vote locked in ✅ (${sl.voteCount}/${sl.votersTotal})`
         : pendingVote ? 'Confirm below, or pick someone else.'
         : 'Tap a player, or Skip. Votes stay sealed until everyone has cast one.'),
     grid(sl, ctx, {
@@ -460,7 +455,7 @@ function voteBoard(sl, ctx) {
     pendingVote && h('div', { class: 'sl-confirm' },
       h('p', { class: 'sl-confirm-ask' },
         pendingVote === 'skip' ? 'Vote to skip today?' : ['Vote out ', h('b', {}, `${target.avatar} ${target.name}`), '?']),
-      h('p', { class: 'sl-confirm-warn' }, 'Everyone will see who you voted for once all votes are in.'),
+      h('p', { class: 'sl-confirm-warn' }, 'This cannot be taken back. Everyone sees who you voted for once all votes are in.'),
       h('div', { class: 'sl-confirm-actions' },
         h('button', {
           class: 'btn btn-ghost',
@@ -473,16 +468,12 @@ function voteBoard(sl, ctx) {
             const btn = e.currentTarget;   // currentTarget is gone after the await
             btn.disabled = true;
             const res = await ctx.emit('sl:vote', { targetId: id });
-            if (res.ok) { pendingVote = null; revoting = false; ctx.sound.pop(); }
+            if (res.ok) { pendingVote = null; ctx.sound.pop(); }
             else { btn.disabled = false; shake(btn); }
           },
         }, '🗳️ Lock it in'),
       ),
     ),
-    alive && sl.youVoted && !revoting && h('button', {
-      class: 'btn btn-ghost btn-sm btn-block', style: 'margin-top:10px',
-      onClick: () => { revoting = true; ctx.sound.tap(); ctx.rerender(); },
-    }, 'Change your vote'),
     h('div', { class: 'sl-progress' }, h('div', { class: 'sl-progress-fill', style: `width:${pct}%` })),
     h('p', { class: 'hint', style: 'text-align:center; margin-top:8px' }, `${sl.voteCount} of ${sl.votersTotal} votes are in`),
   );
