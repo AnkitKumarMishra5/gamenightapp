@@ -258,12 +258,28 @@ export async function judgeItem(pattern, item, mockHints = null) {
 
 const VERIFY_ITEM_SYSTEM = `You verify a party-game ruling. Given the secret rule, an item, and a first verdict, decide independently whether the item satisfies the rule, exactly as written. Reply as JSON: {"fits": true|false, "remark": "short player-facing line only if you flip"}. Be strict about the rule's letter and spirit; do not invent extra conditions.`;
 
-// The whole round, re-read three times over: every accepted and rejected item checked
-// against the rule again, independently, and a call is only overturned when at least two
-// of the three passes agree. One model reading its own homework is exactly how a wrong
-// call became wrong in the first place. Used by the table's "smells fishy" appeal.
-const AUDIT_PASSES = 3;
+// The whole round re-read, then re-checked twice more. Three calls, and they are not
+// three copies of the same question: the first proposes which rulings look wrong, and
+// the second and third independently re-judge only those items from scratch, without
+// being told what anyone concluded. A call is overturned only when both confirmations
+// agree with the proposal. Anything less and the boat keeps its original answer — an
+// apology for a call that was right the first time is worse than no apology.
 const AUDIT_SYSTEM = `You re-audit a party-game round. Given the secret rule and every past ruling, list ONLY the rulings that are wrong, with the correct verdict. Reply as JSON: {"corrections":[{"text":"item","fits":true|false}]}. If everything is right, return {"corrections":[]}. Never invent items not in the list; be strict about the rule exactly as written. Never explain your reasoning: the players are still trying to work the rule out.`;
+const RECHECK_SYSTEM = `You judge items against a secret rule for a party game. For each item decide, from scratch, whether it satisfies the rule exactly as written. Reply as JSON: {"items":[{"text":"item","fits":true|false}]}. Judge only the items given. Do not explain anything.`;
+
+async function recheckItems(pattern, texts) {
+  const out = await chatJSON({
+    system: RECHECK_SYSTEM,
+    user: `Rule: ${pattern.description}\nItems that are known to fit: ${pattern.starters.join(', ')}\n\nItems to judge:\n${texts.map((t) => `- "${t}"`).join('\n')}`,
+    temperature: 0, maxTokens: 300,
+  }).catch(() => null);
+  const map = new Map();
+  for (const row of Array.isArray(out?.items) ? out.items : []) {
+    if (typeof row?.fits !== 'boolean') continue;
+    map.set(normalize(String(row.text || '')), row.fits);
+  }
+  return map;
+}
 
 export async function auditRound(pattern, judged) {
   if (MOCK || !process.env.OPENAI_API_KEY) return { corrections: [], note: '' };
@@ -275,35 +291,35 @@ export async function auditRound(pattern, judged) {
     return { corrections, note: '' };
   }
 
+  // Pass 1 — what looks wrong?
   const lines = judged.map((j) => `- "${j.text}" was ruled ${j.fits ? 'FITS' : 'DOES NOT FIT'}`).join('\n');
-  const user = `Rule: ${pattern.description}\nOpening items that fit: ${pattern.starters.join(', ')}\n\nPast rulings:\n${lines}`;
-  const passes = await Promise.all(Array.from({ length: AUDIT_PASSES }, () => chatJSON({
-    system: AUDIT_SYSTEM, user,
-    // A little heat, or three identical passes just repeat one opinion three times.
-    temperature: 0.3, maxTokens: 400,
-  }).catch(() => null)));
+  const out = await chatJSON({
+    system: AUDIT_SYSTEM,
+    user: `Rule: ${pattern.description}\nOpening items that fit: ${pattern.starters.join(', ')}\n\nPast rulings:\n${lines}`,
+    temperature: 0, maxTokens: 400,
+  }).catch(() => null);
 
-  // A correction needs a majority of the passes that actually came back.
-  const answered = passes.filter(Boolean);
-  if (!answered.length) return { corrections: [], note: '' };
-  const votes = new Map();
-  for (const out of answered) {
-    const seen = new Set();
-    for (const c of Array.isArray(out?.corrections) ? out.corrections : []) {
-      if (typeof c?.fits !== 'boolean') continue;
-      const match = judged.find((j) => normalize(j.text) === normalize(String(c.text || '')));
-      if (!match || match.fits === c.fits) continue;
-      const key = `${normalize(match.text)}:${c.fits}`;
-      if (seen.has(key)) continue;         // one pass, one vote per call
-      seen.add(key);
-      const row = votes.get(key) || { text: match.text, fits: c.fits, n: 0 };
-      row.n += 1;
-      votes.set(key, row);
-    }
+  const proposed = [];
+  const seen = new Set();
+  for (const c of Array.isArray(out?.corrections) ? out.corrections : []) {
+    if (typeof c?.fits !== 'boolean') continue;
+    const match = judged.find((j) => normalize(j.text) === normalize(String(c.text || '')));
+    // A "correction" that agrees with the original ruling is not a correction.
+    if (!match || match.fits === c.fits) continue;
+    const key = normalize(match.text);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    proposed.push({ text: match.text, fits: c.fits });
   }
-  const needed = Math.ceil(answered.length / 2);
-  const corrections = [...votes.values()].filter((v) => v.n >= needed)
-    .map(({ text, fits }) => ({ text, fits }));
+  if (!proposed.length) return { corrections: [], note: '' };
+
+  // Passes 2 and 3 — judge those items again, cold, and only twice-confirmed flips stand.
+  const texts = proposed.map((p) => p.text);
+  const [second, third] = await Promise.all([recheckItems(pattern, texts), recheckItems(pattern, texts)]);
+  const corrections = proposed.filter((p) => {
+    const key = normalize(p.text);
+    return second.get(key) === p.fits && third.get(key) === p.fits;
+  });
   return { corrections, note: '' };
 }
 

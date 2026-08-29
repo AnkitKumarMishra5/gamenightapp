@@ -287,9 +287,9 @@ function auditPanel(is, ctx) {
   return h('div', { class: 'audit-box' },
     is.auditing && h('div', { class: 'card audit-note', style: 'padding:10px 14px; margin-bottom:8px' },
       h('b', {}, '👁 Re-reading the round… '),
-      'Three passes over every call. Nothing can be played until the boat is done.'),
+      'Reading every call again, then re-judging anything doubtful twice more. Nothing can be played until the boat is done.'),
     last && h('div', { class: `card audit-note ${last.fixed.length ? 'warn' : ''}`, style: 'padding:10px 14px; margin-bottom:8px' },
-      h('b', {}, last.fixed.length ? '🐟 The boat stands corrected. ' : '✅ The boat re-checked itself. '),
+      h('b', {}, last.fixed.length ? '🐟 The boat stands corrected. ' : '👁 The boat re-checked itself. '),
       last.note,
       last.fixed.length
         ? h('span', { class: 'audit-moves' },

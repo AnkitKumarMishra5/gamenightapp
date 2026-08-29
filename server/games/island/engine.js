@@ -366,18 +366,18 @@ export function requestAudit(room, playerId) {
 // The boat owning its mistakes. Three passes agreed before any of this reached the table,
 // so the apology is for a call that really was wrong.
 const AUDIT_SORRY = [
-  'Sorry — I am an AI and I do hallucinate. Read it three more times and I disagreed with myself.',
-  'My apologies. I checked it three times over and past me was wrong.',
-  'Awkward. Three re-reads later, I have to overrule myself.',
-  'Turns out I was confidently incorrect. Three passes say so.',
-  'Sorry about that one. I read it again, twice more, and changed my mind.',
+  'Sorry — I am an AI and I do hallucinate. I judged these again twice and both times I disagreed with myself.',
+  'My apologies. I re-judged these from scratch, twice, and past me was wrong.',
+  'Awkward. Two fresh re-reads later, I have to overrule myself.',
+  'Turns out I was confidently incorrect. Two independent re-checks agree.',
+  'Sorry about that. I looked again, twice, and changed my mind both times.',
   'Correction incoming, and yes, the mistake was mine.',
 ];
 const AUDIT_CLEAN = [
-  'I read the whole round three times over. Everything stands.',
-  'Three passes, no changes. The calls were right the first time.',
-  'Checked myself thoroughly. Nothing to take back today.',
-  'Re-read it all three times. I am sticking with every call.',
+  'Hmm. I re-read every call and judged the doubtful ones again twice. Everything stands.',
+  'I checked myself properly this time. Nothing to take back — the calls were right.',
+  'Re-read the whole round, re-judged the shaky ones twice more. I am sticking with every call.',
+  'Had a good look. No changes: every item is already where it belongs.',
 ];
 
 // Corrections flip the original rulings in place, so the packing list, the story and the

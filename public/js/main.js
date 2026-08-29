@@ -583,10 +583,10 @@ function leaveRoom() {
 
   openModal(h('div', { style: 'text-align:center' },
     h('div', { class: 'modal-title', style: 'justify-content:center' }, 'Leaving?'),
-    h('p', { class: 'hint' },
-      isHost
-        ? 'You will be removed from the game. Another player becomes the owner, and the room closes once the last player leaves.'
-        : 'You will be removed from the game in progress. You can rejoin with the room code.'),
+    // Only the owner needs the warning about handing the room on; for everyone else it
+    // describes something that will not happen to them.
+    isHost && h('p', { class: 'hint' },
+      'Leaving the room hands it to another player, and it closes once the last player leaves.'),
     h('div', { style: 'display:grid; gap:10px; margin-top:16px' },
       canEndGame && h('button', {
         class: 'btn btn-primary',
@@ -597,11 +597,10 @@ function leaveRoom() {
           closeModal();
           toast('Back in the lobby. 🏠');
         },
-      }, '🏠 End the game, stay in the room'),
+      }, '🏠 Leave the game, stay in the room'),
       inGame && !isHost && h('p', { class: 'hint' },
-        'Only the room owner can end the game and send everyone back to the lobby.'),
-      h('button', { class: 'btn btn-danger', onClick: () => { closeModal(); quit(); } },
-        isHost ? '🚪 Leave the room' : '🚪 Leave the room'),
+        'Only the room owner can end the game and take everyone back to the lobby.'),
+      h('button', { class: 'btn btn-danger', onClick: () => { closeModal(); quit(); } }, '🚪 Leave the room'),
       h('button', { class: 'btn btn-ghost', onClick: closeModal }, 'Stay'),
     ),
   ));
