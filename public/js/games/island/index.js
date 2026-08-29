@@ -285,9 +285,12 @@ function auditPanel(is, ctx) {
   if (is.mode !== 'ai' || is.phase !== 'playing') return null;
   const last = is.lastAudit;
   return h('div', { class: 'audit-box' },
-    is.auditing && h('div', { class: 'card audit-note', style: 'padding:10px 14px; margin-bottom:8px' },
-      h('b', {}, '👁 Re-reading the round… '),
-      'Reading every call again, then re-judging anything doubtful twice more. Nothing can be played until the boat is done.'),
+    is.auditing && h('div', { class: 'card audit-note audit-working', style: 'padding:12px 14px; margin-bottom:8px' },
+      h('span', { class: 'audit-spinner', 'aria-hidden': 'true' }),
+      h('span', {},
+        h('b', {}, '👁 The boat is re-reading the round… '),
+        'Every call judged again from scratch, over and over, until two passes agree. This takes a moment, and nothing can be played until it is done.'),
+    ),
     last && h('div', { class: `card audit-note ${last.fixed.length ? 'warn' : ''}`, style: 'padding:10px 14px; margin-bottom:8px' },
       h('b', {}, last.fixed.length ? '🐟 The boat stands corrected. ' : '👁 The boat re-checked itself. '),
       last.note,
@@ -303,21 +306,28 @@ function auditPanel(is, ctx) {
             })())
         : null,
     ),
-    h('button', {
-      class: 'btn btn-ghost btn-sm btn-block',
-      disabled: is.auditing || undefined,
-      onClick: async (e) => {
-        const btn = e.currentTarget;
-        btn.disabled = true;
-        btn.textContent = '🐟 The boat is re-reading everything…';
-        const res = await ctx.emit('is:audit');
-        btn.disabled = false;
-        btn.textContent = '🐟 Something smells fishy. Boat, re-check yourself!';
-        if (!res.ok) shake(btn);
-      },
-    }, '🐟 Something smells fishy. Boat, re-check yourself!'),
-    h('p', { class: 'hint', style: 'text-align:center; margin-top:4px' },
-      'Re-reads every ruling of the round, and the secret pattern, with fresh eyes. Owns up to anything it got wrong.'),
+    // The appeal freezes the round for everybody and costs several judging passes, so
+    // it belongs to the room owner, called once the table agrees.
+    ctx.isHost
+      ? h('button', {
+          class: 'btn btn-ghost btn-sm btn-block',
+          disabled: is.auditing || undefined,
+          onClick: async (e) => {
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            btn.textContent = '🐟 The boat is re-reading everything…';
+            const res = await ctx.emit('is:audit');
+            btn.disabled = false;
+            btn.textContent = '🐟 Something smells fishy. Boat, re-check yourself!';
+            if (!res.ok) shake(btn);
+          },
+        }, '🐟 Something smells fishy. Boat, re-check yourself!')
+      : null,
+    ctx.isHost
+      ? h('p', { class: 'hint', style: 'text-align:center; margin-top:4px' },
+          'Re-reads every ruling of the round against the secret pattern, again and again, until it agrees with itself. Owns up to anything it got wrong.')
+      : h('p', { class: 'hint', style: 'text-align:center; margin-top:4px' },
+          '🐟 Think a call was wrong? The room owner can ask the boat to re-check the whole round.'),
   );
 }
 

@@ -258,27 +258,46 @@ export async function judgeItem(pattern, item, mockHints = null) {
 
 const VERIFY_ITEM_SYSTEM = `You verify a party-game ruling. Given the secret rule, an item, and a first verdict, decide independently whether the item satisfies the rule, exactly as written. Reply as JSON: {"fits": true|false, "remark": "short player-facing line only if you flip"}. Be strict about the rule's letter and spirit; do not invent extra conditions.`;
 
-// The whole round re-read, then re-checked twice more. Three calls, and they are not
-// three copies of the same question: the first proposes which rulings look wrong, and
-// the second and third independently re-judge only those items from scratch, without
-// being told what anyone concluded. A call is overturned only when both confirmations
-// agree with the proposal. Anything less and the boat keeps its original answer — an
-// apology for a call that was right the first time is worse than no apology.
-const AUDIT_SYSTEM = `You re-audit a party-game round. Given the secret rule and every past ruling, list ONLY the rulings that are wrong, with the correct verdict. Reply as JSON: {"corrections":[{"text":"item","fits":true|false}]}. If everything is right, return {"corrections":[]}. Never invent items not in the list; be strict about the rule exactly as written. Never explain your reasoning: the players are still trying to work the rule out.`;
-const RECHECK_SYSTEM = `You judge items against a secret rule for a party game. For each item decide, from scratch, whether it satisfies the rule exactly as written. Reply as JSON: {"items":[{"text":"item","fits":true|false}]}. Judge only the items given. Do not explain anything.`;
+// The whole round re-read, then argued over until the model stops changing its mind.
+//
+// One pass is a first impression, and a first impression is what produced the wrong call
+// in the first place. So the round is judged from scratch, repeatedly, each round given
+// the full context — the rule, its known-good examples, every item, and what the previous
+// pass concluded — and a verdict is only trusted once two consecutive passes agree on it
+// item by item. Items the passes keep flip-flopping on are left exactly as the table
+// found them: an unstable answer is not an answer.
+const AUDIT_ROUNDS = 4;              // hard ceiling, so a stubborn round cannot loop forever
+const AUDIT_STABLE = 2;              // consecutive identical passes needed to settle
 
-async function recheckItems(pattern, texts) {
+const AUDIT_SYSTEM = `You are the judge of a party game. You are re-checking your own past rulings, and you are known to make mistakes, so check carefully and independently.
+
+Given the secret rule, examples that are known to fit, and every item the table has asked about, decide for EACH item whether it satisfies the rule exactly as written. Judge every item from scratch. Do not assume a past ruling was right, and do not assume it was wrong.
+
+Reply as JSON: {"verdicts":[{"text":"<item exactly as given>","fits":true|false}]}
+Include every item you were given, once each. Never invent items. Never explain your reasoning: the players are still working the rule out.`;
+
+function verdictKey(map) {
+  return [...map.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([k, v]) => `${k}:${v}`).join('|');
+}
+
+async function judgeAll(pattern, judged, previous) {
+  const items = judged.map((j) => `- "${j.text}"`).join('\n');
+  const priorLine = previous
+    ? `\n\nYour previous pass concluded:\n${judged.map((j) => `- "${j.text}": ${previous.get(normalize(j.text)) ? 'FITS' : 'DOES NOT FIT'}`).join('\n')}\n\nCheck each of those again. Keep what is right, change what is wrong.`
+    : `\n\nThe table's current rulings are:\n${judged.map((j) => `- "${j.text}": ${j.fits ? 'FITS' : 'DOES NOT FIT'}`).join('\n')}`;
   const out = await chatJSON({
-    system: RECHECK_SYSTEM,
-    user: `Rule: ${pattern.description}\nItems that are known to fit: ${pattern.starters.join(', ')}\n\nItems to judge:\n${texts.map((t) => `- "${t}"`).join('\n')}`,
-    temperature: 0, maxTokens: 300,
+    system: AUDIT_SYSTEM,
+    user: `Rule: ${pattern.description}\nItems known to fit: ${pattern.starters.join(', ')}\n\nItems to judge:\n${items}${priorLine}`,
+    temperature: 0, maxTokens: 700,
   }).catch(() => null);
   const map = new Map();
-  for (const row of Array.isArray(out?.items) ? out.items : []) {
+  for (const row of Array.isArray(out?.verdicts) ? out.verdicts : []) {
     if (typeof row?.fits !== 'boolean') continue;
-    map.set(normalize(String(row.text || '')), row.fits);
+    const match = judged.find((j) => normalize(j.text) === normalize(String(row.text || '')));
+    if (match) map.set(normalize(match.text), row.fits);
   }
-  return map;
+  // A pass that could not judge the whole round is not a pass.
+  return map.size === judged.length ? map : null;
 }
 
 export async function auditRound(pattern, judged) {
@@ -290,36 +309,28 @@ export async function auditRound(pattern, judged) {
       .map((j) => ({ text: j.text, fits: rule.test(j.text) }));
     return { corrections, note: '' };
   }
+  if (!judged.length) return { corrections: [], note: '' };
 
-  // Pass 1 — what looks wrong?
-  const lines = judged.map((j) => `- "${j.text}" was ruled ${j.fits ? 'FITS' : 'DOES NOT FIT'}`).join('\n');
-  const out = await chatJSON({
-    system: AUDIT_SYSTEM,
-    user: `Rule: ${pattern.description}\nOpening items that fit: ${pattern.starters.join(', ')}\n\nPast rulings:\n${lines}`,
-    temperature: 0, maxTokens: 400,
-  }).catch(() => null);
-
-  const proposed = [];
-  const seen = new Set();
-  for (const c of Array.isArray(out?.corrections) ? out.corrections : []) {
-    if (typeof c?.fits !== 'boolean') continue;
-    const match = judged.find((j) => normalize(j.text) === normalize(String(c.text || '')));
-    // A "correction" that agrees with the original ruling is not a correction.
-    if (!match || match.fits === c.fits) continue;
-    const key = normalize(match.text);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    proposed.push({ text: match.text, fits: c.fits });
+  let settled = null;
+  let previous = null;
+  let sameFor = 1;
+  for (let i = 0; i < AUDIT_ROUNDS; i++) {
+    const pass = await judgeAll(pattern, judged, previous);
+    if (!pass) break;
+    if (previous && verdictKey(pass) === verdictKey(previous)) {
+      sameFor += 1;
+      if (sameFor >= AUDIT_STABLE) { settled = pass; break; }
+    } else {
+      sameFor = 1;
+    }
+    previous = pass;
   }
-  if (!proposed.length) return { corrections: [], note: '' };
+  // Never settled means the model kept arguing with itself; the table keeps its rulings.
+  if (!settled) return { corrections: [], note: '' };
 
-  // Passes 2 and 3 — judge those items again, cold, and only twice-confirmed flips stand.
-  const texts = proposed.map((p) => p.text);
-  const [second, third] = await Promise.all([recheckItems(pattern, texts), recheckItems(pattern, texts)]);
-  const corrections = proposed.filter((p) => {
-    const key = normalize(p.text);
-    return second.get(key) === p.fits && third.get(key) === p.fits;
-  });
+  const corrections = judged
+    .filter((j) => settled.get(normalize(j.text)) !== j.fits)
+    .map((j) => ({ text: j.text, fits: settled.get(normalize(j.text)) }));
   return { corrections, note: '' };
 }
 

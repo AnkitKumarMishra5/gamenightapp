@@ -356,28 +356,31 @@ export function requestAudit(room, playerId) {
   const state = st(room);
   if (state.phase !== 'playing') throw new GameError('Nothing to re-check right now.');
   if (state.auditing) throw new GameError('The boat is already re-reading the round.');
+  // One appeal, made on behalf of the table: the re-check freezes the round for
+  // everybody and costs several judging passes, so it is the room owner's to call.
+  if (room.hostId !== playerId) throw new GameError('Only the room owner can ask the boat to re-check, once the table agrees.');
   if (state.mode !== 'ai') throw new GameError('A human judged this round. Argue with them directly!');
   if (state.pendingJudge) throw new GameError('Wait for the current call to be judged first.');
   const judged = state.attempts.filter((a) => a.type === 'item' && a.verdict !== 'pending');
   if (!judged.length) throw new GameError('Nothing has been judged yet.');
-  return { state, judged: judged.map((a) => ({ text: a.text, fits: a.fits === true })) };
+  return { state, judged: judged.map((a) => ({ text: a.text, fits: a.verdict === 'yes' })) };
 }
 
 // The boat owning its mistakes. Three passes agreed before any of this reached the table,
 // so the apology is for a call that really was wrong.
 const AUDIT_SORRY = [
-  'Sorry — I am an AI and I do hallucinate. I judged these again twice and both times I disagreed with myself.',
-  'My apologies. I re-judged these from scratch, twice, and past me was wrong.',
-  'Awkward. Two fresh re-reads later, I have to overrule myself.',
-  'Turns out I was confidently incorrect. Two independent re-checks agree.',
-  'Sorry about that. I looked again, twice, and changed my mind both times.',
+  'Sorry — I am an AI and I do hallucinate. I judged the whole round again, over and over, until I stopped changing my mind, and past me was wrong.',
+  'My apologies. I re-judged every item from scratch until two passes agreed, and this is where they landed.',
+  'Awkward. I argued with myself until I settled, and I have to overrule my earlier self.',
+  'Turns out I was confidently incorrect. I kept re-reading until I agreed with myself twice running.',
+  'Sorry about that. I went back over everything repeatedly, and it kept coming out differently to my first answer.',
   'Correction incoming, and yes, the mistake was mine.',
 ];
 const AUDIT_CLEAN = [
-  'Hmm. I re-read every call and judged the doubtful ones again twice. Everything stands.',
-  'I checked myself properly this time. Nothing to take back — the calls were right.',
-  'Re-read the whole round, re-judged the shaky ones twice more. I am sticking with every call.',
-  'Had a good look. No changes: every item is already where it belongs.',
+  'Hmm. I judged the whole round again from scratch, repeatedly, until I agreed with myself. Everything stands.',
+  'I checked myself properly this time — every item, several times over. Nothing to take back.',
+  'Re-read it all until two passes matched. I am sticking with every call.',
+  'Had a good long look. No changes: every item is already where it belongs.',
 ];
 
 // Corrections flip the original rulings in place, so the packing list, the story and the
@@ -387,9 +390,12 @@ export function applyAudit(room, playerId, corrections, note) {
   const state = st(room);
   const fixed = [];
   for (const c of corrections || []) {
-    const attempt = state.attempts.find((a) => a.type === 'item' && normalize(a.text) === normalize(c.text));
-    if (!attempt || attempt.fits === c.fits) continue;
-    attempt.fits = c.fits;
+    const attempt = state.attempts.find((a) => a.type === 'item'
+      && a.verdict !== 'pending' && normalize(a.text) === normalize(c.text));
+    if (!attempt || (attempt.verdict === 'yes') === c.fits) continue;
+    // The verdict is what the packing list and the story both read, so flipping it is
+    // what actually moves an item between the two piles.
+    attempt.verdict = c.fits ? 'yes' : 'no';
     // Never the model's reasoning: a sentence explaining WHY an item fits is the rule,
     // written out. The corrected call speaks for itself.
     attempt.remark = c.fits ? 'On second reading, this fits after all.' : 'On second reading, this never fit.';

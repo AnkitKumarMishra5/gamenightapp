@@ -2080,3 +2080,13 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 @media (max-width: 460px) {
   .bi-reveal-row .rl-tail { width: 100%; margin-left: 30px; }
 }
+
+/* The boat re-reading itself: a slow ring, because the pass runs several judgements. */
+.audit-working { display: flex; align-items: center; gap: 12px; text-align: left; }
+.audit-spinner {
+  flex: none; width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid rgba(212, 175, 55, 0.25); border-top-color: rgba(212, 175, 55, 0.9);
+  animation: audit-spin 0.9s linear infinite;
+}
+@keyframes audit-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .audit-spinner { animation-duration: 2.4s; } }
