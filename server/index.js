@@ -827,10 +827,14 @@ io.on('connection', (socket) => {
     } catch (err) {
       return cb?.({ ok: false, error: err instanceof GameError ? err.message : 'No hint right now.' });
     }
+    // A human gamemaster reviews before anything reaches the table: the model only
+    // drafts, and the round is unchanged until they hand the hint over.
+    const review = state.mode === 'host';
     islandAI.suggestItems(state.pattern, island.knownItems(state), state.bankEntry, island.HINT_SIZE)
       .then((items) => {
         // The round can end or restart while the model is thinking.
         if (room.state !== state || state.phase !== 'playing') return cb?.({ ok: false, error: 'The round moved on.' });
+        if (review) return cb?.({ ok: true, items, review: true });
         const result = island.applyHint(room, playerId, items);
         broadcast(room);
         emitFx(room, result.fx);
@@ -841,6 +845,12 @@ io.on('connection', (socket) => {
         cb?.({ ok: false, error: 'The boat is not giving anything away right now, try again.' });
       });
   });
+
+  // The gamemaster's own words, whether they wrote them or edited the model's draft.
+  socket.on('is:hintGive', action(socket, (room, playerId, payload) => {
+    island.requestHint(room, playerId);
+    return island.applyHint(room, playerId, Array.isArray(payload?.items) ? payload.items : []);
+  }));
 
   socket.on('is:item', action(socket, (room, playerId, payload) => {
     const state = room.state;

@@ -41,7 +41,7 @@ export const GAMES = [
     title: 'Silent Order',
     emoji: '🕯️',
     accent: 'so',
-    tagline: 'One team, three lives, no talking. Play every card in rising order on nerve alone.',
+    tagline: 'One team, one life to start, no talking. Play every card in rising order on nerve alone.',
     minPlayers: 2, maxPlayers: 8,
     tags: ['2–8 players', 'co-operative', '🎥 play on a group call'],
     render: renderSilentOrder,

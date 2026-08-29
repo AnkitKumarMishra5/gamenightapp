@@ -289,7 +289,7 @@ function auditPanel(is, ctx) {
       h('b', {}, last.fixed.length ? '🐟 The boat stands corrected. ' : '✅ The boat re-checked itself. '),
       last.note,
       last.fixed.length
-        ? h('span', {}, ' ', last.fixed.map((f) => `"${f.text}" ${f.fits ? 'actually fits' : 'never fit'}`).join(' · '))
+        ? h('span', {}, ' Moved on the list: ', last.fixed.map((f) => `"${f.text}"`).join(' · '))
         : null,
     ),
     h('button', {
@@ -411,28 +411,87 @@ function actionBar(is, ctx) {
 function hintButton(is, ctx) {
   if (is.hintSpent) return null;
   const ready = (is.hintsAvailable || 0) > 0;
+  const gmRound = is.mode === 'host';
+  const mine = gmRound ? is.gmId === ctx.me.id : ctx.isHost;
 
-  // The one hint belongs to the whole table, so only the room owner can spend it, and
-  // only after asking out loud. Everyone else just sees how far away it is.
-  if (!ctx.isHost) {
+  if (!mine) {
+    const who = gmRound ? 'The gamemaster' : 'The room owner';
     return ready
-      ? h('p', { class: 'hint hint-countdown' }, '💡 The table\'s one hint is unlocked. The room owner can spend it if everyone agrees.')
+      ? h('p', { class: 'hint hint-countdown' }, `💡 The table's one hint is unlocked. ${who} can give it if everyone agrees.`)
       : h('p', { class: 'hint hint-countdown' }, `💡 The table's one hint unlocks in ${is.turnsToNextHint} more turn${is.turnsToNextHint === 1 ? '' : 's'}.`);
   }
   if (!ready) {
     return h('p', { class: 'hint hint-countdown' },
       `💡 Your one hint for this round unlocks in ${is.turnsToNextHint} more turn${is.turnsToNextHint === 1 ? '' : 's'}.`);
   }
+
+  // With an AI gamemaster the hint goes straight to the table. With a human one it is
+  // the gamemaster's hint to write: the model can draft two words, but nothing reaches
+  // the table until they approve it.
+  if (!gmRound) {
+    return h('button', {
+      class: 'btn btn-ghost btn-sm btn-block hint-btn', style: 'margin-top:10px',
+      onClick: async (e) => {
+        const btn = e.currentTarget;
+        btn.disabled = true;
+        btn.textContent = '💡 Asking the boat…';
+        const res = await ctx.emit('is:hint');
+        if (!res.ok) { btn.disabled = false; shake(btn); }
+      },
+    }, '💡 Spend the table\'s one hint (ask everyone first!)');
+  }
+
   return h('button', {
     class: 'btn btn-ghost btn-sm btn-block hint-btn', style: 'margin-top:10px',
+    onClick: () => gmHintModal(ctx),
+  }, '💡 Give the table their one hint');
+}
+
+// The gamemaster's hint desk: type two words that fit the pattern, or have the model
+// draft a pair and edit them before anyone else sees them.
+async function gmHintModal(ctx) {
+  const { openModal, closeModal } = await import('../../core/ui.js');
+  const a = h('input', { class: 'input', maxlength: 40, placeholder: 'First word' });
+  const b = h('input', { class: 'input', maxlength: 40, placeholder: 'Second word' });
+  const note = h('p', { class: 'hint', style: 'margin-top:10px' });
+
+  const draft = h('button', {
+    class: 'btn btn-ghost btn-sm',
     onClick: async (e) => {
       const btn = e.currentTarget;
-      btn.disabled = true;
-      btn.textContent = '💡 Asking the boat…';
+      btn.disabled = true; btn.textContent = 'Drafting…';
       const res = await ctx.emit('is:hint');
-      if (!res.ok) { btn.disabled = false; shake(btn); }
+      btn.disabled = false; btn.textContent = '🤖 Draft with AI';
+      if (!res.ok || !res.items?.length) { note.textContent = res.error || 'No draft right now — write your own.'; return; }
+      a.value = res.items[0] || '';
+      b.value = res.items[1] || '';
+      note.textContent = 'Draft only. Check both words really fit before you send them.';
     },
-  }, '💡 Spend the table\'s one hint (ask everyone first!)');
+  }, '🤖 Draft with AI');
+
+  openModal(h('div', {},
+    h('div', { class: 'modal-title' }, '💡 Your hint to the table'),
+    h('p', { class: 'hint', style: 'margin-bottom:12px' },
+      'Two words that fit your pattern. Nothing is sent until you press give.'),
+    h('div', { style: 'display:grid; gap:8px' }, a, b),
+    h('div', { style: 'margin-top:10px' }, draft),
+    note,
+    h('div', { style: 'display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px' },
+      h('button', { class: 'btn btn-ghost', onClick: closeModal }, 'Not yet'),
+      h('button', {
+        class: 'btn btn-island',
+        onClick: async (e) => {
+          const items = [a.value, b.value].map((t) => t.trim()).filter(Boolean);
+          if (items.length < 2) { note.textContent = 'Two words, please.'; return; }
+          const btn = e.currentTarget;
+          btn.disabled = true;
+          const res = await ctx.emit('is:hintGive', { items });
+          if (res.ok) closeModal();
+          else { btn.disabled = false; note.textContent = res.error || 'That did not go through.'; shake(btn); }
+        },
+      }, '💡 Give the hint'),
+    ),
+  ));
 }
 
 async function patternGuessModal(ctx, is) {

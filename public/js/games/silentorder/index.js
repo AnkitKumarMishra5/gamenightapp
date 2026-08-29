@@ -70,11 +70,13 @@ function miniCard(face, cls = '') {
   return h('div', { class: `so-mini ${cls}` }, h('div', { class: 'ct-face front' }, String(face)));
 }
 
-// Three candles for three lives: lit ones flicker, spent ones stand cold. Drawn from CSS
-// shapes so the flame can actually gutter out instead of an emoji blinking off.
-function candleRow(lives, startLives) {
-  return h('div', { class: 'so-lives', role: 'img', 'aria-label': `${lives} of ${startLives} lives left` },
-    Array.from({ length: startLives }, (_, i) => h('div', {
+// One candle per life. Lives are earned by clearing levels, so the row grows; a run
+// with none left shows a single cold stub. Drawn from CSS shapes so the flame can
+// actually gutter out instead of an emoji blinking off.
+function candleRow(lives) {
+  const shown = Math.max(1, lives);
+  return h('div', { class: 'so-lives', role: 'img', 'aria-label': `${lives} lives left` },
+    Array.from({ length: shown }, (_, i) => h('div', {
       class: `so-candle ${i < lives ? 'lit' : 'cold'}`,
     },
       h('span', { class: 'so-flame', 'aria-hidden': 'true' }),
@@ -142,7 +144,7 @@ function dealingScreen(so, ctx) {
     const chipsRow = h('div', { class: 'so-players' }, playerChips(so, ctx));
     const node = h('div', { class: 'stack so-screen' },
       h('div', { class: 'so-topbar' },
-        candleRow(so.lives, so.startLives),
+        candleRow(so.lives),
         h('div', { class: 'so-level-pill' }, `Level ${so.level} of ${so.maxLevel}`),
       ),
       h('div', { class: 'card', style: 'text-align:center' },
@@ -221,7 +223,7 @@ function dealingScreen(so, ctx) {
 
   const node = h('div', { class: 'stack so-screen' },
     h('div', { class: 'so-topbar' },
-      candleRow(so.lives, so.startLives),
+      candleRow(so.lives),
       h('div', { class: 'so-level-pill' }, `Level ${so.level} of ${so.maxLevel}`),
     ),
     so.level === 1 && so.startQuip && h('p', { class: 'so-quip' }, so.startQuip),
@@ -264,7 +266,7 @@ function playingScreen(so, ctx) {
   seen.level = so.level;
 
   // ----- static skeleton, built once per level -----
-  const candles = candleRow(so.lives, so.startLives);
+  const candles = candleRow(so.lives);
   const levelPill = h('div', { class: 'so-level-pill' }, `Level ${so.level} of ${so.maxLevel}`);
   const banner = h('div', { class: 'so-banner so-hidden', role: 'status' });
 

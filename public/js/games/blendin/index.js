@@ -126,6 +126,7 @@ function playersStrip(bi, ctx, { selectable = null, selected = null, onSelect = 
     const isTurn = bi.currentTurn === id;
     const elim = bi.eliminated.find((e) => e.playerId === id);
     const canSelect = selectable && selectable.includes(id);
+    const hasVoted = (bi.votedIds || []).includes(id);
     const tile = h('div', {
       'data-pid': id,
       class: [
@@ -145,9 +146,11 @@ function playersStrip(bi, ctx, { selectable = null, selected = null, onSelect = 
       elim && h('span', { class: 'pt-mark', title: ROLE_LABEL[elim.role] }, ROLE_EMOJI[elim.role]),
       h('div', { class: 'pt-avatar' }, alive ? p.avatar : '💀'),
       h('div', { class: 'pt-name' }, p.name, id === ctx.me.id && h('span', { class: 'pt-you' }, ' (you)')),
+      hasVoted && h('span', { class: 'pt-voted', title: 'Vote is in' }, '✓'),
       h('div', { class: 'pt-sub' },
         !p.connected ? h('span', { class: 'pt-offline' }, '⚡ disconnected')
           : isTurn ? 'speaking…'
+          : hasVoted ? 'voted'
           : (alive ? '' : ROLE_LABEL[elim?.role] || 'out')),
     );
     return tile;
@@ -157,7 +160,7 @@ function playersStrip(bi, ctx, { selectable = null, selected = null, onSelect = 
 
 function clueBoard(bi, ctx) {
   if (!bi.clues.length) return null;
-  const rounds = [...new Set(bi.clues.map((c) => c.round))].sort((a, b) => b - a);
+  const rounds = [...new Set(bi.clues.map((c) => c.round))].sort((a, b) => a - b);
   return h('div', { class: 'card' },
     h('h2', { class: 'subtitle' }, '📋 Clue board'),
     rounds.map((r) => h('div', { class: 'clue-round' },
@@ -483,17 +486,23 @@ function gameOver(bi, snap, ctx) {
     h('p', { class: 'ws-reason', style: 'font-weight:700' }, bi.endQuip),
     myRole && h('p', { style: 'margin-top:10px; font-size:15px' },
       `You were ${ROLE_EMOJI[myRole]} ${ROLE_LABEL[myRole]}, ${iWon ? 'you won! 🎉' : 'better luck next time!'}`),
-    h('div', { class: 'example', style: 'margin-top:14px' },
-      `The insiders' word was `, h('b', {}, bi.reveal.insiderWord),
-      ` · the blendin word was `, h('b', {}, bi.reveal.outsiderWord)),
     h('div', { class: 'role-list' },
       bi.order.map((id, i) => {
         const p = ctx.player(id);
         const role = bi.reveal.roles[id];
-        return h('div', { class: `role-line ${animOnce(`bi-role:${id}`, 'anim-slide')}`, style: `animation-delay:${i * 50}ms` },
-          h('span', {}, p.avatar),
-          h('span', { class: 'rl-name' }, p.name),
-          h('span', { class: `rl-role ${role}` }, `${ROLE_EMOJI[role]} ${ROLE_LABEL[role]}`),
+        const word = role === 'blank' ? null
+          : role === 'outsider' ? bi.reveal.outsiderWord : bi.reveal.insiderWord;
+        const pts = (snap.leaderboard || []).find((e) => e.id === id)?.total;
+        return h('div', { class: `role-line bi-reveal-row ${animOnce(`bi-role:${id}`, 'anim-slide')}`, style: `animation-delay:${i * 50}ms` },
+          h('span', { class: 'rl-av' }, p.avatar),
+          h('span', { class: 'rl-main' },
+            h('span', { class: 'rl-name' }, p.name),
+            h('span', { class: 'rl-word' }, word ? ['their word: ', h('b', {}, word)] : 'no word at all'),
+          ),
+          h('span', { class: 'rl-tail' },
+            h('span', { class: `rl-role ${role}` }, `${ROLE_EMOJI[role]} ${ROLE_LABEL[role]}`),
+            pts != null && h('span', { class: 'rl-pts' }, `${pts} pts`),
+          ),
         );
       }),
     ),

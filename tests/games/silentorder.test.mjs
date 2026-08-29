@@ -115,10 +115,10 @@ export function suites({ Player, check, sleep }) {
       check(`level ${level}: all dealt cards are unique`, new Set(all).size === all.length);
       await readyAll(players);
       if (!(await playLevelClean(players))) break;
-      // [TEST] a clean clear never costs a life — lives stay where they started.
+      // [TEST] a clean clear costs nothing and pays a life.
       await until(host, (s) => s.silentorder.over || s.silentorder.level === level + 1,
         `level ${level} cleared`);
-      check(`level ${level}: no life lost on a clean clear`, so(host).lives === startLives);
+      check(`level ${level}: a clean clear earns a life`, so(host).lives === startLives + level);
     }
 
     await untilAll(players, (s) => s.silentorder.over, 'run over');
@@ -265,7 +265,7 @@ export function suites({ Player, check, sleep }) {
       'plays landed');
     const empty = await firstDone[0].p.emit('so:play');
     check('an empty hand cannot play', !empty.ok, empty.error);
-    check('no life was lost to clean plays', so(host).lives === so(host).startLives);
+    check('no life was lost to clean plays', so(host).lives >= so(host).startLives);
 
     // Points sanity: a clean level 1 pays 1 for the card and 3 for the clear.
     const entry = host.snap.leaderboard.find((e) => e.id === host.playerId);
@@ -314,7 +314,7 @@ export function suites({ Player, check, sleep }) {
     const stay = table.filter((p) => p !== leaver);
     await leaver.emit('room:leave');
     await untilAll(stay, (s) => s.silentorder.level === 2, 'level completed by the departure');
-    check('no life lost when a departure clears the level', so(stay[0]).lives === so(stay[0]).startLives);
+    check('a departure that clears the level still earns the life', so(stay[0]).lives === so(stay[0]).startLives + 1);
     check('the leaver is out of the order', !so(stay[0]).order.includes(leaver.playerId));
     check('three players remain', so(stay[0]).order.length === 3);
 

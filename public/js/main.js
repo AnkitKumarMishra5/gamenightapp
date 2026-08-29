@@ -1181,7 +1181,7 @@ function renderLobby() {
   if (snap.game === 'silentorder') parts.push(cardGameLobbyPanel(snap, c, {
     emoji: '🕯️', title: 'Silent Order setup', startEvent: 'so:start',
     min: snap.limits.soMin ?? 2, max: snap.limits.soMax ?? 8,
-    blurb: 'One team, three lives, no talking. Play your cards in rising order using nothing but nerve.',
+    blurb: 'One team, one life to start, no talking. Play your cards in rising order using nothing but nerve.',
     startLabel: (n) => `🃏 Deal level 1 for ${n} players`,
   }));
   if (snap.game === 'swaporstay') parts.push(cardGameLobbyPanel(snap, c, {

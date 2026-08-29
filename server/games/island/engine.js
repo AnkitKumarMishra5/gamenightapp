@@ -206,7 +206,14 @@ export function requestHint(room, playerId) {
   const state = st(room);
   if (state.phase !== 'playing') throw new GameError('Hints are only for a round in progress.');
   if (state.pendingJudge) throw new GameError('Wait for the current call to be judged.');
-  if (room.hostId !== playerId) throw new GameError('Only the room owner can spend the hint, after the table agrees.');
+  // With a human gamemaster the hint is theirs to give; otherwise it belongs to the
+  // room owner, spent on behalf of the table.
+  const spender = state.mode === 'host' ? state.gmId : room.hostId;
+  if (spender !== playerId) {
+    throw new GameError(state.mode === 'host'
+      ? 'Only the gamemaster can give the hint.'
+      : 'Only the room owner can spend the hint, after the table agrees.');
+  }
   if ((state.hints?.length || 0) >= 1) throw new GameError('The one hint for this round is already spent.');
   if (hintsAvailable(state) < 1) {
     const n = Math.max(state.order.length, 1);

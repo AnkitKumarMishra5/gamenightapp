@@ -38,7 +38,7 @@ off, and the room owner can hand the gamemaster chair to any player.
 
 ### 🕯️ Silent Order (2 to 8 players)
 
-One co-operative deck, three lives, no talking. Each level deals everyone cards from 1 to
+One co-operative deck, one shared life (clear a level, earn another), no talking. Each level deals everyone cards from 1 to
 100 and the table must play them in ascending order on nothing but nerve. Play too early
 and everything lower burns. A shared 3D card table deals every round with a riffle shuffle.
 

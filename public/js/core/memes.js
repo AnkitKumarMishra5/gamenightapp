@@ -587,20 +587,24 @@ export const INDIAN_SFX = ['dhol', 'tabla'];
 
 // Recording-only ids fall back to the nearest synth until their file has decoded.
 const SYNTH_FALLBACK = {
-  dhol: 'drumroll', tabla: 'rimshot',
+  dhol: 'drumroll', tabla: 'drumroll',
   winInsiders: 'levelUp', winOutsiders: 'sinister',
-  wow: 'gasp', fail: 'sadTrombone', dun: 'suspense', evilLaugh: 'sinister',
-  ding: 'levelUp', aww: 'crickets', huh: 'bruh', kaching: 'coin',
-  clang: 'buzzer', bellToll: 'boom', rooster: 'levelUp',
+  wow: 'gasp', fail: 'buzzer', dun: 'suspense', evilLaugh: 'sinister',
+  ding: 'levelUp', aww: 'crickets', huh: 'bonk', kaching: 'coin',
+  clang: 'buzzer', bellToll: 'boo', rooster: 'levelUp',
+  // Ids that ship as recordings only: without these they would be silent whenever the
+  // clip has not been fetched yet.
+  laughTrack: 'cheer', rimshot: 'bonk', bruh: 'bonk', sadTrombone: 'boo',
+  boom: 'emotionalDamage', airhorn: 'cheer',
 };
 
 export const REACTION_SOUNDS = {
-  '😂': ['laughTrack', 'laughTrack', 'laughTrack', 'laughTrack', 'evilLaugh', 'rimshot', 'fail', 'bruh', 'applause', 'wow'],
-  '🤔': ['crickets', 'crickets', 'huh', 'huh', 'suspense', 'bruh', 'recordScratch', 'dun', 'tabla', 'sadTrombone'],
-  '😱': ['gasp', 'gasp', 'gasp', 'wow', 'dun', 'aww', 'boo', 'emotionalDamage', 'recordScratch', 'boom'],
-  '🧐': ['suspense', 'suspense', 'dun', 'huh', 'drumroll', 'sinister', 'crickets', 'evilLaugh', 'recordScratch', 'tabla'],
-  '🔥': ['airhorn', 'airhorn', 'dhol', 'dhol', 'cheer', 'applause', 'kaching', 'ding', 'wow', 'levelUp'],
-  '💀': ['boom', 'boom', 'boom', 'emotionalDamage', 'fail', 'sadTrombone', 'evilLaugh', 'aww', 'dun', 'bruh'],
+  '😂': ['laughTrack', 'laughTrack', 'laughTrack', 'laughTrack', 'rimshot', 'rimshot', 'bruh', 'evilLaugh', 'applause', 'bonk'],
+  '🤔': ['huh', 'huh', 'huh', 'crickets', 'crickets', 'suspense', 'dun', 'bruh', 'recordScratch', 'sadTrombone'],
+  '😱': ['gasp', 'gasp', 'gasp', 'gasp', 'boom', 'boom', 'dun', 'emotionalDamage', 'recordScratch', 'buzzer'],
+  '🧐': ['suspense', 'suspense', 'suspense', 'dun', 'dun', 'drumroll', 'crickets', 'sinister', 'huh', 'tabla'],
+  '🔥': ['airhorn', 'airhorn', 'airhorn', 'cheer', 'cheer', 'applause', 'dhol', 'levelUp', 'kaching', 'sparkle'],
+  '💀': ['boom', 'boom', 'boom', 'emotionalDamage', 'emotionalDamage', 'fail', 'sadTrombone', 'sinister', 'boo', 'bellToll'],
 };
 
 // The pool is weighted by repetition (the signature sound appears more than once), so
@@ -682,11 +686,34 @@ export function playReaction(emoji, seed = null) {
 // Returns a function that cuts the sound short, because a sample that has already
 // started can only be stopped by whoever still holds its nodes. The card table needs
 // this: the laugh has to stop dead when the shuffle ends.
+// Recordings arrive at wildly different levels. Measuring the loudest moment once and
+// scaling to a common target keeps a laugh track and an airhorn at the same distance
+// from the listener, and stops quiet clips from vanishing under the room.
+const PEAK_TARGET = 0.72;
+const gains = new WeakMap();
+function sampleGain(buffer) {
+  const cached = gains.get(buffer);
+  if (cached != null) return cached;
+  let peak = 0;
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    const data = buffer.getChannelData(c);
+    // Every 32nd frame is plenty to find the peak and keeps long clips cheap.
+    for (let i = 0; i < data.length; i += 32) {
+      const v = data[i] < 0 ? -data[i] : data[i];
+      if (v > peak) peak = v;
+    }
+  }
+  const gain = peak > 0.02 ? Math.min(4, PEAK_TARGET / peak) : 1;
+  gains.set(buffer, gain);
+  return gain;
+}
+
 function playSample(buffer) {
   const ctx = ready(); if (!ctx) return null;
   const src = ctx.createBufferSource();
   src.buffer = buffer;
   const g = ctx.createGain();
+  g.gain.value = sampleGain(buffer);
   src.connect(g).connect(bus(ctx, 1));
   src.start();
   return (fade = 0.05) => {

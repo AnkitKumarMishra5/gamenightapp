@@ -581,6 +581,8 @@ export function snapshot(room, forPlayerId) {
     readyCount: state.ready.size,
     youReady: state.ready.has(forPlayerId),
     votesCast: Object.keys(votesMap).length,
+    // Who has cast, never what they cast: the ballot itself stays anonymous.
+    votedIds: (state.phase === 'voting' || state.phase === 'runoff') ? Object.keys(votesMap) : [],
     votersNeeded: (state.phase === 'voting' || state.phase === 'runoff') ? aliveConnected(room, state).length : 0,
     youVoted: Boolean(votesMap[forPlayerId]),
     yourVote: votesMap[forPlayerId] || null,

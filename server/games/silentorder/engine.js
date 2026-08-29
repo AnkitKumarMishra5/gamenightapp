@@ -33,7 +33,7 @@ const SO_LOSS_QUIPS = [
 export const SO_MIN_PLAYERS = 2;
 export const SO_MAX_PLAYERS = 8;
 export const DECK_HIGH = 100;
-export const START_LIVES = 3;
+export const START_LIVES = 1;
 
 // Fewer players means more cards each, so a run is a similar length either way.
 export function levelsFor(playerCount) {
@@ -167,6 +167,10 @@ export function playLowest(room, playerId) {
     state.lastMistake = { id: state.mistakes, card, by: playerId, burned };
     fx.push({ kind: 'so-mistake', card, by: playerId, burned, lives: state.lives });
     if (state.lives <= 0) return { fx: [...fx, ...endRun(room, state, false).fx] };
+    // A life buys another attempt at the same level, freshly dealt.
+    dealLevel(room, state);
+    fx.push({ kind: 'so-deal', level: state.level, retry: true });
+    return { fx };
   } else {
     state.lastMistake = null;
     award(room, playerId, 'silentorder', POINTS.silentorder.goodCard, 'read the table');
@@ -181,6 +185,7 @@ export function playLowest(room, playerId) {
         award(room, id, 'silentorder', POINTS.silentorder.levelCleared, `cleared level ${state.level}`);
       }
     }
+    state.lives += 1;
     fx.push({ kind: 'so-level', level: state.level, lives: state.lives });
     if (state.level >= state.maxLevel) return { fx: [...fx, ...endRun(room, state, true).fx] };
     state.level += 1;
@@ -234,6 +239,7 @@ export function removePlayerFromGame(room, playerId) {
   if (state.phase === 'playing' && playersWithCards(state).length === 0) {
     // Their departure emptied the last hand, so the level completes for the people who
     // stayed — cleanly, with the clear's points and no life lost.
+    state.lives += 1;
     const fx = [{ kind: 'so-level', level: state.level, lives: state.lives }];
     for (const id of state.order) {
       award(room, id, 'silentorder', POINTS.silentorder.levelCleared, `cleared level ${state.level}`);
