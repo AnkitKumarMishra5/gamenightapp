@@ -10,22 +10,25 @@
 // another player's snapshot. Night picks are stored but only ever surfaced as a count,
 // the Oracle's reading goes to the Oracle alone, votes stay sealed until the last one is
 // in, and the full role map exists in a snapshot only once the game is over.
-import { GameError, shuffle } from '../../lib/util.js';
+import { GameError, pick, shuffle } from '../../lib/util.js';
 import { pickQuip } from '../../lib/quips.js';
 import { POINTS, award } from '../../core/scores.js';
 
 export const SL_MIN_PLAYERS = 4;
-export const SL_MAX_PLAYERS = 12;
+export const SL_MAX_PLAYERS = 16;
 
 // The engine reads its point values through this so it still runs (and the tests still
 // pass) if the scores.js entries land a beat later than this file. The real values live
 // in WIRING.md for the integrator to add; these mirror them exactly.
 const P = () => POINTS.sleepless || {
   villageWinAlive: 4, villageWinDead: 2, medicSave: 2, oracleRead: 3,
-  prowlerWin: 8, prowlerSurvivedVote: 1,
+  prowlerWin: 8, prowlerSurvivedVote: 1, instinct: 1,
 };
 
 const ROLES = ['prowler', 'medic', 'oracle'];
+// Big tables get a pack, not a lone hunter: one Prowler up to eight players, two from
+// nine, three from fourteen. The Medic and Oracle stay singular at every size.
+const prowlerCountFor = (n) => (n >= 14 ? 3 : n >= 9 ? 2 : 1);
 
 // ---------- helpers ----------
 
@@ -54,9 +57,16 @@ function roleHolder(state, role) {
   return state.order.find((id) => state.roles[id] === role) || null;
 }
 
+function prowlerIds(state) {
+  return state.order.filter((id) => state.roles[id] === 'prowler');
+}
+
+function prowlersAlive(state) {
+  return prowlerIds(state).filter((id) => state.alive.has(id));
+}
+
 function prowlerAlive(state) {
-  const id = roleHolder(state, 'prowler');
-  return id !== null && state.alive.has(id);
+  return prowlersAlive(state).length > 0;
 }
 
 // ---------- lifecycle ----------
@@ -76,8 +86,13 @@ export function startGame(room, playerId) {
   // seating order, so a seat at the table says nothing about the card in front of it.
   const dealt = shuffle(ids);
   const roles = {};
-  ROLES.forEach((role, i) => { roles[dealt[i]] = role; });
-  for (const id of dealt.slice(ROLES.length)) roles[id] = 'sleeper';
+  const packSize = prowlerCountFor(ids.length);
+  dealt.forEach((id, i) => {
+    roles[id] = i < packSize ? 'prowler'
+      : i === packSize ? 'medic'
+      : i === packSize + 1 ? 'oracle'
+      : 'sleeper';
+  });
 
   room.game = 'sleepless';
   room.state = {
@@ -96,6 +111,8 @@ export function startGame(room, playerId) {
     oracle: null,                // { targetId, isProwler } — surfaces only in the Oracle's snapshot
     oracleHit: false,            // scoring: did the Oracle ever read the Prowler
     medicSaves: 0,               // scoring: nights where the guard was on the right door
+    instinct: {},                // scoring: per-Sleeper nights their watch was on a Prowler's door
+    witness: {},                 // per-Sleeper private clue from watching the attacked door
     votesSurvived: 0,            // scoring: completed votes the Prowler walked away from
     votes: {},                   // playerId -> targetId | 'skip', sealed until all are in
     verdict: null,               // { outId, role, tie, tally, skips } once a vote resolves
@@ -140,6 +157,9 @@ export function submitNight(room, playerId, payload) {
   const role = state.roles[playerId];
   // Only the Medic may point at their own door; everyone else must look outward.
   if (targetId === playerId && role !== 'medic') throw new GameError('Pick someone other than yourself.');
+  if (role === 'prowler' && state.roles[targetId] === 'prowler') {
+    throw new GameError('The pack hunts outward. Pick someone else.');
+  }
 
   // Last write wins until the night resolves, so a changed mind costs nothing.
   state.night[playerId] = targetId;
@@ -173,8 +193,37 @@ function resolveDawn(room, state) {
     if (isProwler) state.oracleHit = true;
   }
 
-  const victim = state.alive.has(prowlerId) ? state.night[prowlerId] : null;
+  // The pack hunts together: each living Prowler names a door, the most-named door is
+  // the kill, and a split vote falls to chance among the tied doors.
+  const packPicks = prowlersAlive(state).map((id) => state.night[id]).filter(Boolean);
+  let victim = null;
+  if (packPicks.length) {
+    const counts = {};
+    for (const t of packPicks) counts[t] = (counts[t] || 0) + 1;
+    const max = Math.max(...Object.values(counts));
+    victim = pick(Object.keys(counts).filter((t) => counts[t] === max));
+  }
   const guard = medicId && state.alive.has(medicId) ? state.night[medicId] : null;
+
+  // The Sleepers' watch pays out here, before anyone dies, while "who was where" is
+  // still true. One pick, two silent rewards, nothing announced at dawn:
+  //  - a watch on a Prowler's door banks an Instinct point, revealed only at game over;
+  //  - a watch on the attacked door witnesses the scuffle, and the watcher privately
+  //    learns one player who is provably not a Prowler. Live ammunition for the day.
+  for (const id of aliveIds(state)) {
+    if (state.roles[id] !== 'sleeper') continue;
+    const door = state.night[id];
+    if (!door) continue;
+    if (state.roles[door] === 'prowler' && state.alive.has(door)) {
+      state.instinct[id] = (state.instinct[id] || 0) + 1;
+    }
+    if (victim && door === victim) {
+      const cleared = pick(aliveIds(state).filter((c) =>
+        c !== id && c !== victim && state.roles[c] !== 'prowler'));
+      if (cleared) state.witness[id] = { round: state.round, clearedId: cleared };
+    }
+  }
+
   state.dawnSeq += 1;
 
   if (victim && guard === victim) {
@@ -284,14 +333,15 @@ export function nextPhase(room, playerId) {
 // ---------- endings ----------
 
 function checkWin(state) {
-  if (!prowlerAlive(state)) return 'village';
-  if (aliveIds(state).length <= 2) return 'prowler';
+  const pack = prowlersAlive(state).length;
+  if (pack === 0) return 'village';
+  if (pack >= aliveIds(state).length - pack) return 'prowler';
   return null;
 }
 
 function endGame(room, state, side) {
   const pts = P();
-  const prowlerId = roleHolder(state, 'prowler');
+  const pack = prowlerIds(state);
 
   // A game the table never played pays nothing: if it collapses before the first night
   // finishes (players leaving during the deal), the winner is declared so the room can
@@ -315,14 +365,26 @@ function endGame(room, state, side) {
     if (oracleId && !state.left.has(oracleId) && state.oracleHit) {
       award(room, oracleId, 'sleepless', pts.oracleRead, 'read the Prowler\'s face');
     }
-  } else if (everPlayed && prowlerId && !state.left.has(prowlerId)) {
-    award(room, prowlerId, 'sleepless', pts.prowlerWin, 'hunted until the end');
-    if (state.votesSurvived) {
-      award(room, prowlerId, 'sleepless', pts.prowlerSurvivedVote * state.votesSurvived, 'stared down the vote');
+  } else if (everPlayed && side === 'prowler') {
+    for (const id of pack) {
+      if (state.left.has(id)) continue;
+      award(room, id, 'sleepless', pts.prowlerWin, 'hunted until the end');
+      if (state.votesSurvived) {
+        award(room, id, 'sleepless', pts.prowlerSurvivedVote * state.votesSurvived, 'stared down the vote');
+      }
     }
   }
 
-  state.winner = { side, prowlerId };
+  if (everPlayed) {
+    for (const [id, hits] of Object.entries(state.instinct)) {
+      if (hits && !state.left.has(id)) {
+        award(room, id, 'sleepless', pts.instinct * hits, 'trusted the right gut');
+      }
+    }
+  }
+
+  // Instinct tallies join the reveal: they were the one secret with no owner to out.
+  state.winner = { side, prowlerId: pack[0] || null, prowlerIds: pack, instinct: { ...state.instinct } };
   state.endQuip = pickQuip(side === 'village' ? 'insiderWin' : 'outsiderWin');
   state.phase = 'gameOver';
   return { fx: [{ kind: 'sl-over', side }] };
@@ -417,7 +479,14 @@ export function snapshot(room, forPlayerId) {
       connected: room.players.get(id)?.connected || false,
       left: state.left.has(id),
     })),
-    you: role ? { role, alive: state.alive.has(forPlayerId) } : null,
+    you: role ? {
+      role,
+      alive: state.alive.has(forPlayerId),
+      // A Prowler knows the rest of the pack; nobody else ever sees this field.
+      allies: role === 'prowler'
+        ? prowlerIds(state).filter((id) => id !== forPlayerId)
+        : [],
+    } : null,
     readyCount: state.ready.size,
     youReady: state.ready.has(forPlayerId),
     // The night is a count, never a list: who has settled in is exactly the kind of
@@ -429,6 +498,8 @@ export function snapshot(room, forPlayerId) {
     dawn: state.dawn,
     // The reading is the Oracle's alone until the very end.
     oracle: isOracle ? state.oracle : null,
+    // What your watch saw, if it saw anything. Yours alone, same rule as the reading.
+    witness: role === 'sleeper' ? (state.witness[forPlayerId] || null) : null,
     // Progress is counted over the same set the vote resolves over, so the count can
     // never read as more ballots than voters.
     voteCount: state.phase === 'day'

@@ -315,6 +315,17 @@ function endGame(room, state, winnerId) {
 
 // One button on the host's screen for both jobs: from a round result it deals the next
 // round, and from a finished game it starts a new one with everyone connected.
+// Table reactions: stateless, broadcast-only. The seed makes every phone play the same
+// clip, and nothing is stored because a laugh is not game state.
+const SS_REACTIONS = ['😂', '😱', '🔥', '💀', '🤔', '🧐'];
+export function react(room, playerId, payload) {
+  const state = st(room);
+  if (!state.order.includes(playerId)) throw new GameError('Only players at this table can react.');
+  const emoji = String(payload?.emoji || '');
+  if (!SS_REACTIONS.includes(emoji)) throw new GameError('Unknown reaction.');
+  return { fx: [{ kind: 'ss-react', playerId, emoji, seed: Math.floor(Math.random() * 1e6) }] };
+}
+
 export function next(room, playerId) {
   const state = st(room);
   requireHost(room, playerId);

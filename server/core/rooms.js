@@ -170,6 +170,8 @@ export function invitePreview(code) {
     hostName: host?.name || null,
     hostAvatar: host?.avatar || null,
     players: players.filter((p) => p.connected).length,
+    // First names only, for the invite card's "already at the table" line.
+    playerNames: players.filter((p) => p.connected).map((p) => String(p.name || '').split(' ')[0]).slice(0, 6),
     game: room.game,
     inProgress: Boolean(room.state),
   };

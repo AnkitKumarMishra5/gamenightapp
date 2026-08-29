@@ -91,3 +91,23 @@ one-liners, so the whole utterance is kept rather than a loud window), normalise
 - laughTrack-4.mp3 — "Burst Laughing Funny Sound" — pixabay.com
 - laughTrack-5.mp3 — "HA HA Echo" — pixabay.com
 - laughTrack-6.mp3 — "Funny Laughing Sound" — pixabay.com
+
+## Win stingers (Pixabay Content License)
+- winInsiders.mp3, winInsiders-2.mp3 — victory fanfares — pixabay.com
+- winOutsiders.mp3, winOutsiders-2.mp3 — sly villain comedy themes — pixabay.com
+
+## indian/ — the desi flavour pack (Pixabay Content License)
+- dhol.mp3, dhol-2.mp3 — dhol bursts — pixabay.com
+- tabla.mp3, tabla-2.mp3 — tabla stings — pixabay.com
+
+To extend this pack (or retire it for a global audience): add or remove files in
+`indian/`; ids come from filenames, `-N` suffixes are variants, and the `INDIAN_SFX`
+list in public/js/core/memes.js is the only code that names it.
+
+## Reaction pool expansion (Pixabay Content License)
+wow ×3, fail ×2, dun ×2, evilLaugh ×2, ding ×2, aww ×2, huh ×2, kaching — all pixabay.com
+- rooster ×2, bellToll ×2, clang ×2 — pixabay.com (Sleepless dawns, Sentinel blocks)
+
+## Table-feel upgrades (Pixabay Content License)
+- recordScratch ×2, bonk ×2, coin, sparkle ×2, yeet ×2, buzzer ×2 — pixabay.com
+  (recorded upgrades for the matching synth ids; the synth versions stay as fallbacks)

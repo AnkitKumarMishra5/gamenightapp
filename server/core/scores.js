@@ -41,6 +41,7 @@ export const POINTS = {
     oracleRead: 3,         // reading the Prowler at least once (paid on a village win)
     prowlerWin: 8,         // the Prowler outlasting the village
     prowlerSurvivedVote: 1, // per completed vote the Prowler walked away from (paid on a prowler win)
+    instinct: 1,            // per night a Sleeper's silent pick found a Prowler (revealed at the end)
   },
 };
 
@@ -79,6 +80,7 @@ export const SCORING_RULES = {
     ['🔮', `+${POINTS.sleepless.oracleRead}`, 'The Oracle reading the Prowler'],
     ['🐾', `+${POINTS.sleepless.prowlerWin}`, 'The Prowler outlasting the village'],
     ['🗳️', `+${POINTS.sleepless.prowlerSurvivedVote}`, 'Each vote the Prowler stared down'],
+    ['🫀', `+${POINTS.sleepless.instinct}`, 'Each night a Sleeper\'s gut silently found the Prowler'],
   ],
 };
 

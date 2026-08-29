@@ -105,11 +105,38 @@ function originFor(req) {
   return `${proto}://${host}`;
 }
 
-const DEFAULT_OG = {
-  title: 'Game Night: party games for your crew',
-  desc: 'Your crew, your rules, one room code away. Play Blend In and Island Rules live with '
-    + 'friends on any device. Built by Ankit Kumar Mishra.',
-};
+// Three link cards for a plain domain share, rotated daily so a feed full of shares does
+// not look like wallpaper. Crawlers cache per URL, so within a day everyone sees one card.
+const HOME_OG = [
+  { image: '/icons/og-home-1.jpg', title: 'Game Night: deal your friends in',
+    desc: 'Five party games, one five-letter code. Bluff in Blend In, crack Island Rules, keep your nerve at the card table. Free, in the browser.' },
+  { image: '/icons/og-home-2.jpg', title: 'Game Night: no downloads, no excuses',
+    desc: 'Every phone becomes a seat at the table. 2 to 16 friends, live, with sound and cards and arguments. Nothing to install.' },
+  { image: '/icons/og-home-3.jpg', title: 'Game Night: your table is ready',
+    desc: 'Social deduction, secret patterns and three card games on one premium table. Make a room, share the code, play tonight.' },
+  { image: '/icons/og-home-4.jpg', title: 'Game Night: bluff, deduce, survive',
+    desc: 'Five games where the fun is reading your friends. One room code, points that follow you all night, nothing to install.' },
+];
+const dayIndex = () => Math.floor(Date.now() / 86_400_000);
+const DEFAULT_OG = () => ({ ...HOME_OG[dayIndex() % HOME_OG.length] });
+
+// Invite cards get variety per ROOM (unique URL per code, so crawlers cache each one
+// separately): the line, the image and the roster all come from the room itself.
+const INVITE_LINES = [
+  (n, a) => `${a} ${n} dealt you a seat`,
+  (n, a) => `${a} ${n} saved you a chair`,
+  (n, a) => `${a} ${n} says the table is short one player: you`,
+  (n, a) => `${a} ${n} lit the candles. Get in here`,
+  (n, a) => `${a} ${n} is waiting for you at the table`,
+  (n, a) => `${a} ${n} picked you. Out of everyone`,
+  (n, a) => `${a} ${n} is shuffling. Sit down before the deal`,
+  (n, a) => `${a} ${n} left the porch light on for you`,
+];
+const INVITE_IMAGES = [
+  '/icons/og-invite-1.jpg', '/icons/og-invite-2.jpg', '/icons/og-invite-3.jpg',
+  '/icons/og-invite-4.jpg', '/icons/og-invite-5.jpg', '/icons/og-invite-6.jpg',
+];
+const codeHash = (code) => [...code].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7) >>> 0;
 
 // Escaping matters here: these strings land inside an HTML attribute, and the host name is
 // whatever a player typed.
@@ -127,24 +154,27 @@ const GAME_LABEL = {
 // from a query string, and the numbers are live at the moment the link is unfurled.
 function ogFor(req) {
   const code = String(req.query.join || '').toUpperCase().trim();
-  if (!/^[A-Z0-9]{5}$/.test(code)) return DEFAULT_OG;
+  if (!/^[A-Z0-9]{5}$/.test(code)) return DEFAULT_OG();
   const room = invitePreview(code);
   // An expired or mistyped code falls back to the normal card rather than advertising a
   // room that is not there.
-  if (!room) return DEFAULT_OG;
+  if (!room) return DEFAULT_OG();
 
+  const h = codeHash(code);
   const name = room.hostName || 'A friend';
-  const others = Math.max(0, room.players - 1);
-  const crowd = others === 0
-    ? `${name} is waiting in room ${room.code}`
-    : `${name} and ${others} other${others > 1 ? 's' : ''} are in room ${room.code}`;
   const game = GAME_LABEL[room.game];
+  // Who is already at the table, by first name, so the invite feels like walking into a
+  // room of people rather than clicking a link. Capped to keep the card tidy.
+  const others = (room.playerNames || []).filter((n) => n !== name).slice(0, 3);
+  const extra = Math.max(0, room.players - 1 - others.length);
+  const crowd = others.length
+    ? `At the table already: ${others.join(', ')}${extra ? ` +${extra}` : ''}.`
+    : `${name} is setting the table in room ${room.code}.`;
 
   return {
-    title: `${room.hostAvatar || '🎭'} ${name} invited you to Game Night`,
-    desc: `${crowd}.`
-      + (game ? ` Tonight: ${game}.` : '')
-      + ' No download, no sign-up, just the code.',
+    image: INVITE_IMAGES[h % INVITE_IMAGES.length],
+    title: INVITE_LINES[h % INVITE_LINES.length](name, room.hostAvatar || '🎭'),
+    desc: `${crowd}${game ? ` Tonight: ${game}.` : ''} No download, no sign-up, just the code.`,
   };
 }
 
@@ -154,6 +184,7 @@ app.get(['/', '/index.html'], (req, res) => {
   const og = ogFor(req);
   res.type('html').send(indexTemplate
     .replaceAll('%ORIGIN%', originFor(req))
+    .replaceAll('%OG_IMAGE%', attr(og.image || '/icons/og-home-1.jpg'))
     .replaceAll('%OG_TITLE%', attr(og.title))
     .replaceAll('%OG_DESC%', attr(og.desc)));
 });
@@ -256,16 +287,24 @@ app.get('/api/backdrop', (_req, res) => res.json(backdropCache));
 function detectSfx() {
   const dir = path.join(PUBLIC_DIR, 'media', 'sfx');
   try {
-    return {
-      files: fs.readdirSync(dir)
-        .filter((f) => /\.(mp3|m4a|ogg|wav|webm)$/i.test(f))
-        // "laughTrack.m4a" and "laughTrack-3.m4a" are both the laugh: a trailing -N marks
-        // a variant, so dropping more files in widens the pool with no code change.
-        .map((f) => ({
+    const files = [];
+    // One level of subfolders. "laughTrack.m4a" and "laughTrack-3.m4a" are both the
+    // laugh: a trailing -N marks a variant. The folder is a provenance label (e.g.
+    // indian/), so a whole flavour can be added or removed by moving files, no code.
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const scan = entry.isDirectory()
+        ? fs.readdirSync(path.join(dir, entry.name)).map((f) => `${entry.name}/${f}`)
+        : [entry.name];
+      for (const f of scan) {
+        if (!/\.(mp3|m4a|ogg|wav|webm)$/i.test(f)) continue;
+        files.push({
           id: path.basename(f, path.extname(f)).replace(/-\d+$/, ''),
           src: `/media/sfx/${f}`,
-        })),
-    };
+          pack: f.includes('/') ? f.split('/')[0] : 'core',
+        });
+      }
+    }
+    return { files };
   } catch { return { files: [] }; }
 }
 let sfxCache = detectSfx();
@@ -890,6 +929,7 @@ io.on('connection', (socket) => {
   socket.on('ss:choice', action(socket, (room, playerId, payload) => swaporstay.choice(room, playerId, payload)));
   // One event covers "next round" from a result and "play again" from game over.
   socket.on('ss:next', action(socket, (room, playerId) => swaporstay.next(room, playerId)));
+  socket.on('ss:react', action(socket, (room, playerId, payload) => swaporstay.react(room, playerId, payload)));
 
   // ----- Sleepless -----
   socket.on('sl:start', action(socket, (room, playerId) => {

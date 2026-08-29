@@ -1,5 +1,6 @@
+/* Game Night — © 2026 Ankit Kumar Mishra. All rights reserved. See LICENSE. */
 /* ============================================================
-   Game Night — landing skin. © 2026 Ankit Kumar Mishra.
+   Game Night — landing skin.
    A night of cards: midnight felt, candlelight gold, ivory faces.
    Every selector is lp- prefixed; tokens live on .lp-root so this
    file can never leak into the rest of the app.
@@ -421,7 +422,7 @@
     rgba(15, 20, 44, 0.6);
   border: 1px solid var(--stroke);
   box-shadow: var(--shadow-sm);
-  transform: perspective(750px) rotateX(var(--tx, 0deg)) rotateY(var(--ty, 0deg));
+  transform: translate(var(--mvx, 0px), var(--mvy, 0px)) perspective(750px) rotateX(var(--tx, 0deg)) rotateY(var(--ty, 0deg));
   transition: transform 0.18s ease-out, border-color 0.3s, box-shadow 0.3s;
 }
 .lp-gcard::before {
@@ -682,12 +683,18 @@
   background: linear-gradient(180deg, #fffdf6 30%, #e5cd7e 100%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
-.lp-foot-tagline { font-size: 12.5px; color: var(--ink-faint); margin-top: 2px; }
+.lp-foot-by { font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); margin-top: 1px; }
+.lp-foot-tagline { font-size: 12.5px; color: var(--ink-faint); margin-top: 3px; }
 .lp-foot-install { width: min(340px, 100%); }
 .lp-foot-dev {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
   font-size: 13.5px; color: var(--ink-dim);
 }
+.lp-foot-devhead { font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); }
+.lp-foot-devrow { display: inline-flex; align-items: center; gap: 10px; }
+.lp-foot-devid { display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1.3; }
+.lp-foot-devid b { color: var(--ink); }
+.lp-foot-devtitle { font-size: 11.5px; color: var(--ink-faint); }
 .lp-foot-devlinks { display: inline-flex; gap: 12px; margin-left: 4px; }
 .lp-foot-link {
   color: var(--ink-dim); font-size: inherit;
@@ -737,6 +744,315 @@
 }
 
 /* ============================================================
+   NAV PROGRESS, SWEEPS, CONNECTOR, FLIP-TO-42,
+   WATCH-A-ROUND, FOOTER STAGGER, MICRO-INTERACTIONS
+   ============================================================ */
+
+/* ---------- mini-nav scroll-progress hairline ---------- */
+.lp-nav-prog {
+  position: absolute; left: 14px; right: 14px; bottom: -1px; height: 2px;
+  border-radius: 2px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(var(--lp-gold), 0.9) 18%, rgba(var(--lp-gold), 0.9) 82%, transparent);
+  transform: scaleX(0); transform-origin: 0 50%;
+  opacity: 0.85;
+}
+
+/* ---------- focus rings + press states everywhere ---------- */
+.lp-root button:focus-visible,
+.lp-root input:focus-visible {
+  outline: 2px solid rgba(var(--lp-gold), 0.85);
+  outline-offset: 2px;
+}
+.lp-nav-btn:active, .lp-foot-link:active, .lp-cue:active { transform: scale(0.95); }
+.lp-avatar:active, .lp-avopt:active { transform: scale(0.92); }
+
+/* A full room code lights the input up like a valid ticket. */
+.lp-code.lp-full {
+  border-color: rgba(var(--lp-gold), 0.8);
+  color: #f3e3ad;
+  box-shadow: 0 0 0 4px rgba(var(--lp-gold), 0.12), inset 0 0 18px rgba(var(--lp-gold), 0.08);
+}
+
+/* ---------- shelf: accent sweep on entry ---------- */
+.lp-gcard-sweep {
+  position: absolute; inset: 0; border-radius: inherit; overflow: hidden;
+  pointer-events: none; opacity: 0;
+}
+.lp-gcard-sweep::before {
+  content: ''; position: absolute; top: -20%; bottom: -20%; left: 0; width: 34%;
+  transform: translateX(-140%) skewX(-18deg);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--a, var(--lp-gold-h)) 22%, transparent), transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lp-gslot.lp-on .lp-gcard-sweep { opacity: 1; animation: lp-fadeout 1.2s calc(var(--ri, 0) * 80ms + 0.9s) both; }
+  .lp-gslot.lp-on .lp-gcard-sweep::before {
+    animation: lp-sweep 1s calc(var(--ri, 0) * 80ms + 0.35s) both cubic-bezier(0.3, 0.6, 0.2, 1);
+  }
+}
+
+/* ---------- how it works: the connector line traces between steps ---------- */
+.lp-steps { position: relative; }
+.lp-steps-line { display: none; }
+@media (min-width: 900px) {
+  .lp-steps-line {
+    display: block; position: absolute; z-index: 0;
+    left: 8%; right: 8%; top: 76px; height: 2px;
+    border-radius: 2px; pointer-events: none;
+    background: linear-gradient(90deg, transparent, rgba(var(--lp-gold), 0.55) 12%, rgba(var(--lp-gold), 0.55) 88%, transparent);
+    opacity: 0.55;
+  }
+  .lp-step { z-index: 1; }
+}
+@media (min-width: 900px) and (prefers-reduced-motion: no-preference) {
+  .lp-steps-line {
+    transform: scaleX(0); transform-origin: 0 50%;
+    transition: transform 1.4s cubic-bezier(0.3, 0.6, 0.2, 1) 0.35s;
+  }
+  .lp-steps:has(.lp-step.lp-on) .lp-steps-line { transform: scaleX(1); }
+}
+
+/* ---------- the table: one card turns over to reveal 42 ---------- */
+.lp-fliphold { position: absolute; inset: 0; display: block; perspective: 420px; }
+.lp-tflip {
+  position: absolute; inset: 0; display: block;
+  transform-style: preserve-3d;
+  transform: rotateY(180deg);          /* resting state: 42 face up */
+}
+.lp-pc-tback, .lp-pc-tfront { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.lp-pc-tfront { transform: rotateY(180deg); }
+.lp-42 { font-family: var(--display); font-weight: 800; font-size: clamp(15px, 2.6vw, 22px); color: #7c611c; }
+@media (prefers-reduced-motion: no-preference) {
+  .lp-stage .lp-tflip { transform: rotateY(0deg); transition: transform 0.95s cubic-bezier(0.3, 0.7, 0.2, 1) 1.15s; }
+  .lp-stage.lp-on .lp-tflip { transform: rotateY(180deg); }
+}
+
+/* ============================================================
+   WATCH A ROUND — the live preview theatre
+   ============================================================ */
+.lp-watch-frame {
+  position: relative;
+  width: min(720px, 100%);
+  margin: 0 auto;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(22, 27, 56, 0.72), rgba(11, 15, 32, 0.88));
+  border: 1px solid rgba(var(--lp-gold), 0.22);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.lp-watch-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(var(--lp-gold), 0.14);
+  background: rgba(0, 0, 0, 0.22);
+}
+.lp-watch-live {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 4px 11px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase;
+  color: #f3e3ad;
+  background: rgba(var(--lp-gold), 0.1);
+  border: 1px solid rgba(var(--lp-gold), 0.35);
+}
+.lp-watch-pulse {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #e8ca6d; box-shadow: 0 0 8px rgba(var(--lp-gold), 0.8);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lp-run .lp-watch-pulse { animation: lp-pulse 1.6s ease-in-out infinite; }
+}
+.lp-watch-title { flex: 1; font-weight: 700; font-size: 14.5px; letter-spacing: 0.2px; }
+.lp-watch-dots { display: inline-flex; gap: 6px; }
+.lp-watch-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  transition: background 0.3s, transform 0.3s;
+}
+.lp-watch-dot.lp-on { background: rgba(var(--lp-gold), 0.95); transform: scale(1.25); }
+
+.lp-watch-stage {
+  min-height: 380px;
+  padding: 18px clamp(14px, 3vw, 24px) 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.lp-watch-cap {
+  padding: 0 18px 16px; text-align: center;
+  font-size: 12.5px; color: var(--ink-faint);
+}
+
+/* scene items: base state is the finished scene (reduced-motion friendly) */
+.lp-ws { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) {
+  .lp-anim .lp-ws { opacity: 0; }
+  .lp-anim.lp-run .lp-ws {
+    animation: lp-wsin 0.55s both cubic-bezier(0.22, 0.8, 0.26, 1);
+    animation-delay: calc(0.4s + var(--di, 0) * 0.64s);
+  }
+  .lp-anim.lp-run .lp-ws-chip {
+    opacity: 0;
+    animation: lp-chippop 0.4s both cubic-bezier(0.2, 1.2, 0.3, 1);
+    animation-delay: calc(0.75s + var(--di, 0) * 0.64s + var(--rxi, 0) * 0.14s);
+  }
+  .lp-anim.lp-run .lp-ws-verdict {
+    animation-name: lp-verdict; animation-duration: 0.6s;
+  }
+}
+
+.lp-ws-round {
+  align-self: center;
+  padding: 4px 14px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase;
+  color: rgba(var(--lp-gold), 0.9);
+  border: 1px solid rgba(var(--lp-gold), 0.3);
+  background: rgba(var(--lp-gold), 0.07);
+}
+
+/* clue rows (Blend In) */
+.lp-ws-clue { display: flex; gap: 10px; align-items: flex-start; }
+.lp-ws-av {
+  flex: none; width: 36px; height: 36px; border-radius: 12px; font-size: 19px;
+  display: grid; place-items: center;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid var(--stroke);
+}
+.lp-ws-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.lp-ws-name { font-size: 12px; font-weight: 700; color: var(--ink-dim); }
+.lp-ws-you { font-style: normal; color: rgba(var(--lp-gold), 0.95); }
+.lp-ws-bubble {
+  align-self: flex-start;
+  padding: 8px 13px; border-radius: 4px 14px 14px 14px;
+  font-size: 14.5px; line-height: 1.4;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--stroke);
+}
+.lp-sus .lp-ws-bubble { border-color: rgba(244, 114, 182, 0.5); background: rgba(244, 114, 182, 0.08); }
+.lp-ws-rx { display: inline-flex; gap: 5px; }
+.lp-ws-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.3); border: 1px solid var(--stroke);
+}
+.lp-ws-chip b { font-size: 10.5px; font-weight: 700; color: var(--ink-dim); }
+
+.lp-ws-verdict {
+  align-self: center; margin-top: 4px;
+  padding: 9px 16px; border-radius: 12px;
+  font-size: 13.5px; font-weight: 600; text-align: center;
+  color: #f3e3ad;
+  background: rgba(var(--lp-gold), 0.09);
+  border: 1px solid rgba(var(--lp-gold), 0.35);
+  box-shadow: 0 6px 24px rgba(var(--lp-gold), 0.1);
+}
+
+/* island scene */
+.lp-ws-banner {
+  padding: 12px 16px; border-radius: 14px;
+  font-size: 14px; line-height: 1.5; text-align: center;
+  background: rgba(52, 211, 153, 0.07);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+.lp-ws-banner b { color: #7ee2b8; }
+.lp-ws-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.lp-ws-tiles4 { grid-template-columns: repeat(4, 1fr); }
+.lp-ws-tiles4 .lp-ws-tsub b { color: var(--ink); font-weight: 700; }
+@media (max-width: 640px) { .lp-ws-tiles4 { grid-template-columns: repeat(2, 1fr); } }
+.lp-ws-tile {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 6px; border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--stroke);
+  text-align: center;
+}
+.lp-ws-tile.lp-turn { border-color: rgba(var(--lp-gold), 0.55); box-shadow: 0 0 18px rgba(var(--lp-gold), 0.12); }
+.lp-ws-tile.lp-out { opacity: 0.65; filter: saturate(0.5); }
+.lp-ws-mark { position: absolute; top: 6px; right: 8px; font-size: 13px; }
+.lp-ws-tav { font-size: 22px; }
+.lp-ws-tname { font-size: 12.5px; font-weight: 700; }
+.lp-ws-tsub { font-size: 10.5px; color: var(--ink-faint); }
+.lp-ws-packs { display: grid; grid-template-columns: 1.5fr 1fr; gap: 8px; }
+.lp-ws-pcol {
+  padding: 10px; border-radius: 14px;
+  background: rgba(0, 0, 0, 0.22); border: 1px solid var(--stroke);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.lp-ws-phead { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: var(--ink-dim); }
+.lp-ws-pack {
+  display: flex; justify-content: space-between; gap: 8px;
+  padding: 5px 9px; border-radius: 9px;
+  font-size: 12.5px;
+  background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.25);
+}
+.lp-ws-pack.lp-no { background: rgba(244, 114, 182, 0.07); border-color: rgba(244, 114, 182, 0.25); }
+.lp-ws-pword { font-weight: 700; }
+.lp-ws-pby { color: var(--ink-faint); font-size: 11.5px; }
+.lp-ws-attempt {
+  display: flex; gap: 10px; align-items: center;
+  padding: 9px 13px; border-radius: 12px;
+  background: rgba(244, 114, 182, 0.06); border: 1px solid rgba(244, 114, 182, 0.28);
+}
+.lp-ws-atv { font-size: 17px; }
+.lp-ws-att { display: block; font-size: 13.5px; font-weight: 600; }
+.lp-ws-atr { display: block; font-size: 12px; color: var(--ink-dim); font-style: italic; }
+
+/* silent-order scene: a tiny deal to named seats */
+.lp-ws-deal {
+  display: flex; justify-content: center; gap: clamp(10px, 4vw, 26px);
+  padding: 26px 0 10px;
+}
+.lp-ws-seat { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.lp-ws-card { position: relative; width: clamp(44px, 9vw, 58px); aspect-ratio: 5 / 7; }
+.lp-ws-face { font-family: var(--display); font-weight: 800; font-size: 20px; color: #7c611c; }
+.lp-ws-sname { font-size: 12px; font-weight: 700; color: var(--ink-dim); }
+@media (prefers-reduced-motion: no-preference) {
+  .lp-anim.lp-run .lp-ws-seat .lp-ws-card {
+    animation: lp-wsdeal 0.6s both cubic-bezier(0.22, 0.9, 0.3, 1);
+    animation-delay: calc(0.4s + var(--di, 0) * 0.64s);
+  }
+}
+
+/* ---------- trust + footer rhythm ---------- */
+.lp-trust-grid { gap: 12px; }
+.lp-trust-item { padding: 16px 18px; }
+.lp-footer { gap: 16px; }
+@media (prefers-reduced-motion: no-preference) {
+  .lp-footer > * { opacity: 0; transform: translateY(14px); transition: opacity 0.6s ease, transform 0.65s cubic-bezier(0.22, 0.8, 0.26, 1); }
+  .lp-footer > *:nth-child(2) { transition-delay: 0.1s; }
+  .lp-footer > *:nth-child(3) { transition-delay: 0.2s; }
+  .lp-footer > *:nth-child(4) { transition-delay: 0.3s; }
+  .lp-footer.lp-on > * { opacity: 1; transform: none; }
+}
+
+/* ---------- keyframes (transform / opacity only) ---------- */
+@keyframes lp-sweep {
+  from { transform: translateX(-140%) skewX(-18deg); }
+  to { transform: translateX(420%) skewX(-18deg); }
+}
+@keyframes lp-fadeout {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes lp-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+@keyframes lp-wsin {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes lp-chippop {
+  from { opacity: 0; transform: scale(0.4); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes lp-verdict {
+  from { opacity: 0; transform: translateY(10px) scale(0.94); }
+  60% { transform: translateY(-2px) scale(1.02); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes lp-wsdeal {
+  from { opacity: 0; transform: translateY(-34px) rotate(-8deg); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ============================================================
    Small-screen trims
    ============================================================ */
 @media (max-width: 560px) {
@@ -744,4 +1060,477 @@
   .lp-fan { --lp-fw: 62px; }
   .lp-gslot { max-width: none; }
   .lp-stage { --lp-cw: 44px; }
+  .lp-watch-stage { min-height: 430px; }
+  .lp-ws-packs { grid-template-columns: 1fr; }
+  .lp-watch-title { font-size: 13px; }
 }
+
+/* We-are-N: the shelf answers who can play tonight. */
+.lp-hc { display:flex; align-items:center; gap:10px; justify-content:center; flex-wrap:wrap;
+  margin:6px auto 26px; font-size:17px; color:var(--lp-dim, #a7abce); }
+.lp-hc-label { font-weight:600; }
+.lp-hc-n { min-width:64px; text-align:center; font-family:'Baloo 2',ui-rounded,sans-serif;
+  font-weight:800; font-size:22px; color:#f3e3b4; }
+.lp-hc-btn { width:36px; height:36px; border-radius:10px; border:1.5px solid rgba(212,175,55,0.45);
+  background:rgba(212,175,55,0.08); color:#f3e3b4; font-size:20px; font-weight:800; cursor:pointer; }
+.lp-hc-btn:hover { background:rgba(212,175,55,0.16); }
+.lp-hc-btn:focus-visible { outline:2px solid #d4af37; outline-offset:2px; }
+.lp-hc-note { flex-basis:100%; text-align:center; font-size:14px; color:#8b8fb5; min-height:1.2em; }
+.lp-gcard.lp-gc-dim { opacity:0.32; filter:saturate(0.4); transition:opacity 0.3s ease, filter 0.3s ease; }
+
+/* ============================================================
+   DEALT TITLES, SHELF/TRUST DEALS, CTA ORBIT, WATCH TABS,
+   FOOTER MOTES.
+   Motion policy unchanged: base state = finished state; movement
+   only inside prefers-reduced-motion: no-preference.
+   ============================================================ */
+
+/* ---------- section titles: words as dealt letter-tiles ---------- */
+.lp-h2w {
+  display: inline-block;
+  background: linear-gradient(180deg, #fffdf6 30%, #efe2b0 72%, #d9bc63 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* Section heads rise as one settled line — no blur (gradient-clipped text
+     glitches inside a filtered ancestor) and no per-word tumble (it reads as
+     scrambled words for a beat). The whole heading arrives already legible. */
+  .lp-shead.lp-reveal {
+    transform: translateY(14px); filter: none;
+    transition: opacity 0.6s ease, transform 0.65s cubic-bezier(0.22, 0.8, 0.26, 1);
+  }
+  .lp-shead.lp-reveal.lp-on { transform: none; }
+  .lp-shead .lp-h2w { opacity: 1; transform: none; }
+}
+
+/* ---------- the shelf deals itself in, like the hero's hand ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .lp-gslot.lp-reveal {
+    transform: translateY(46px) rotate(calc((var(--ri, 0) - 1) * -3deg)) scale(0.95);
+    transform-origin: 50% 130%;
+    transition:
+      opacity 0.65s ease,
+      transform 0.85s cubic-bezier(0.34, 1.3, 0.45, 1),
+      filter 0.65s ease;
+    transition-delay: calc(var(--ri, 0) * 110ms);
+  }
+  .lp-gslot.lp-reveal.lp-on { transform: none; }
+}
+
+/* ---------- trust strip: six cards dealt from the middle ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .lp-trust-item.lp-reveal {
+    transform: translateY(30px) rotate(calc((var(--ri, 0) - 2.5) * 1.8deg));
+    transform-origin: 50% 140%;
+    transition:
+      opacity 0.6s ease,
+      transform 0.75s cubic-bezier(0.34, 1.35, 0.5, 1),
+      filter 0.6s ease;
+    transition-delay: calc(var(--ri, 0) * 90ms);
+  }
+  .lp-trust-item.lp-reveal.lp-on { transform: none; }
+}
+
+/* ---------- primary CTA: slow orbiting gradient border + coin flip ---------- */
+/* The shimmer is an oversized conic layer rotated by transform (composited),
+   clipped by the button; ::after repaints the gold face so only a ~2px ring
+   of the orbit shows. Everything stays transform/opacity. */
+.lp-act-create { position: relative; overflow: hidden; isolation: isolate; }
+.lp-act-create::before {
+  content: ''; position: absolute; z-index: -2; left: 50%; top: 50%;
+  width: 240%; aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    transparent 0 38%, rgba(255, 249, 224, 0.95) 50%, transparent 62% 100%);
+  pointer-events: none;
+}
+.lp-act-create::after {
+  content: ''; position: absolute; z-index: -1; inset: 2px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, #f2dc94 0%, #d4af37 48%, #a87f1f 100%);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lp-act-create::before { animation: lp-orbit 5.5s linear infinite; }
+}
+/* Invited flips emphasis to Join: the create button goes quiet, ring and all,
+   and the join button inherits the orbit instead. */
+.lp-invited .lp-act-create::before, .lp-invited .lp-act-create::after { display: none; }
+.lp-invited .lp-act-join { position: relative; overflow: hidden; isolation: isolate; }
+.lp-invited .lp-act-join::before {
+  content: ''; position: absolute; z-index: -2; left: 50%; top: 50%;
+  width: 240%; aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    transparent 0 38%, rgba(255, 249, 224, 0.95) 50%, transparent 62% 100%);
+  pointer-events: none;
+}
+.lp-invited .lp-act-join::after {
+  content: ''; position: absolute; z-index: -1; inset: 2px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, #f2dc94 0%, #d4af37 48%, #a87f1f 100%);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lp-invited .lp-act-join::before { animation: lp-orbit 5.5s linear infinite; }
+}
+/* The spark coin-flips when you hover the deal. */
+.lp-act-emoji { display: inline-block; }
+@media (prefers-reduced-motion: no-preference) {
+  .lp-act-create:hover .lp-act-emoji,
+  .lp-invited .lp-act-join:hover .lp-act-emoji {
+    animation: lp-coin 0.65s cubic-bezier(0.3, 1.2, 0.4, 1);
+  }
+}
+
+/* ---------- watch picker: emoji tabs, keyboardable ---------- */
+.lp-watch-dots { display: inline-flex; gap: 4px; }
+.lp-watch-tab {
+  width: 30px; height: 30px; border-radius: 10px;
+  display: grid; place-items: center;
+  font-size: 15px; line-height: 1;
+  border: 1px solid transparent;
+  opacity: 0.5; filter: saturate(0.6);
+  transition: opacity 0.25s, filter 0.25s, transform 0.2s, border-color 0.25s, background 0.25s;
+}
+.lp-watch-tab:hover { opacity: 0.9; filter: none; transform: translateY(-1px); }
+.lp-watch-tab:active { transform: scale(0.9); }
+.lp-watch-tab.lp-on {
+  opacity: 1; filter: none;
+  background: rgba(var(--lp-gold), 0.12);
+  border-color: rgba(var(--lp-gold), 0.45);
+}
+
+/* ---------- footer bookend: candlelight motes, CSS edition ---------- */
+.lp-footer { position: relative; overflow: hidden; }
+.lp-foot-motes { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.lp-footer > :not(.lp-foot-motes) { position: relative; z-index: 1; }
+.lp-fmote {
+  position: absolute; bottom: 6%;
+  left: calc(4% + var(--mi, 0) * 11%);
+  width: 3px; height: 3px; border-radius: 50%;
+  background: rgba(var(--lp-gold), 0.55);
+  opacity: 0;
+}
+.lp-fmote:nth-child(even) { width: 2px; height: 2px; background: rgba(239, 233, 214, 0.5); }
+@media (prefers-reduced-motion: no-preference) {
+  .lp-footer.lp-on .lp-fmote {
+    animation: lp-fmote 7s linear infinite;
+    animation-delay: calc(var(--mi, 0) * -0.9s);
+  }
+  .lp-footer.lp-on .lp-fmote:nth-child(3n) { animation-duration: 9s; }
+  /* The motes layer joined the footer as its first child, so the stagger
+     indexes shift by one; restate them and skip the motes themselves. */
+  .lp-footer > .lp-foot-motes { opacity: 1; transform: none; transition: none; }
+  .lp-footer > *:nth-child(2) { transition-delay: 0s; }
+  .lp-footer > *:nth-child(3) { transition-delay: 0.1s; }
+  .lp-footer > *:nth-child(4) { transition-delay: 0.2s; }
+  .lp-footer > *:nth-child(5) { transition-delay: 0.3s; }
+}
+
+/* ---------- felt vignette: a quiet pool of candlelight between sections ---------- */
+.lp-watch, .lp-table {
+  background: radial-gradient(60% 46% at 50% 58%, rgba(var(--lp-gold), 0.045), transparent 72%);
+}
+
+/* ---------- more keyframes (transform / opacity only) ---------- */
+@keyframes lp-orbit {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+@keyframes lp-coin {
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(360deg); }
+}
+@keyframes lp-fmote {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  12% { opacity: 0.75; }
+  80% { opacity: 0.25; }
+  100% { transform: translate3d(10px, -130px, 0); opacity: 0; }
+}
+
+/* ---------- mobile gets the calmer variants ---------- */
+@media (max-width: 560px) {
+  .lp-gslot.lp-reveal { transform: translateY(30px); }
+  .lp-trust-item.lp-reveal { transform: translateY(22px); }
+  .lp-watch-tab { width: 27px; height: 27px; font-size: 13.5px; }
+}
+@media (max-width: 560px) and (prefers-reduced-motion: no-preference) {
+  .lp-gslot.lp-reveal { transform: translateY(30px); }
+  .lp-gslot.lp-reveal.lp-on, .lp-trust-item.lp-reveal.lp-on { transform: none; }
+  .lp-trust-item.lp-reveal { transform: translateY(22px); }
+  .lp-act-create::before, .lp-invited .lp-act-join::before { animation-duration: 8s; }
+}
+
+/* ============================================================
+   SCROLLSPY NAV, VERDICT SHEEN, PILE CLIMB, SECRET-WORD CHIP,
+   FOOTER CARD BLOOM.
+   Motion policy unchanged: base state = finished state; movement
+   only inside prefers-reduced-motion: no-preference.
+   ============================================================ */
+
+/* ---------- scrollspy: the mini-nav underlines where you are ---------- */
+.lp-nav-btn { position: relative; }
+.lp-nav-btn::after {
+  content: ''; position: absolute; left: 50%; bottom: 2px;
+  width: 16px; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, rgba(var(--lp-gold), 0.95), transparent);
+  transform: translateX(-50%) scaleX(0);
+  transform-origin: 50% 50%;
+  pointer-events: none;
+}
+.lp-nav-btn.lp-cur { color: var(--lp-ivory); }
+.lp-nav-btn.lp-cur::after { transform: translateX(-50%) scaleX(1); }
+@media (prefers-reduced-motion: no-preference) {
+  .lp-nav-btn::after { transition: transform 0.3s cubic-bezier(0.22, 0.9, 0.3, 1); }
+}
+
+/* ---------- watch: verdict lands with a gold sheen sweep ---------- */
+.lp-ws-verdict { position: relative; overflow: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  .lp-anim.lp-run .lp-ws-verdict::after {
+    content: ''; position: absolute; top: -30%; bottom: -30%; left: 0; width: 30%;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, rgba(255, 249, 224, 0.22), transparent);
+    transform: translateX(-160%) skewX(-16deg);
+    animation: lp-vsheen 0.9s both cubic-bezier(0.3, 0.6, 0.2, 1);
+    animation-delay: calc(0.75s + var(--di, 0) * 0.64s);
+  }
+}
+
+/* ---------- watch: the Silent Order pile climbs, number by number ---------- */
+.lp-ws-pilerow {
+  display: flex; justify-content: center; align-items: flex-end;
+  gap: clamp(8px, 2.6vw, 16px);
+  padding: 2px 0 4px;
+}
+.lp-ws-pile {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.lp-ws-pilen {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: grid; place-items: center;
+  font-family: var(--display); font-weight: 800; font-size: 19px;
+  color: #f3e3ad;
+  background: rgba(var(--lp-gold), 0.09);
+  border: 1px solid rgba(var(--lp-gold), 0.45);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.lp-ws-pile:last-child .lp-ws-pilen {
+  background: rgba(var(--lp-gold), 0.16);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 18px rgba(var(--lp-gold), 0.18);
+}
+.lp-ws-pileby { font-size: 10.5px; font-weight: 700; color: var(--ink-faint); }
+@media (prefers-reduced-motion: no-preference) {
+  .lp-anim.lp-run .lp-ws-pile { animation-name: lp-pilepop; animation-duration: 0.5s; }
+}
+
+/* ---------- watch: an accepted ask reads green, a rejected one pink ---------- */
+.lp-ws-attempt.lp-ws-ok {
+  background: rgba(52, 211, 153, 0.06);
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+/* ---------- watch: the secret-word chip on your own clue row ---------- */
+.lp-ws-word {
+  display: inline-flex; align-items: center; gap: 3px;
+  margin-left: 8px; padding: 1px 8px; border-radius: 999px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase;
+  color: rgba(var(--lp-gold), 0.9);
+  border: 1px dashed rgba(var(--lp-gold), 0.5);
+  background: rgba(var(--lp-gold), 0.06);
+  vertical-align: 1px;
+}
+.lp-ws-word b { font-size: 10.5px; color: #f3e3ad; letter-spacing: 0.6px; }
+@media (prefers-reduced-motion: no-preference) {
+  .lp-anim.lp-run .lp-ws-word {
+    opacity: 0;
+    animation: lp-chippop 0.45s both cubic-bezier(0.2, 1.2, 0.3, 1);
+    animation-delay: calc(0.65s + var(--di, 0) * 0.64s);
+  }
+}
+
+/* ---------- footer: the brand mark blooms a tiny hand of cards ---------- */
+.lp-foot-markwrap {
+  position: relative;
+  display: inline-grid; place-items: center;
+  width: 46px; height: 46px;
+}
+.lp-foot-markwrap .lp-foot-mark { position: relative; z-index: 1; }
+.lp-fbloom { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.lp-fbcard {
+  position: absolute; left: 50%; top: 0;
+  width: 15px; aspect-ratio: 5 / 7; border-radius: 3px;
+  background:
+    repeating-linear-gradient(45deg, rgba(var(--lp-gold), 0.12) 0 1px, transparent 1px 5px),
+    linear-gradient(158deg, #232a52 0%, #141a3a 60%);
+  border: 1px solid rgba(var(--lp-gold), 0.42);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  transform-origin: 50% 165%;
+  transform: translateX(-50%) rotate(calc(var(--bi, 0) * 17deg));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lp-footer .lp-fbcard {
+    opacity: 0;
+    transform: translateX(-50%) rotate(0deg) translateY(6px);
+    transition:
+      opacity 0.5s ease,
+      transform 0.8s cubic-bezier(0.34, 1.4, 0.5, 1);
+    transition-delay: calc(0.55s + (var(--bi, 0) + 1) * 0.09s);
+  }
+  .lp-footer.lp-on .lp-fbcard {
+    opacity: 1;
+    transform: translateX(-50%) rotate(calc(var(--bi, 0) * 17deg));
+  }
+}
+
+/* ---------- new keyframes (transform / opacity only) ---------- */
+@keyframes lp-vsheen {
+  from { transform: translateX(-160%) skewX(-16deg); }
+  to { transform: translateX(460%) skewX(-16deg); }
+}
+@keyframes lp-pilepop {
+  from { opacity: 0; transform: translateY(10px) scale(0.55); }
+  62% { transform: translateY(-2px) scale(1.06); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- calm mobile variants ---------- */
+@media (max-width: 560px) {
+  .lp-ws-pilen { width: 34px; height: 34px; font-size: 16px; border-radius: 10px; }
+  .lp-ws-word { margin-left: 6px; }
+}
+
+/* ============================================================
+   V5 — SHELF HOVER BLOOM, CURSOR CANDLELIGHT, FINALE REPRISE.
+   Motion policy unchanged: base state = finished state; movement
+   only inside prefers-reduced-motion: no-preference (hover-only
+   decoration additionally gated behind hover-capable pointers).
+   ============================================================ */
+
+/* ---------- shelf: a mini fan blooms behind the emoji on hover ---------- */
+.lp-gbloom {
+  position: absolute; top: 22px; left: 24px;
+  width: 40px; height: 40px;
+  pointer-events: none; z-index: 0;
+}
+.lp-gcard-emoji { position: relative; z-index: 1; }
+.lp-gbcard {
+  position: absolute; left: 50%; top: 0;
+  width: 14px; aspect-ratio: 5 / 7; border-radius: 3px;
+  background:
+    repeating-linear-gradient(45deg, rgba(var(--lp-gold), 0.12) 0 1px, transparent 1px 5px),
+    linear-gradient(158deg, #232a52 0%, #141a3a 60%);
+  border: 1px solid color-mix(in srgb, var(--a, var(--lp-gold-h)) 60%, transparent);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.45),
+    0 0 10px color-mix(in srgb, var(--a, var(--lp-gold-h)) 22%, transparent);
+  transform-origin: 50% 165%;
+  transform: translateX(-50%) rotate(0deg) translateY(4px);
+  opacity: 0;
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .lp-gbcard {
+    transition:
+      transform 0.55s cubic-bezier(0.34, 1.4, 0.5, 1),
+      opacity 0.3s ease;
+    transition-delay: calc((var(--gi, 0) + 1) * 45ms);
+  }
+  .lp-gcard:hover .lp-gbcard,
+  .lp-gcard:focus-visible .lp-gbcard {
+    opacity: 1;
+    transform: translateX(-50%) rotate(calc(var(--gi, 0) * 24deg)) translateY(-7px);
+  }
+}
+
+/* ---------- cursor candlelight: a soft pool of gold trails the pointer ---------- */
+/* Element exists only on fine-pointer, motion-tolerant devices (JS gate). */
+.lp-glow {
+  position: fixed; left: 0; top: 0; z-index: 2;
+  width: 520px; height: 520px;
+  margin: -260px 0 0 -260px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle,
+    rgba(var(--lp-gold), 0.075) 0%,
+    rgba(var(--lp-gold), 0.03) 38%,
+    transparent 68%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity 0.7s ease, transform 0.22s ease-out;
+}
+.lp-glow.lp-glow-on { opacity: 1; }
+
+/* ---------- finale: the opening deal, reprised at full weight ---------- */
+.lp-cta-inner {
+  position: relative; text-align: center;
+  padding: clamp(56px, 9vw, 96px) 20px clamp(30px, 5vw, 54px);
+}
+.lp-cta-inner > :not(.lp-xfan) { position: relative; z-index: 1; }
+.lp-xfan {
+  position: absolute; left: 50%; top: 0;
+  width: 0; height: 0;
+  --lp-xw: clamp(54px, 8vw, 84px);
+  pointer-events: none; z-index: 0;
+}
+.lp-xfcard {
+  position: absolute; left: 0; top: 0;
+  width: var(--lp-xw); aspect-ratio: 5 / 7;
+  transform-origin: 50% 155%;
+  transform: translateX(-50%) rotate(calc(var(--i, 0) * 15deg));
+  opacity: 0.5;
+}
+.lp-cta-h {
+  margin-top: 12px;
+  font-family: var(--display);
+  font-size: clamp(42px, 8vw, 88px);
+  font-weight: 800; line-height: 1.0; letter-spacing: 0.2px;
+  background: linear-gradient(180deg, #fffdf6 26%, #efe2b0 68%, #d9bc63 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-wrap: balance;
+  filter: drop-shadow(0 8px 34px rgba(var(--lp-gold), 0.14));
+}
+.lp-cta-sub {
+  margin: 16px auto 30px; max-width: 440px;
+  font-size: clamp(15px, 1.9vw, 17.5px); line-height: 1.6; color: var(--ink-dim);
+  text-wrap: pretty;
+}
+.lp-cta-btn {
+  display: inline-flex; margin: 0 auto;
+  padding: 17px 32px; border-radius: 18px;
+  font-size: 16.5px;
+}
+.lp-cta-btn::after { border-radius: 16px; }
+@media (prefers-reduced-motion: no-preference) {
+  /* The fan folds shut whenever the finale is off screen and blooms open
+     each time it arrives (lp-bloom is toggled by its own observer), so the
+     moment replays on every visit instead of firing once mid-scroll. */
+  .lp-cta-inner .lp-xfcard {
+    opacity: 0;
+    transform: translateX(-50%) rotate(0deg) translateY(16px);
+    transition:
+      transform 0.9s cubic-bezier(0.34, 1.35, 0.5, 1),
+      opacity 0.5s ease;
+    transition-delay: calc(0.25s + (var(--i, 0) + 2) * 85ms);
+  }
+  .lp-cta-inner.lp-bloom .lp-xfcard {
+    opacity: 0.5;
+    transform: translateX(-50%) rotate(calc(var(--i, 0) * 15deg));
+  }
+}
+
+/* ---------- calm mobile variants ---------- */
+@media (max-width: 560px) {
+  .lp-xfan { --lp-xw: 48px; }
+  .lp-xfcard { transform: translateX(-50%) rotate(calc(var(--i, 0) * 12deg)); opacity: 0.4; }
+  .lp-cta-inner { padding-top: 48px; }
+}
+@media (max-width: 560px) and (prefers-reduced-motion: no-preference) {
+  .lp-cta-inner.lp-bloom .lp-xfcard {
+    opacity: 0.4;
+    transform: translateX(-50%) rotate(calc(var(--i, 0) * 12deg));
+  }
+}
+
+/* Pinned-preview note: appears when a reader holds one scene via the tabs. */
+.lp-watch-pin { display: block; text-align: center; font-size: 12px; letter-spacing: 0.04em; color: rgba(240, 226, 198, 0.55); min-height: 16px; margin-top: 6px; }

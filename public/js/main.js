@@ -248,6 +248,18 @@ socket.on('fx', (fx) => {
     // for everyone. Naming who moved would be a tell.
     case 'sl-tuck': sound.tick(); break;
     case 'sl-vote': sound.tick(); break;
+    case 'ss-react': {
+      // Same shared-clip rule as Blend In's reactions, landing over the chair at the
+      // card table instead of a player tile.
+      playReaction(fx.emoji, fx.seed);
+      const chair = document.querySelector(`.ct-who[data-id="${CSS.escape(fx.playerId)}"]`);
+      if (chair) {
+        const float = h('span', { class: 'react-float' }, fx.emoji);
+        chair.append(float);
+        setTimeout(() => float.remove(), 2600);
+      }
+      break;
+    }
     case 'ss-left': {
       const who = store.snap?.players.find((p) => p.id === fx.playerId);
       toast(`${who?.name || 'Someone'} left the table. Their card goes back to the deck.`, 'info');
@@ -275,8 +287,11 @@ socket.on('fx', (fx) => {
       break;
     }
     case 'game-over': {
-      if (fx.winner === 'insiders') { memes.applause(); setTimeout(() => memes.levelUp(), 350); }
-      else { memes.sinister(); setTimeout(() => memes.airhorn(), 700); }
+      // Each ending owns a long signature stinger, so a win SOUNDS like whose win it was:
+      // triumphant fanfare with a dhol under it for the insiders, a sly villain theme for
+      // the outsiders who fooled the whole table.
+      if (fx.winner === 'insiders') { playMeme('winInsiders'); setTimeout(() => playMeme('dhol'), 500); }
+      else { playMeme('winOutsiders'); setTimeout(() => memes.airhorn(), 1400); }
       confettiRain(2400);
       break;
     }
@@ -291,13 +306,13 @@ socket.on('fx', (fx) => {
     }
     case 'island-attempt': if (!mine) sound.pop(); break;
     case 'island-item': {
-      if (fx.fits) { memes.coin(); }
+      if (fx.fits) { playMeme('ding'); }
       else { memes.bonk(); }
       break;
     }
     case 'island-solved': {
-      memes.levelUp();
-      setTimeout(() => memes.applause(), 300);
+      playMeme('wow');
+      setTimeout(() => playMeme('kaching'), 500);
       confettiBurst({ count: 110 });
       break;
     }
@@ -311,7 +326,7 @@ socket.on('fx', (fx) => {
       break;
     }
     case 'island-knocked-out': {
-      memes.emotionalDamage();
+      playMeme('fail');
       const who = store.snap?.players.find((p) => p.id === fx.playerId);
       toast(mine
         ? 'Three wrong guesses. You\'re out for this round 💀'
@@ -965,234 +980,15 @@ function renderLanding() {
   }));
 }
 
-function landingHero() {
-  return h('div', { class: 'hero' },
-    h('div', { class: 'hero-float-field', 'aria-hidden': 'true' },
-      ['🕵️', '🏝️', '🎩', '🃏', '💡', '🗳️'].map((e, i) => h('span', { class: 'hero-float', style: `--i:${i}` }, e))),
-    h('img', { class: 'hero-logo', src: '/icons/logo.svg', width: 96, height: 96, alt: '' }),
-    h('h1', { class: 'title wordmark', 'aria-label': BRAND.short },
-      // Two word groups so a narrow screen breaks between them, never mid-word, and each
-      // letter gets its own delay for the drop-in.
-      BRAND.short.split(' ').map((word, w, all) => h('span', { class: 'wm-word' },
-        [...word].map((ch, i) => h('span', {
-          class: 'wm-ch',
-          style: `--d:${(all.slice(0, w).join(' ').length + (w ? 1 : 0) + i) * 55}ms; --r:${(i % 2 ? 1 : -1) * (6 + (i % 3) * 3)}deg`,
-          'aria-hidden': 'true',
-        }, ch)),
-      )),
-      h('span', { class: 'wm-shine', 'aria-hidden': 'true' }),
-    ),
-    h('div', { class: 'hero-byline' }, BRAND.byline),
-    h('p', { class: 'hero-tag' }, 'Your crew, your rules. ', h('b', {}, 'One room code away.')),
-    h('p', {}, 'Real-time party games like ', h('b', {}, 'Blend In'), ' and ', h('b', {}, 'Island Rules'), ': host a night in under a minute, no app store required.'),
-    h('button', {
-      class: 'meet-dev',
-      onClick: () => {
-        const card = app.querySelector('#meet-the-developer');
-        card?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        card?.classList.remove('spotlight');
-        void card?.offsetWidth;                 // restart the highlight animation
-        card?.classList.add('spotlight');
-        sound.tap();
-      },
-    },
-      devPhoto('sm', 28),
-      h('span', { class: 'md-text' }, 'Meet the developer'),
-      h('span', { class: 'md-arrow' }, '↓'),
-    ),
-  );
-}
 
-// Honest feedback when the server is unreachable — never a button that does nothing.
-function connectionNotice() {
-  if (store.connected) return null;
-  return h('div', { class: 'conn-notice' },
-    h('span', { class: 'spin-emoji' }, '📡'),
-    h('div', {},
-      h('div', { style: 'font-weight:700' }, 'Connecting to the game server…'),
-      h('div', { class: 'hint' }, 'If this sticks around, make sure the server is running, then reload.'),
-    ),
-  );
-}
 
-function stepDots(active) {
-  return h('div', { class: 'step-dots' },
-    [['1', 'You'], ['2', 'Play']].map(([n, label], i) => h('div', {
-      class: `step-dot ${active === i + 1 ? 'active' : ''} ${active > i + 1 ? 'done' : ''}`,
-    }, h('span', { class: 'sd-num' }, active > i + 1 ? '✓' : n), h('span', { class: 'sd-label' }, label))),
-  );
-}
 
-// ----- step 1: who are you -----
-function stepIdentity() {
-  const invited = sessionStorage.getItem('gn_prefill_code');
-  const name = h('input', {
-    class: 'input', type: 'text', maxlength: 18, placeholder: 'e.g. Ankit',
-    value: prefs.name, 'data-preserve': 'home-name', autocomplete: 'off', enterkeyhint: 'go',
-  });
-  let chosen = prefs.avatar;
-  const avatarRow = h('div', { class: 'avatar-row' });
-  const drawAvatars = () => {
-    avatarRow.replaceChildren(...AVATARS.map((a) =>
-      h('button', {
-        class: `avatar-opt ${a === chosen ? 'selected' : ''}`,
-        onClick: () => { chosen = a; prefs.avatar = a; sound.tap(); drawAvatars(); },
-      }, a),
-    ));
-  };
-  drawAvatars();
 
-  const go = () => {
-    const v = name.value.trim();
-    if (!v) { toast('Tell us your name first!', 'error'); shake(name); name.focus(); return; }
-    prefs.name = v;
-    prefs.avatar = chosen;
-    landingStep = 2;
-    if (invited) joinOpen = true;
-    sound.pop();
-    sendHello();          // now that we know who they are
-    render();
-  };
-  name.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
 
-  return h('div', { class: 'card step-card' },
-    stepDots(1),
-    // Someone arriving on an invite link needs to know why they are being asked for a
-    // name before they get to the room they were sent to.
-    invited && h('div', { class: 'invited-banner' },
-      h('span', { class: 'ib-key' }, '🔑'),
-      h('div', {},
-        h('div', { class: 'ib-title' }, `You're invited to room ${invited}`),
-        h('div', { class: 'ib-sub' }, 'Name yourself and you go straight in.'),
-      ),
-    ),
-    h('h2', { class: 'subtitle' }, '👋 First, name yourself'),
-    h('p', { class: 'hint', style: 'margin:6px 0 14px' }, 'This is how your friends will see you in the game.'),
-    h('label', { class: 'label' }, 'Your name'),
-    name,
-    h('label', { class: 'label', style: 'margin-top:16px' }, 'Pick your avatar'),
-    avatarRow,
-    h('button', { class: 'btn btn-primary btn-lg btn-block shimmer', style: 'margin-top:18px', onClick: go },
-      'Continue →'),
-  );
-}
 
-// ----- step 2: create or join -----
-function stepPlay() {
-  const codeInput = h('input', {
-    // No maxlength: pasting a whole invite must reach the handler intact, otherwise the
-    // browser truncates it to the first five characters of "🎭 It's game night!…".
-    class: 'input input-code', type: 'text', placeholder: 'CODE',
-    'data-preserve': 'home-code', autocomplete: 'off', autocapitalize: 'characters',
-    autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'go',
-  });
 
-  // Paste the code, the link, or the entire invite message — we find the code.
-  const acceptPastedText = (text, { autoJoin }) => {
-    const code = extractRoomCode(text);
-    if (!code) {
-      // Leave whatever they typed, minus anything that can't be in a code.
-      codeInput.value = String(text || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
-      return false;
-    }
-    codeInput.value = code;
-    codeInput.setSelectionRange(code.length, code.length);
-    if (autoJoin) {
-      toast(`Found room code ${code}, joining… 🎟️`, 'success');
-      join(null);
-    }
-    return true;
-  };
 
-  codeInput.addEventListener('paste', (e) => {
-    const text = e.clipboardData?.getData('text');
-    if (!text) return;
-    e.preventDefault();
-    acceptPastedText(text, { autoJoin: true });
-  });
-  codeInput.addEventListener('drop', (e) => {
-    const text = e.dataTransfer?.getData('text');
-    if (!text) return;
-    e.preventDefault();
-    acceptPastedText(text, { autoJoin: true });
-  });
-  // Typing (or an autofill that bypasses paste) still gets cleaned up.
-  codeInput.addEventListener('input', () => {
-    const raw = codeInput.value;
-    if (/^[A-Za-z0-9]{0,5}$/.test(raw)) {
-      codeInput.value = raw.toUpperCase();
-      return;
-    }
-    acceptPastedText(raw, { autoJoin: false });
-  });
 
-  const create = async (e) => {
-    if (!store.connected) { toast('Still connecting to the server. One moment.', 'error'); return; }
-    const btn = e.currentTarget;
-    btn.disabled = true;
-    const label = btn.textContent;
-    btn.replaceChildren(h('span', { class: 'spin-emoji' }, '🌀'), ' Creating your room…');
-    const res = await emit('room:create', { name: prefs.name, avatar: prefs.avatar, ...identity });
-    if (res.ok) sound.woosh();
-    else { btn.disabled = false; btn.replaceChildren(label); shake(btn); }
-  };
-
-  const join = async (btn) => {
-    if (!store.connected) { toast('Still connecting to the server. One moment.', 'error'); return; }
-    const code = codeInput.value.trim().toUpperCase();
-    if (code.length !== 5) { toast('Room codes are 5 characters.', 'error'); shake(codeInput); codeInput.focus(); return; }
-    if (btn) btn.disabled = true;
-    const res = await emit('room:join', { code, name: prefs.name, avatar: prefs.avatar, ...identity });
-    if (res.ok) sound.woosh();
-    else if (btn) { btn.disabled = false; shake(codeInput); }
-  };
-  codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') join(null); });
-
-  return h('div', { class: 'card step-card' },
-    stepDots(2),
-    h('div', { class: 'identity-chip' },
-      h('span', { class: 'ic-avatar' }, prefs.avatar),
-      h('div', { class: 'ic-body' },
-        h('div', { class: 'ic-name' }, prefs.name || 'Nameless so far'),
-        h('div', { class: 'hint' }, 'That\'s you'),
-      ),
-      h('button', {
-        class: 'btn btn-ghost btn-sm',
-        onClick: () => { landingStep = 1; joinOpen = false; render(); },
-      }, '✏️ Change'),
-    ),
-    h('h2', { class: 'subtitle', style: 'margin-top:16px' }, '🎮 Now, start or join a game'),
-    h('p', { class: 'hint', style: 'margin:6px 0 14px' }, 'Create a room and share the code, or type a friend\'s code to join theirs.'),
-    h('div', { class: 'choice-grid' },
-      h('button', {
-        class: 'choice-card create', disabled: !store.connected,
-        onClick: create,
-      },
-        h('div', { class: 'cc-emoji' }, '✨'),
-        h('div', { class: 'cc-title' }, 'Create a room'),
-        h('div', { class: 'cc-sub' }, 'You host. Pick the game and start it'),
-      ),
-      h('button', {
-        class: `choice-card join ${joinOpen ? 'open' : ''}`,
-        onClick: () => { joinOpen = true; render(); setTimeout(() => app.querySelector('[data-preserve="home-code"]')?.focus(), 60); },
-      },
-        h('div', { class: 'cc-emoji' }, '🔑'),
-        h('div', { class: 'cc-title' }, 'Join a room'),
-        h('div', { class: 'cc-sub' }, 'Got a 5-letter code from a friend?'),
-      ),
-    ),
-    joinOpen && h('div', { class: 'join-panel' },
-      h('label', { class: 'label' }, 'Room code'),
-      h('div', { class: 'join-row' },
-        codeInput,
-        h('button', {
-          class: 'btn btn-primary btn-lg', disabled: !store.connected,
-          onClick: (e) => join(e.currentTarget),
-        }, 'Join'),
-      ),
-    ),
-  );
-}
 
 const ORIGIN_STORY = 'This started at real game nights with friends. The bluffing, the accusations, the arguing over the rules. It only worked when everyone was in the same room. So I rebuilt it to travel in a link.';
 
@@ -1220,132 +1016,10 @@ function developerProfile({ compact = false } = {}) {
   );
 }
 
-function developerCard() {
-  return h('div', { class: 'card dev-showcase reveal', id: 'meet-the-developer' },
-    h('div', { class: 'ds-glow' }),
-    h('div', { class: 'ds-label' }, 'Meet the developer'),
-    developerProfile(),
-  );
-}
 
 
-// A labelled preview built from the same components the real screens use: the clue board
-// with its reaction bar for Blend In, the starter banner, player tiles, packing list and
-// attempt log for The Island. Kept in step with the live UI on purpose, so what people see
-// on the landing page is what they actually get.
-function demoCard() {
-  const stage = h('div', { class: 'demo-stage' });
-  const label = h('span', { class: 'demo-label' });
-  const dots = h('div', { class: 'demo-progress' });
 
-  // Static stand-ins for the interactive reaction bar. Same markup, no handlers.
-  const reactions = (pairs) => h('div', { class: 'reaction-bar' },
-    pairs.map(([emoji, n, mine]) => h('span', { class: `react-chip ${mine ? 'mine' : ''}` },
-      emoji, h('span', { class: 'rc-count' }, String(n)))),
-    h('span', { class: 'react-trigger' }, '＋'),
-  );
 
-  const blendInScene = () => [
-    h('div', { class: 'clue-round-label' }, 'Round 1'),
-    h('div', { class: 'demo-clues' },
-      [
-        ['🦊', 'Saaru', 'bitter', [['🤔', 2]], false],
-        ['🐼', 'Tushita', 'morning fuel', [['🔥', 3], ['😂', 1]], false],
-        ['🦁', 'Ranjani', 'leafy?', [['🧐', 2], ['😱', 1]], true],
-        ['🐙', 'Ankit', 'espresso vibes', [['😂', 4, true]], false],
-      ].map(([avatar, name, clue, rx, dead], i) => h('div', {
-        class: `clue-row ${dead ? 'dead-clue' : ''} anim-slide`,
-        style: `animation-delay:${i * 120}ms`,
-      },
-        h('div', { class: 'cr-avatar' }, avatar),
-        h('div', { class: 'cr-body' },
-          h('div', { class: 'cr-name' }, name, name === 'Ankit' && ' (you)'),
-          h('div', { class: 'clue-bubble' }, clue),
-          reactions(rx),
-        ),
-      )),
-    ),
-    h('div', { class: 'demo-verdict', style: 'animation-delay:620ms' },
-      '🗳️ Voted out: Ranjani. She had “Tea”, everyone else had “Coffee”.'),
-  ];
-
-  const islandScene = () => [
-    h('div', { class: 'starter-banner demo-starter' },
-      '🏝️ “I\'m going to an island and I\'m bringing',
-      h('div', { class: 'sb-items' }, 'Heart & Window'),
-      '…what else can come aboard?”',
-    ),
-    h('div', { class: 'players-grid demo-tiles' },
-      [
-        ['🐙', 'Ankit', '🥇', 'cracked it! · 8 pts', ''],
-        ['🦄', 'Dinesh', '', 'their turn…', 'current-turn'],
-        ['💀', 'Mrunali', '', 'out of guesses', 'dead'],
-      ].map(([avatar, name, mark, sub, cls], i) => h('div', {
-        class: `player-tile anim-pop ${cls}`,
-        style: `animation-delay:${i * 90}ms`,
-      },
-        mark && h('span', { class: 'pt-mark' }, mark),
-        h('div', { class: 'pt-avatar' }, avatar),
-        h('div', { class: 'pt-name' }, name, name === 'Ankit' && h('span', { class: 'pt-you' }, ' (you)')),
-        h('div', { class: 'pt-sub' }, sub),
-      )),
-    ),
-    h('div', { class: 'packing-grid demo-packing' },
-      h('div', { class: 'pack-col allowed' },
-        h('div', { class: 'pack-head' }, '✅ On the boat (4)'),
-        [['Heart', '🤖 AI'], ['Window', '🤖 AI'], ['Promise', '🐙 Ravi'], ['Record', '🦉 Ana']]
-          .map(([word, by], i) => h('div', { class: 'pack-item anim-pop', style: `animation-delay:${i * 90}ms` },
-            h('span', { class: 'pack-word' }, word),
-            h('span', { class: 'pack-by' }, by),
-          )),
-      ),
-      h('div', { class: 'pack-col rejected' },
-        h('div', { class: 'pack-head' }, '🚫 Left behind (1)'),
-        h('div', { class: 'pack-item anim-pop', style: 'animation-delay:120ms' },
-          h('span', { class: 'pack-word' }, 'Pillow'),
-          h('span', { class: 'pack-by' }, '🦄 Kim'),
-        ),
-      ),
-    ),
-    h('div', { class: 'attempt v-no anim-slide', style: 'animation-delay:420ms' },
-      h('span', { class: 'at-verdict' }, '🚫'),
-      h('div', {},
-        h('div', { class: 'at-text' }, 'Can I bring “Pillow”?'),
-        h('div', { class: 'at-remark' }, 'The boat says no. The boat is very picky.'),
-      ),
-      h('span', { class: 'at-who' }, '🦄 Kim'),
-    ),
-    h('div', { class: 'demo-verdict', style: 'animation-delay:640ms' },
-      '💡 Ravi: “things that can break!” Cracked it 🥇'),
-  ];
-
-  const SCENES = [
-    { game: 'Blend In', emoji: '🕵️', build: blendInScene },
-    { game: 'Island Rules', emoji: '🏝️', build: islandScene },
-  ];
-
-  let index = 0;
-  const play = () => {
-    const scene = SCENES[index % SCENES.length];
-    label.replaceChildren(`${scene.emoji} ${scene.game}`);
-    dots.replaceChildren(...SCENES.map((_, i) =>
-      h('span', { class: `demo-dot ${i === index % SCENES.length ? 'on' : ''}` })));
-    stage.replaceChildren(...scene.build());
-    index += 1;
-  };
-  play();
-  landingTimers.push(setInterval(play, 7000));
-
-  return h('div', { class: 'card demo-card reveal' },
-    h('div', { class: 'demo-head' },
-      h('span', { class: 'demo-chip' }, '▶ Preview'),
-      label,
-      dots,
-    ),
-    stage,
-    h('p', { class: 'demo-caption' }, 'An example round, drawn with the real game screens.'),
-  );
-}
 
 // Who is winning the night, and the all-time board. Shown in the lobby so the standings
 // greet you when a new game is being set up.
@@ -1448,7 +1122,10 @@ function renderLobby() {
         h('h3', {}, g.title),
         h('p', {}, g.tagline),
         h('div', { class: 'gc-meta' },
-          g.tags.map((t) => h('span', { class: 'badge' }, t)),
+          g.tags.map((t) => h('span', {
+            class: 'badge',
+            title: t.startsWith('🎥') ? 'Best when everyone is together on a group call, faces visible.' : null,
+          }, t)),
           h('span', {
             class: 'badge', role: 'button',
             onClick: (e) => { e.stopPropagation(); showRules(g.id); },
@@ -1513,7 +1190,7 @@ function renderLobby() {
   }));
   if (snap.game === 'sleepless') parts.push(cardGameLobbyPanel(snap, c, {
     emoji: '🌙', title: 'Sleepless setup', startEvent: 'sl:start',
-    min: snap.limits.slMin ?? 4, max: snap.limits.slMax ?? 12,
+    min: snap.limits.slMin ?? 4, max: snap.limits.slMax ?? 16,
     blurb: 'Someone at this table is the Prowler. Survive the nights, find them by day.',
     startLabel: (n) => `🌙 Deal roles for ${n} players`,
   }));

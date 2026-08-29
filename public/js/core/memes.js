@@ -561,18 +561,46 @@ export const MEME_CATALOG = [
   { id: 'serious', emoji: '🕯️', name: 'Serious swell', where: 'After the shuffle: the laugh cuts out and the round begins' },
   { id: 'heartbeat', emoji: '🫀', name: 'Heartbeat', where: 'A card game moment you cannot take back' },
   { id: 'nightfall', emoji: '🌙', name: 'Nightfall', where: 'Sleepless: the room goes dark for the night' },
+  { id: 'winInsiders', emoji: '🏆', name: 'Insiders win', where: 'Blend In: the insiders take the game', recorded: true },
+  { id: 'winOutsiders', emoji: '🎭', name: 'Outsiders win', where: 'Blend In: the outsiders take the game', recorded: true },
+  { id: 'dhol', emoji: '🪘', name: 'Dhol', where: 'Big wins and the 🔥 reaction (indian pack)', recorded: true },
+  { id: 'tabla', emoji: '🎶', name: 'Tabla sting', where: 'The 🤔 and 🧐 pools (indian pack)', recorded: true },
+  { id: 'wow', emoji: '😮', name: 'Crowd wow', where: 'Island solves; the 😮-adjacent pools', recorded: true },
+  { id: 'fail', emoji: '🪈', name: 'Slide-whistle fail', where: 'Knocked out of Island Rules; 💀 pool', recorded: true },
+  { id: 'dun', emoji: '🎻', name: 'Dun dun dunnn', where: 'Sentinel blocks; suspicion pools', recorded: true },
+  { id: 'evilLaugh', emoji: '😈', name: 'Evil laugh', where: 'Prowler win; 🧐 and 💀 pools', recorded: true },
+  { id: 'ding', emoji: '🔔', name: 'Correct ding', where: 'Island: an item fits; 🔥 pool', recorded: true },
+  { id: 'aww', emoji: '🥺', name: 'Crowd aww', where: 'Sleepless: a night everyone survives', recorded: true },
+  { id: 'huh', emoji: '🤨', name: 'Confused huh', where: 'The 🤔 and 🧐 pools', recorded: true },
+  { id: 'kaching', emoji: '💰', name: 'Ka-ching', where: 'Points landing; the 🔥 pool', recorded: true },
+  { id: 'clang', emoji: '🛡', name: 'Shield clang', where: 'Swap or Stay: a Sentinel blocks a swap', recorded: true },
+  { id: 'bellToll', emoji: '🔔', name: 'Bell toll', where: 'Sleepless: someone did not wake up', recorded: true },
+  { id: 'rooster', emoji: '🐓', name: 'Rooster crow', where: 'Sleepless: a morning everyone survived', recorded: true },
 ];
 
 // Which sound each reaction fires. Keep these in step with REACTIONS on the server.
 // Each reaction draws from a pool, and every id in a pool may itself have several
 // recorded variants, so the same emoji rarely sounds the same twice.
+// Ids whose recordings live in media/sfx/indian/ — the desi flavour pack. Kept as one
+// list so it can be extended or swapped for a global pack without touching game code.
+export const INDIAN_SFX = ['dhol', 'tabla'];
+
+// Recording-only ids fall back to the nearest synth until their file has decoded.
+const SYNTH_FALLBACK = {
+  dhol: 'drumroll', tabla: 'rimshot',
+  winInsiders: 'levelUp', winOutsiders: 'sinister',
+  wow: 'gasp', fail: 'sadTrombone', dun: 'suspense', evilLaugh: 'sinister',
+  ding: 'levelUp', aww: 'crickets', huh: 'bruh', kaching: 'coin',
+  clang: 'buzzer', bellToll: 'boom', rooster: 'levelUp',
+};
+
 export const REACTION_SOUNDS = {
-  '😂': ['laughTrack', 'laughTrack', 'laughTrack', 'applause', 'rimshot', 'bruh'],
-  '🤔': ['crickets', 'crickets', 'suspense', 'bruh', 'recordScratch'],
-  '😱': ['gasp', 'gasp', 'gasp', 'boo', 'recordScratch', 'emotionalDamage'],
-  '🧐': ['suspense', 'suspense', 'drumroll', 'sinister', 'crickets'],
-  '🔥': ['airhorn', 'airhorn', 'cheer', 'applause', 'levelUp'],
-  '💀': ['boom', 'boom', 'boom', 'emotionalDamage', 'sadTrombone', 'bruh'],
+  '😂': ['laughTrack', 'laughTrack', 'laughTrack', 'laughTrack', 'evilLaugh', 'rimshot', 'fail', 'bruh', 'applause', 'wow'],
+  '🤔': ['crickets', 'crickets', 'huh', 'huh', 'suspense', 'bruh', 'recordScratch', 'dun', 'tabla', 'sadTrombone'],
+  '😱': ['gasp', 'gasp', 'gasp', 'wow', 'dun', 'aww', 'boo', 'emotionalDamage', 'recordScratch', 'boom'],
+  '🧐': ['suspense', 'suspense', 'dun', 'huh', 'drumroll', 'sinister', 'crickets', 'evilLaugh', 'recordScratch', 'tabla'],
+  '🔥': ['airhorn', 'airhorn', 'dhol', 'dhol', 'cheer', 'applause', 'kaching', 'ding', 'wow', 'levelUp'],
+  '💀': ['boom', 'boom', 'boom', 'emotionalDamage', 'fail', 'sadTrombone', 'evilLaugh', 'aww', 'dun', 'bruh'],
 };
 
 // The pool is weighted by repetition (the signature sound appears more than once), so
@@ -693,7 +721,7 @@ function loadVariant(name, url) {
 // stopping are all playing recordings.
 export function playMeme(name) {
   const noop = () => {};
-  const synth = () => { const fn = memes[name]; if (fn) fn(); return noop; };
+  const synth = () => { const fn = memes[name] || memes[SYNTH_FALLBACK[name]]; if (fn) fn(); return noop; };
   const decoded = samples.get(name);
   const pending = sampleIndex?.get(name);
 

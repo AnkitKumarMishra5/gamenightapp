@@ -3,15 +3,15 @@ import { h } from '../../core/ui.js';
 
 export function rulesNode() {
   return h('div', { class: 'rules-body' },
-    h('p', {}, 'A night-and-day deduction game for 4–12 players. Everyone gets a secret role card:'),
+    h('p', {}, 'A night-and-day deduction game for 4–16 players. Everyone gets a secret role card. Up to 8 players one Prowler hunts alone; from 9 it is a pack of two, from 14 a pack of three, and the pack knows its own:'),
     h('ul', {},
       h('li', {}, h('b', {}, '🐾 Prowler'), ' — visits someone every night. They don\'t wake up.'),
       h('li', {}, h('b', {}, '🩺 Medic'), ' — guards one door every night, their own included. A guarded player can\'t be taken.'),
       h('li', {}, h('b', {}, '🔮 Oracle'), ' — reads one player every night and privately learns whether they are the Prowler.'),
-      h('li', {}, h('b', {}, '😴 Sleepers'), ' — everyone else. No powers, just instincts and a vote.'),
+      h('li', {}, h('b', {}, '😴 Sleepers'), ' — everyone else. Each night they keep watch on one door, and watching the right one pays: witness the attack and you privately learn someone who is NOT a Prowler; watch a Prowler\'s door and their empty bed banks you an Instinct point at the end.'),
     ),
     h('h4', {}, '🌙 At night'),
-    h('p', {}, 'Everyone picks a player — even Sleepers, whose pick is a pure gut check that changes nothing and is never revealed. Same screen for every role, so nobody can be read by how long they take. The night ends when everyone has chosen.'),
+    h('p', {}, 'Everyone picks a player on the same screen — Prowlers choose a victim, the Medic a door to guard, the Oracle a face to read, and Sleepers a door to watch. Identical screens for every role, so nobody can be read by how long they take. The night ends when everyone has chosen.'),
     h('h4', {}, '🌅 At dawn'),
     h('ul', {},
       h('li', {}, 'If the Medic guarded the Prowler\'s target, everyone wakes up. The table only hears that someone was attacked and survived — never who.'),

@@ -1,0 +1,58 @@
+<!doctype html><html><head><meta charset="utf-8"><title>og gen</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; box-sizing:border-box; }
+  body { width:1200px; height:630px; overflow:hidden; font-family:'Outfit',sans-serif; color:#eef0ff; }
+  .card { position:relative; width:1200px; height:630px; background:#0b0e1a; }
+  .bg { position:absolute; inset:0; background-size:cover; background-position:center; filter:brightness(0.42) saturate(1.05); }
+  .tint { position:absolute; inset:0; background:
+    radial-gradient(80% 90% at 22% 80%, rgba(212,175,55,0.16), transparent 60%),
+    linear-gradient(160deg, rgba(11,14,26,0.28) 0%, rgba(11,14,26,0.72) 78%); }
+  .brand { position:absolute; top:44px; left:56px; display:flex; align-items:center; gap:14px;
+    font-family:'Baloo 2'; font-weight:800; font-size:30px; letter-spacing:0.5px; }
+  .brand .logo { width:48px; height:48px; border-radius:13px; }
+  .maker { position:absolute; top:40px; right:56px; display:flex; align-items:center; gap:14px; }
+  .maker .face { width:56px; height:56px; border-radius:50%; border:2.5px solid rgba(212,175,55,0.75);
+    object-fit:cover; box-shadow:0 6px 16px rgba(0,0,0,0.5); }
+  .maker span { display:flex; flex-direction:column; line-height:1.25; }
+  .maker b { font-size:21px; font-weight:700; }
+  .maker i { font-style:normal; font-size:15.5px; color:#b9bdda; }
+  .copy { position:absolute; left:56px; bottom:64px; max-width:660px; }
+  h1 { font-family:'Baloo 2'; font-weight:800; font-size:88px; line-height:1.02;
+    background:linear-gradient(115deg,#fff8e7 20%, #e8c766 55%, #b8912f 90%);
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .sub { margin-top:18px; font-size:29px; font-weight:600; color:#cfd3ee; max-width:620px; }
+  .chips { margin-top:22px; display:flex; gap:12px; }
+  .chip { border:1.5px solid rgba(212,175,55,0.55); color:#f3e3b4; border-radius:999px;
+    padding:8px 20px; font-size:23px; font-weight:700; background:rgba(11,14,26,0.55); }
+  /* dealt-card motif */
+  .fan { position:absolute; right:88px; bottom:-30px; width:330px; height:430px; }
+  .pc { position:absolute; left:50%; bottom:0; width:230px; height:330px; border-radius:18px;
+    transform-origin:50% 115%; border:2px solid rgba(212,175,55,0.55);
+    background:
+      repeating-linear-gradient(45deg, rgba(212,175,55,0.10) 0 2px, transparent 2px 13px),
+      repeating-linear-gradient(-45deg, rgba(212,175,55,0.10) 0 2px, transparent 2px 13px),
+      linear-gradient(158deg,#232a52 0%,#141a3a 46%,#1c2247 100%);
+    box-shadow:0 24px 60px rgba(0,0,0,0.55); }
+  .pc::after { content:''; position:absolute; left:50%; top:50%; width:64px; height:64px;
+    transform:translate(-50%,-50%) rotate(45deg); border:2px solid rgba(212,175,55,0.5);
+    background:rgba(212,175,55,0.08); }
+  .pc.face { background:linear-gradient(170deg,#fbf9f4 0%,#e4dfd2 100%); color:#141a33;
+    display:grid; place-items:center; font-family:'Baloo 2'; font-weight:800; font-size:118px; }
+  .pc.face::after { display:none; }
+  .seat { position:absolute; right:120px; bottom:96px; text-align:center; }
+  .seat .halo { width:250px; height:250px; border-radius:50%; border:2.5px dashed rgba(212,175,55,0.65);
+    display:grid; place-items:center; font-size:104px; background:rgba(212,175,55,0.07); }
+  .seat p { margin-top:16px; font-size:24px; font-weight:700; color:#f3e3b4; letter-spacing:2px; }
+</style></head><body>
+<div class="card" id="card">
+  <div class="bg" id="bg"></div><div class="tint"></div>
+  <div class="brand"><img class="logo" src="/icons/logo.svg" alt=""> Game Night</div>
+  <div class="maker">
+    <img class="face" src="/icons/author-192.png" alt="">
+    <span><b>Ankit Kumar Mishra</b><i>Creator &amp; developer of Game Night</i></span>
+  </div>
+  <div class="copy"><h1 id="h"></h1><div class="sub" id="s"></div><div class="chips" id="c"></div></div>
+  <div id="art"></div>
+</div>
+<script src="/og-studio.js"></script></body></html>

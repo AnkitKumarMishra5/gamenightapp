@@ -93,7 +93,7 @@ function buildRound(key, ss, ctx) {
 
   mount.key = key;
   mount.api = api;
-  mount.node = h('div', { class: 'ss-wrap stack' }, table, api.status, api.dock);
+  mount.node = h('div', { class: 'ss-wrap stack' }, table, reactionBar(ctx), api.status, api.dock);
 }
 
 // Defer work until the cards are actually on the felt.
@@ -192,6 +192,18 @@ function updateRound(ss, ctx) {
 
 // Chairs and seats are parallel lists in the same DOM order (the viewer's own pair last),
 // which is the same correspondence playToCentre relies on in cards.js.
+// One tap, one shared laugh: reactions ride fx, never state, and land as a float over
+// the reactor's chair on everyone's table.
+const SS_REACTIONS = ['😂', '😱', '🔥', '💀', '🤔', '🧐'];
+function reactionBar(ctx) {
+  return h('div', { class: 'ss-reactbar' },
+    SS_REACTIONS.map((e) => h('button', {
+      class: 'ss-react-btn', 'aria-label': `react ${e}`,
+      onClick: () => { ctx.sound.tap(); ctx.emit('ss:react', { emoji: e }); },
+    }, e)),
+  );
+}
+
 function seatOf(table, id) {
   const chairs = [...table.querySelectorAll('.ct-who')];
   const seats = [...table.querySelectorAll('.ct-seat')];
@@ -310,10 +322,20 @@ function animateAction(api, act, ctx) {
   }
 
   if (act.kind === 'blocked') {
-    say(table, `${name(act.with)} has a Sentinel — swap denied! 🛡`);
+    say(table, `${name(act.with)} has a Sentinel — swap DENIED! 🛡`);
     const target = seatOf(table, act.with);
     if (!target) return;
-    playMeme('recordScratch');
+    // A block is the game's biggest single moment, so it gets the full treatment: the
+    // shield slams into the middle of the screen, the metal rings, the table flinches.
+    playMeme('clang');
+    setTimeout(() => playMeme('dun'), 320);
+    const slam = h('div', { class: 'ss-slam', 'aria-hidden': 'true' },
+      h('span', { class: 'ss-slam-shield' }, '🛡️'),
+      h('span', { class: 'ss-slam-text' }, 'DENIED'),
+    );
+    table.append(slam);
+    table.classList.add('ss-quake');
+    later(api, () => { slam.remove(); table.classList.remove('ss-quake'); }, 1600);
     target.seat.classList.add('ss-shield');
     flipUp(target, '🛡');
     later(api, () => {
@@ -427,8 +449,8 @@ function applyRevealInstant(api, ctx) {
 function maybeCelebrate(api) {
   if (api.ss.phase !== 'gameOver' || api.winDone) return;
   api.winDone = true;
-  playMeme('applause');
-  later(api, () => playMeme('airhorn'), 650);
+  playMeme('winInsiders');
+  later(api, () => playMeme('dhol'), 500);
   confettiRain(2600);
 }
 

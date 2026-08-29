@@ -15,7 +15,7 @@ const ROLES = {
   prowler: {
     emoji: '🐾', word: 'Prowler',
     prompt: 'Choose who to visit.',
-    blurb: 'Each night you visit someone, and they will not wake up. Stay calm by day. Vote like everyone else.',
+    blurb: 'Each night you visit someone, and they will not wake up. On big tables you hunt as a pack. Stay calm by day. Vote like everyone else.',
   },
   medic: {
     emoji: '🩺', word: 'Medic',
@@ -29,8 +29,8 @@ const ROLES = {
   },
   sleeper: {
     emoji: '😴', word: 'Sleeper',
-    prompt: 'Instinct check: who feels restless tonight?',
-    blurb: 'No powers, just instincts. Your night pick is a gut feeling — it changes nothing, and nobody ever sees it.',
+    prompt: 'Keep watch: whose door do you watch tonight?',
+    blurb: 'Your weapon is where you point your eyes. Watch the door that gets attacked and you witness the scuffle — you privately learn someone who is NOT a Prowler. Watch a Prowler\'s door and their empty bed banks you an Instinct point, revealed only at the very end.',
   },
 };
 
@@ -105,14 +105,25 @@ function playPhaseCues(sl) {
     playMeme('nightfall');
     setTimeout(() => playMeme('crickets'), 2400);
   }
+  // The night tightens as the last picks land: one heartbeat at three-quarters asleep,
+  // so the room can feel the dawn coming before it breaks.
+  if (sl.phase === 'night' && sl.submittedTotal > 2) {
+    const tense = sl.submitted / sl.submittedTotal >= 0.75;
+    const key = `${sl.dealId}:${sl.round}`;
+    if (tense && seen.tense !== key) { seen.tense = key; playMeme('heartbeat'); }
+  }
   if (sl.phase === 'day' && sl.dawn && seen.dawn !== `${sl.dealId}:${sl.dawn.seq}`) {
     seen.dawn = `${sl.dealId}:${sl.dawn.seq}`;
     playMeme('serious');
     if (sl.dawn.kind === 'death') {
-      setTimeout(() => playMeme('gasp'), 700);
-      setTimeout(() => playMeme('boom'), 1500);
+      // A death morning sounds like one: the bell tolls, the room gasps, the news lands.
+      setTimeout(() => playMeme('bellToll'), 500);
+      setTimeout(() => playMeme('gasp'), 1400);
+      setTimeout(() => playMeme('boom'), 2300);
     } else {
-      setTimeout(() => playMeme('cheer'), 900);
+      // A safe morning sounds like a farmyard: the rooster gets there before the relief.
+      setTimeout(() => playMeme('rooster'), 600);
+      setTimeout(() => playMeme('aww'), 1500);
     }
   }
   if (sl.phase === 'verdict' && seen.verdict !== roundKey(sl)) {
@@ -127,10 +138,12 @@ function playPhaseCues(sl) {
   if (sl.phase === 'gameOver' && seen.over !== sl.dealId) {
     seen.over = sl.dealId;
     if (sl.winner?.side === 'village') {
-      playMeme('applause');
+      playMeme('winInsiders');
+      setTimeout(() => playMeme('dhol'), 500);
       confettiRain(2600);
     } else {
-      playMeme('sinister');
+      playMeme('winOutsiders');
+      setTimeout(() => playMeme('evilLaugh'), 1200);
     }
   }
 }
@@ -167,12 +180,23 @@ function openRoleModal(sl, ctx) {
     h('p', { class: 'sl-role-word' }, `You are the ${r.word}`),
     h('p', { class: 'hint', style: 'text-align:center' }, r.blurb),
     oracleMemo(sl, ctx),
+    witnessMemo(sl, ctx),
     h('button', { class: 'btn btn-ghost btn-block', style: 'margin-top:12px', onClick: closeModal }, 'Tuck it away'),
   ));
 }
 
 // The Oracle's latest reading, kept behind the same private door as the role itself,
 // so it can be checked again any time after the dawn card has scrolled away.
+// What the watcher saw, pinned like the Oracle's reading: private, quiet, and exactly
+// the kind of thing a day argument is built from.
+function witnessMemo(sl, ctx) {
+  if (!sl.witness) return null;
+  const cleared = ctx.player(sl.witness.clearedId);
+  return h('p', { class: 'sl-oracle-memo' },
+    `🕯️ Night ${sl.witness.round}: you were watching that door. In the scuffle you saw `,
+    h('b', {}, cleared.name), ' slip back into bed — they are NOT a Prowler.');
+}
+
 function oracleMemo(sl, ctx) {
   if (!sl.oracle) return null;
   const target = ctx.player(sl.oracle.targetId);
@@ -345,8 +369,13 @@ function nightPhase(sl, ctx) {
     .filter((p) => p.alive && (me.role === 'medic' || p.id !== ctx.me.id))
     .map((p) => p.id);
 
+  // On a big table the pack hunts together; each Prowler quietly sees who else is out
+  // tonight. Nobody else's screen carries this line, so its presence is itself a secret.
+  const allies = sl.you?.role === 'prowler' ? (sl.you.allies || []) : [];
   return h('div', { class: 'card sl-night-card' },
     h('h2', { class: 'subtitle', style: 'text-align:center' }, `🌙 ${role.prompt}`),
+    allies.length > 0 && h('p', { class: 'hint sl-allies', style: 'text-align:center; margin:2px 0 0; color:var(--amber)' },
+      `🐾 Hunting with ${allies.map((id) => ctx.player(id).name).join(' and ')}. The most-named door falls.`),
     h('p', { class: 'hint', style: 'text-align:center; margin:6px 0 12px' },
       `Everyone chooses someone tonight. ${sl.submitted}/${sl.submittedTotal} asleep so far.`),
     grid(sl, ctx, {
@@ -549,6 +578,9 @@ function gameOver(sl, ctx) {
           h('span', {}, info.avatar),
           h('span', { class: 'rl-name' }, info.name, p.left ? ' (left)' : (!p.alive ? ' 💀' : '')),
           role && h('span', { class: `sl-role-tag sl-role-${role}` }, `${ROLES[role].emoji} ${ROLES[role].word}`),
+          // The one secret with no owner to protect any more: whose gut kept scoring.
+          (sl.winner?.instinct?.[p.id] || 0) > 0 && h('span', { class: 'sl-instinct' },
+            `🫀 gut ×${sl.winner.instinct[p.id]}`),
         );
       }),
     ),

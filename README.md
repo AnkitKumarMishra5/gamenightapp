@@ -8,7 +8,7 @@ Real-time party games in a browser tab. Someone creates a room, everyone else ty
 five-letter code, and you play on your own phones. No download, no account, no timers.
 
 **Designed and built by Ankit Kumar Mishra**
-[Email](mailto:akmishra5514@gmail.com) · [LinkedIn](https://www.linkedin.com/in/ankitkumarmishra/) · [GitHub](https://github.com/AnkitKumarMishra5)
+[LinkedIn](https://www.linkedin.com/in/ankitkumarmishra/) · [GitHub](https://github.com/AnkitKumarMishra5)
 
 ---
 
@@ -25,7 +25,7 @@ The AI deals a fresh word pair every game at easy, medium, hard or ultra difficu
 Coffee and Tea down to Ocean and Sea. Roles scale with the table, and the room owner starts
 the vote when the talking is done, so nothing is on a clock.
 
-### 🏝️ Island Rules (2+ players)
+### 🏝️ Island Rules (2 to 16 players)
 
 *"I'm going to an island and I'm bringing a Heart and a Window."* There is a rule behind
 what the boat accepts. Ask whether your item can come aboard, watch which ones get in, and
@@ -48,11 +48,13 @@ One card each, face down. Keep it, or force a swap with your neighbour — unles
 holding a Sentinel, which blocks you and outranks everything. Lowest card at the reveal
 loses a heart; last player standing wins.
 
-### 🌙 Sleepless (4 to 12 players)
+### 🌙 Sleepless (4 to 16 players)
 
-One Prowler hunts at night; a Medic guards a door, an Oracle reads a face, and everyone —
-including the Sleepers — submits a night action, so screen time never betrays a role. Days
-are sealed votes, ties walk free, and the village wins the moment the Prowler is caught.
+Prowlers hunt at night (a pack of up to three on big tables); a Medic guards a door, an
+Oracle reads a face, and every Sleeper keeps watch on a door of their choice — witness the
+attack and you privately learn someone innocent; watch a Prowler's empty bed and your gut
+banks a point for the end. Everyone acts on an identical screen, so phones betray no roles.
+Days are sealed votes, ties walk free, and the village wins when the last Prowler falls.
 
 ## Run it
 

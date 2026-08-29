@@ -69,6 +69,7 @@ export function suites(harness) {
     const role = (r) => players.find((p) => sl(p)?.you?.role === r);
     return {
       prowler: role('prowler'),
+      prowlers: players.filter((p) => sl(p)?.you?.role === 'prowler'),
       medic: role('medic'),
       oracle: role('oracle'),
       sleepers: players.filter((p) => sl(p)?.you?.role === 'sleeper'),
@@ -143,18 +144,27 @@ export function suites(harness) {
     // Looks for the KEY form `"night":` — the phase VALUE "night" is public and fine.
     check('picks never appear in a snapshot', !JSON.stringify(sl(sleepers[0])).includes('"night":'));
 
-    // [TEST decoy accepted + zero effect] The sleepers point at whoever they like; the
-    // dawn is decided by the prowler and medic alone.
+    // [TEST the watch] One sleeper watches a Prowler's door (instinct), the doomed one
+    // watches their own attacker's target... they ARE the target, so the survivor's watch
+    // goes to the victim's door and earns the witness clue. The dawn itself is still
+    // decided by the prowler and medic alone.
     await submitNights(players, new Map([
-      [sleepers[0], prowler.playerId],
-      [victim, medic.playerId],
+      [sleepers[0], victim.playerId],       // watching the attacked door: witnesses it
+      [victim, prowler.playerId],           // watching a Prowler's door: banks instinct
     ]));
     await untilAll(players, (s) => s.sleepless.phase === 'day', 'all picks in → dawn');
     check('the unguarded victim dies', sl(host).dawn?.kind === 'death'
       && sl(host).dawn.victimId === victim.playerId, JSON.stringify(sl(host).dawn));
     check('their role is revealed publicly', sl(host).dawn.role === 'sleeper');
-    check('sleeper decoys changed nothing', players.filter((p) => sl(host).players
+    check('watching a door never changes who dies', players.filter((p) => sl(host).players
       .find((q) => q.id === p.playerId && !q.alive)).length === 1);
+    // The witness clue: private, correct, and only for the watcher of the attacked door.
+    const w = sl(sleepers[0]).witness;
+    check('the watcher of the attacked door gets a witness clue', Boolean(w), JSON.stringify(w));
+    check('the cleared player is never a prowler', w && w.clearedId !== prowler.playerId, w?.clearedId);
+    check('the clue names a living third party', w && w.clearedId !== victim.playerId && w.clearedId !== sleepers[0].playerId);
+    check('nobody else received a witness clue',
+      players.filter((p) => p !== sleepers[0]).every((p) => !sl(p).witness));
 
     // [TEST oracle secrecy] Only the Oracle learns the reading.
     check('oracle learns the truth', sl(oracle).oracle?.targetId === prowler.playerId
@@ -194,7 +204,9 @@ export function suites(harness) {
     const board = host.snap.leaderboard;
     const total = (p) => board.find((e) => e.id === p.playerId)?.total || 0;
     check('living villagers earn 4', total(s0) === 4 && total(medic) === 4, `${total(s0)}/${total(medic)}`);
-    check('the fallen villager earns 2', total(victim) === 2, String(total(victim)));
+    // 2 for falling on the winning side, +1 instinct: their final watch was on a
+    // Prowler's door (see the night picks above), and a good gut pays even posthumously.
+    check('the fallen villager earns 2 + 1 instinct', total(victim) === 3, String(total(victim)));
     check('the oracle banks the correct read', total(oracle) === 7, String(total(oracle)));
     check('the losing prowler earns nothing', total(prowler) === 0, String(total(prowler)));
 
@@ -298,13 +310,27 @@ export function suites(harness) {
     check('4 players: exactly one sleeper', c4.sleepers.length === 1);
     await cleanup(small.players);
 
-    // [TEST 12-player start] The biggest table pads out with sleepers.
+    // [TEST 12-player start] From nine players the Prowlers hunt as a pack of two.
     const big = await makeRoom(12);
     await startSleepless(big.players, big.host);
     const c12 = castOf(big.players);
-    check('12 players: one of each role', Boolean(c12.prowler && c12.medic && c12.oracle));
-    check('12 players: nine sleepers', c12.sleepers.length === 9);
+    check('12 players: a pack of two prowlers', c12.prowlers.length === 2, String(c12.prowlers.length));
+    check('12 players: one medic, one oracle', Boolean(c12.medic && c12.oracle));
+    check('12 players: eight sleepers', c12.sleepers.length === 8, String(c12.sleepers.length));
+    // Each prowler sees the other; nobody else carries an allies list.
+    const [pa, pb] = c12.prowlers;
+    check('the pack knows each other', sl(pa).you.allies.includes(pb.playerId) && sl(pb).you.allies.includes(pa.playerId));
+    check('villagers get no allies field', c12.sleepers.every((p) => (sl(p).you.allies || []).length === 0));
+    check('a prowler cannot hunt the pack', !(await pa.emit('sl:night', { targetId: pb.playerId })).ok);
     await cleanup(big.players);
+
+    // [TEST 16-player start] The cap: a pack of three, and the room is full.
+    const max = await makeRoom(16);
+    await startSleepless(max.players, max.host);
+    const c16 = castOf(max.players);
+    check('16 players: a pack of three prowlers', c16.prowlers.length === 3, String(c16.prowlers.length));
+    check('16 players: eleven sleepers', c16.sleepers.length === 11, String(c16.sleepers.length));
+    await cleanup(max.players);
 
     // Too small to hide a Prowler in.
     const tiny = await makeRoom(3);
@@ -389,7 +415,7 @@ export function suites(harness) {
   return [
     { name: 'sleepless: full game to a village win', fn: fullVillageWin },
     { name: 'sleepless: saves, skips, ties, and a prowler win', fn: prowlerWinWithSavesAndTies },
-    { name: 'sleepless: role counts at 4 and 12 players', fn: roleCountsAtTheLimits },
+    { name: 'sleepless: role counts and the pack at 4, 12 and 16 players', fn: roleCountsAtTheLimits },
     { name: 'sleepless: night disconnects, removals, and a fleeing prowler', fn: nightDisconnectsAndRemovals },
   ];
 }

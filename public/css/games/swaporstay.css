@@ -194,3 +194,58 @@
   .ss-wrap .ct-seat.ss-shield .ct-slot { animation: none; }
   .ss-wrap .ct-seat.ss-loser .ct-face.front { animation: none; }
 }
+
+/* The Sentinel block: the one moment the whole table talks about. The shield slams into
+   centre screen, rings, and the table itself flinches. */
+.ss-slam {
+  position: absolute; inset: 0; z-index: 60; pointer-events: none;
+  display: grid; place-items: center; align-content: center; gap: 4px;
+}
+.ss-slam-shield {
+  font-size: clamp(84px, 18vw, 150px); line-height: 1;
+  filter: drop-shadow(0 0 34px rgba(212, 175, 55, 0.85)) drop-shadow(0 14px 22px rgba(0, 0, 0, 0.7));
+  animation: ss-slam-in 1.5s cubic-bezier(0.2, 1.1, 0.3, 1) both;
+}
+.ss-slam-text {
+  font-family: var(--display); font-weight: 800; letter-spacing: 6px;
+  font-size: clamp(22px, 4.5vw, 34px); color: #f3e3b4;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+  animation: ss-slam-text 1.5s ease both;
+}
+@keyframes ss-slam-in {
+  0%   { opacity: 0; transform: scale(3.2) rotate(-14deg); }
+  22%  { opacity: 1; transform: scale(1) rotate(0deg); }
+  30%  { transform: scale(1.12); }
+  38%  { transform: scale(1); }
+  78%  { opacity: 1; }
+  100% { opacity: 0; transform: scale(0.92); }
+}
+@keyframes ss-slam-text {
+  0%, 20% { opacity: 0; transform: translateY(10px); }
+  32% { opacity: 1; transform: translateY(0); }
+  78% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.ss-quake { animation: ss-quake 0.5s ease 0.28s; }
+@keyframes ss-quake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-5px, 2px); }
+  40% { transform: translate(5px, -2px); }
+  60% { transform: translate(-3px, 1px); }
+  80% { transform: translate(3px, -1px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ss-slam-shield, .ss-slam-text { animation: ss-fade 1.5s ease both; }
+  .ss-quake { animation: none; }
+  @keyframes ss-fade { 0% { opacity: 0; } 15%, 80% { opacity: 1; } 100% { opacity: 0; } }
+}
+
+/* Reactions under the table: always reachable, never rebuilt mid-tap. */
+.ss-reactbar { display: flex; justify-content: center; gap: 8px; }
+.ss-react-btn {
+  font-size: 22px; line-height: 1; padding: 8px 12px; border-radius: 999px;
+  border: 1px solid var(--stroke); background: var(--glass); cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.15s ease;
+}
+.ss-react-btn:hover { transform: translateY(-2px) scale(1.12); border-color: rgba(212, 175, 55, 0.5); }
+.ss-react-btn:active { transform: scale(0.94); }

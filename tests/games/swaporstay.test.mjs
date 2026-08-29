@@ -275,7 +275,9 @@ export function suites(harness) {
         // Force one real swap so lastAction is live, then audit every client's snapshot.
         const res = await turnP.emit('ss:choice', { action: 'swap' });
         check('a legal swap is accepted', res.ok, res.error);
-        await untilSS(host, (s) => Boolean(s.lastAction), 'the swap is public');
+        // Wait until every client has heard about it, not just the host: snapshots fan
+        // out per socket, and auditing a snapshot that has not arrived yet reads as null.
+        for (const p of players) await untilSS(p, (ss) => Boolean(ss.lastAction), `${p.name} hears the swap`);
 
         for (const p of players) {
           const mine = p.snap.swaporstay;

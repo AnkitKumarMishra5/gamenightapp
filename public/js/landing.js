@@ -1,4 +1,4 @@
-// Game Night — landing / home screen. © 2026 Ankit Kumar Mishra. All rights reserved.
+// Game Night — © 2026 Ankit Kumar Mishra. All rights reserved. See LICENSE.
 //
 // One aesthetic thesis: a night of cards among friends. Midnight felt, candlelight
 // gold, cards in motion. This module renders the whole home screen into a single
@@ -10,9 +10,9 @@
 //   renderLanding(deps) -> HTMLElement    safe to call again on every re-render
 //   destroyLanding()                      optional explicit teardown
 //
-// Behaviour is identical to the old landing: identity lives in deps.prefs, rooms
-// are created/joined through deps.onCreate/onJoin, invite links keep pre-filling
-// through [data-preserve="home-code"] (main.js's applyPrefill), rules open via
+// Identity lives in deps.prefs, rooms are created/joined through
+// deps.onCreate/onJoin, invite links keep pre-filling through
+// [data-preserve="home-code"] (main.js's applyPrefill), rules open via
 // deps.showRules, and legal/feedback/install reuse main.js's own modals.
 
 const CODE_LEN = 5;
@@ -135,8 +135,10 @@ export function renderLanding(deps) {
   const nav = h('nav', { class: 'lp-nav', 'aria-label': 'Page sections' },
     navBtn(deps, 'lp-hero', 'Play'),
     navBtn(deps, 'lp-games', 'Games'),
+    navBtn(deps, 'lp-watch', 'Watch'),
     navBtn(deps, 'lp-how', 'How it works'),
     navBtn(deps, 'lp-table', 'The table'),
+    h('span', { class: 'lp-nav-prog', 'aria-hidden': 'true' }),
   );
 
   // ---------- the shelf: every registered game ----------
@@ -144,15 +146,20 @@ export function renderLanding(deps) {
     sectionHead(h, "Tonight's lineup",
       `${capital(numWord(deps.GAMES.length))} games, one room.`,
       "Tap a card to see how it plays. One room runs them all, and the night's points follow you between games."),
+    headcount(deps),
     h('div', { class: 'lp-shelf' },
       deps.GAMES.map((g, i) => gameCard(deps, g, i)),
     ),
   );
 
+  // ---------- watch a round: auto-playing mini-scenes with real friends ----------
+  const watch = buildWatch(deps, rm, cardBack);
+
   // ---------- how a night works ----------
   const how = h('section', { class: 'lp-sec lp-how', id: 'lp-how', 'aria-label': 'How a night works' },
     sectionHead(h, 'How a night works', 'Three moves and you are playing.', null),
     h('div', { class: 'lp-steps' },
+      h('div', { class: 'lp-steps-line', 'aria-hidden': 'true' }),
       step(h, 0, 'Make the room',
         'Pick a name and an avatar, press create. You get a five-letter code and a lobby of your own.',
         vignetteCode(h)),
@@ -175,9 +182,9 @@ export function renderLanding(deps) {
 
   const table = h('section', { class: 'lp-sec lp-table', id: 'lp-table', 'aria-label': 'The card table' },
     sectionHead(h, 'The card table', 'Cards with real weight.',
-      `${named} share one table: midnight felt, a deck that riffle-shuffles, cards dealt around to every seat. When you peek, yours lifts to your eye. All of it is drawn live by your browser, no video anywhere.`),
+      `${tableNames.length || 3} card games, one real table between you. Cards are shuffled, dealt and held like the night you are missing.`),
     tableau(h, cardBack),
-    h('p', { class: 'lp-stage-note lp-reveal' }, 'A still of the table, sketched in the same ink the games use.'),
+    h('p', { class: 'lp-stage-note lp-reveal' }, named),
   );
 
   // ---------- the honest part ----------
@@ -193,19 +200,69 @@ export function renderLanding(deps) {
     ),
   );
 
+  // ---------- finale: the opening deal, reprised at full weight ----------
+  // The page closes on the beat it opened with: a fan of card backs blooms
+  // open behind an oversized headline, and the button hands the player back
+  // to the hero console with the name field focused.
+  const finale = h('section', { class: 'lp-sec lp-cta', id: 'lp-cta', 'aria-label': 'Start a room now' },
+    h('div', { class: 'lp-cta-inner lp-reveal' },
+      h('div', { class: 'lp-xfan', 'aria-hidden': 'true' },
+        Array.from({ length: 5 }, (_, i) => h('span', {
+          class: 'lp-xfcard',
+          style: `--i:${i - 2}; --fa:${deps.GAMES[i] ? (ACCENTS[deps.GAMES[i].accent] || GOLD_HEX) : GOLD_HEX}`,
+        }, cardBack('lp-pc-x'))),
+      ),
+      h('p', { class: 'lp-eyebrow' }, 'Your move'),
+      h('h2', { class: 'lp-cta-h' }, 'The table is set.'),
+      h('p', { class: 'lp-cta-sub' }, 'A room takes ten seconds. The night takes care of itself.'),
+      h('button', {
+        class: 'lp-act lp-act-create lp-cta-btn',
+        onClick: () => {
+          deps.sound.tap();
+          scrollToSection('lp-hero');
+          // Hand focus to the console once the scroll has (mostly) settled.
+          setTimeout(() => {
+            const el = document.querySelector('.lp-name');
+            if (el) el.focus({ preventScroll: true });
+          }, reduceMotion() ? 80 : 650);
+        },
+      }, h('span', { class: 'lp-act-emoji', 'aria-hidden': 'true' }, '✨'), 'Deal your friends in'),
+    ),
+  );
+
   // ---------- footer ----------
   const footer = h('footer', { class: 'lp-footer lp-reveal' },
+    // A faint gold-mote drift so the page ends the way it began (the hero
+    // canvas's candlelight). Pure CSS, transform/opacity only, and it only
+    // plays once the footer has revealed.
+    h('div', { class: 'lp-foot-motes', 'aria-hidden': 'true' },
+      Array.from({ length: 9 }, (_, i) => h('span', { class: 'lp-fmote', style: `--mi:${i}` })),
+    ),
     h('div', { class: 'lp-foot-brand' },
-      h('span', { class: 'lp-foot-mark', 'aria-hidden': 'true' }, '🎭'),
+      h('span', { class: 'lp-foot-markwrap', 'aria-hidden': 'true' },
+        // A tiny reprise of the hero fan: three card backs bloom open behind
+        // the brand mark when the footer reveals.
+        h('span', { class: 'lp-fbloom' },
+          Array.from({ length: 3 }, (_, i) => h('span', { class: 'lp-fbcard', style: `--bi:${i - 1}` })),
+        ),
+        h('span', { class: 'lp-foot-mark' }, '🎭'),
+      ),
       h('div', {},
         h('div', { class: 'lp-foot-name' }, deps.BRAND.short),
+        h('div', { class: 'lp-foot-by' }, 'by ', deps.DEV.name),
         h('div', { class: 'lp-foot-tagline' }, deps.BRAND.tagline),
       ),
     ),
     h('div', { class: 'lp-foot-install' }, deps.installRow()),
     h('div', { class: 'lp-foot-dev' },
-      deps.devPhoto('sm', 24),
-      h('span', {}, 'Built by ', h('b', {}, deps.DEV.name)),
+      h('span', { class: 'lp-foot-devhead' }, 'Meet the developer'),
+      h('span', { class: 'lp-foot-devrow' },
+        deps.devPhoto('sm', 28),
+        h('span', { class: 'lp-foot-devid' },
+          h('b', {}, deps.DEV.name),
+          h('span', { class: 'lp-foot-devtitle' }, 'Creator & developer of Game Night'),
+        ),
+      ),
       h('span', { class: 'lp-foot-devlinks' },
         h('a', { class: 'lp-foot-link', href: `mailto:${deps.DEV.email}` }, 'Email'),
         h('a', { class: 'lp-foot-link', href: deps.DEV.linkedin, target: '_blank', rel: 'noopener noreferrer' }, 'LinkedIn'),
@@ -223,7 +280,7 @@ export function renderLanding(deps) {
   );
 
   const root = h('div', { class: `lp-root ${state.entered ? '' : 'lp-enter'}` },
-    hero, nav, shelf, how, table, trust, footer,
+    hero, nav, shelf, watch, how, table, trust, finale, footer,
   );
   state.entered = true;
 
@@ -333,6 +390,7 @@ function buildConsole(deps) {
       return false;
     }
     codeInput.value = code;
+    codeInput.classList.add('lp-full');
     codeInput.setSelectionRange(code.length, code.length);
     if (autoJoin) {
       deps.toast(`Found room code ${code}, joining… 🎟️`, 'success');
@@ -352,10 +410,15 @@ function buildConsole(deps) {
     e.preventDefault();
     acceptPastedText(text, { autoJoin: true });
   });
+  // Live formatting: uppercase as you type, and light up once a full code is in.
+  const formatCode = () => {
+    codeInput.classList.toggle('lp-full', codeInput.value.trim().length === CODE_LEN);
+  };
   codeInput.addEventListener('input', () => {
     const raw = codeInput.value;
-    if (/^[A-Za-z0-9]{0,5}$/.test(raw)) { codeInput.value = raw.toUpperCase(); return; }
-    acceptPastedText(raw, { autoJoin: false });
+    if (/^[A-Za-z0-9]{0,5}$/.test(raw)) codeInput.value = raw.toUpperCase();
+    else acceptPastedText(raw, { autoJoin: false });
+    formatCode();
   });
   codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') join(joinBtn); });
 
@@ -421,12 +484,326 @@ function buildConsole(deps) {
 }
 
 // ============================================================
+// watch a round — auto-playing mini-scenes of real gameplay.
+// Copy stays honest to how the games actually play (lifted
+// from the live game screens).
+// ============================================================
+function buildWatch(deps, rm, cardBack) {
+  const { h } = deps;
+
+  // A scene item that steps in on --di beats. Chips inside inherit --di.
+  const ws = (di, cls, ...kids) => h('div', { class: `lp-ws ${cls}`, style: `--di:${di}` }, ...kids);
+
+  const rxBar = (pairs) => h('span', { class: 'lp-ws-rx', 'aria-hidden': 'true' },
+    pairs.map(([emoji, n], i) => h('span', { class: 'lp-ws-chip', style: `--rxi:${i}` },
+      emoji, h('b', {}, String(n)))),
+  );
+
+  const clueRow = (di, avatar, name, you, clue, rx, suspect, word) =>
+    ws(di, `lp-ws-clue ${suspect ? 'lp-sus' : ''}`,
+      h('span', { class: 'lp-ws-av', 'aria-hidden': 'true' }, avatar),
+      h('span', { class: 'lp-ws-body' },
+        h('span', { class: 'lp-ws-name' }, name, you && h('i', { class: 'lp-ws-you' }, ' (you)'),
+          word && h('span', { class: 'lp-ws-word' }, 'your word: ', h('b', {}, word)),
+        ),
+        h('span', { class: 'lp-ws-bubble' }, clue),
+        rxBar(rx),
+      ),
+    );
+
+  const verdict = (di, text) => ws(di, 'lp-ws-verdict', text);
+
+  const blendIn = () => [
+    ws(0, 'lp-ws-round', 'Round 1 · everyone clues their secret word'),
+    clueRow(1, '🦊', 'Saaru', false, 'bitter', [['🤔', 2]]),
+    clueRow(2, '🐼', 'Tushita', false, 'morning fuel', [['🔥', 3], ['😂', 1]]),
+    clueRow(3, '🦉', 'Dinesh', false, 'leafy?', [['🧐', 2], ['😂', 3]], true),
+    clueRow(4, '🐙', 'Ankit', true, 'espresso vibes', [['😂', 4]], false, 'Coffee'),
+    verdict(5, '🗳️ Voted out: Dinesh. He had “Tea”, everyone else had “Coffee”. Classic Dinesh.'),
+  ];
+
+  const tile = (di, avatar, name, you, mark, sub, cls) =>
+    ws(di, `lp-ws-tile ${cls || ''}`,
+      mark && h('span', { class: 'lp-ws-mark', 'aria-hidden': 'true' }, mark),
+      h('span', { class: 'lp-ws-tav', 'aria-hidden': 'true' }, avatar),
+      h('span', { class: 'lp-ws-tname' }, name, you && h('i', { class: 'lp-ws-you' }, ' (you)')),
+      h('span', { class: 'lp-ws-tsub' }, sub),
+    );
+
+  const packItem = (di, word, by, no) =>
+    ws(di, `lp-ws-pack ${no ? 'lp-no' : ''}`,
+      h('span', { class: 'lp-ws-pword' }, word),
+      h('span', { class: 'lp-ws-pby' }, by),
+    );
+
+  const island = () => [
+    ws(0, 'lp-ws-banner',
+      '🏝️ “I\'m going to an island and I\'m bringing ',
+      h('b', {}, 'Heart & Window'),
+      ' …what else can come aboard?”'),
+    h('div', { class: 'lp-ws-tiles' },
+      tile(1, '🐙', 'Ankit', true, '🥇', 'cracked it! · 8 pts'),
+      tile(2, '🦋', 'Ranjani', false, '', 'their turn…', 'lp-turn'),
+      tile(3, '🦉', 'Dinesh', false, '', 'still thinking…'),
+    ),
+    h('div', { class: 'lp-ws-packs' },
+      h('div', { class: 'lp-ws-pcol' },
+        h('div', { class: 'lp-ws-phead' }, '✅ On the boat'),
+        packItem(2, 'Heart', '🤖 AI'),
+        packItem(3, 'Promise', '🐢 Trupti'),
+        packItem(4, 'Record', '🦊 Saaru'),
+      ),
+      h('div', { class: 'lp-ws-pcol' },
+        h('div', { class: 'lp-ws-phead' }, '🚫 Left behind'),
+        packItem(4, 'Pillow', '💀 Dinesh', true),
+      ),
+    ),
+    ws(5, 'lp-ws-attempt lp-ws-ok',
+      h('span', { class: 'lp-ws-atv', 'aria-hidden': 'true' }, '✅'),
+      h('span', {},
+        h('span', { class: 'lp-ws-att' }, 'Ranjani asks: can “Mirror” come aboard?'),
+        h('span', { class: 'lp-ws-atr' }, 'Aboard! Every yes is a clue to the secret rule.'),
+      ),
+    ),
+    ws(6, 'lp-ws-attempt',
+      h('span', { class: 'lp-ws-atv', 'aria-hidden': 'true' }, '🚫'),
+      h('span', {},
+        h('span', { class: 'lp-ws-att' }, 'Can I bring “Pillow”?'),
+        h('span', { class: 'lp-ws-atr' }, 'The boat says no. Bold choice, Dinesh.'),
+      ),
+    ),
+    verdict(7, '💡 Ankit: “things that can break!” Cracked it 🥇'),
+  ];
+
+  // Third mini-scene: the card table deals a trick to four named seats.
+  const dealSeat = (di, name, you, face) =>
+    ws(di, 'lp-ws-seat',
+      h('span', { class: 'lp-ws-card' },
+        face
+          ? h('span', { class: 'lp-pcard lp-pc-front lp-ws-face' }, face)
+          : cardBack('lp-ws-back'),
+      ),
+      h('span', { class: 'lp-ws-sname' }, name, you && h('i', { class: 'lp-ws-you' }, ' (you)')),
+    );
+
+  // A pile-value marker: the number the table has climbed to so far.
+  const pileVal = (di, n, by) =>
+    ws(di, 'lp-ws-pile',
+      h('b', { class: 'lp-ws-pilen' }, n),
+      h('span', { class: 'lp-ws-pileby' }, by),
+    );
+
+  const cardsScene = () => [
+    ws(0, 'lp-ws-round', 'Silent Order · play every card lowest to highest · no talking, no turns'),
+    h('div', { class: 'lp-ws-deal' },
+      dealSeat(1, 'Saaru', false, '2'),
+      dealSeat(1, 'Dinesh', false, '3'),
+      dealSeat(1, 'Trupti', false, '4'),
+      dealSeat(1, 'Ankit', true, '7'),
+    ),
+    ws(2, 'lp-ws-attempt lp-ws-ok',
+      h('span', { class: 'lp-ws-atv', 'aria-hidden': 'true' }, '🃏'),
+      h('span', {},
+        h('span', { class: 'lp-ws-att' }, 'Saaru feels hers is the lowest and opens with her 2.'),
+        h('span', { class: 'lp-ws-atr' }, 'Now the pile can only climb. Play too early and the level is lost.'),
+      ),
+    ),
+    h('div', { class: 'lp-ws-pilerow', 'aria-label': 'The pile climbs' },
+      pileVal(3, '2', 'Saaru'),
+      pileVal(3.7, '3', 'Dinesh'),
+      pileVal(5.6, '4', 'Trupti'),
+      pileVal(6.2, '7', 'you'),
+    ),
+    ws(4.5, 'lp-ws-attempt',
+      h('span', { class: 'lp-ws-atv', 'aria-hidden': 'true' }, '👀'),
+      h('span', {},
+        h('span', { class: 'lp-ws-att' }, 'Two cards left. Trupti and Ankit both reach for the pile…'),
+        h('span', { class: 'lp-ws-atr' }, 'She reads the whole table\'s silence and slides her 4 a heartbeat before Ankit\'s 7. Flawless.'),
+      ),
+    ),
+    verdict(7, '🕯️ Level cleared! Four cards, perfect order, not a word spoken.'),
+  ];
+
+  // Swap or Stay: one card each, a swap gets bounced by a Sentinel. Played for
+  // laughs at nobody's expense.
+  const swapScene = () => [
+    ws(0, 'lp-ws-round', 'Swap or Stay · one card each · lowest at the reveal loses a heart'),
+    ws(1, 'lp-ws-attempt',
+      h('span', { class: 'lp-ws-atv', 'aria-hidden': 'true' }, '🔁'),
+      h('span', {},
+        h('span', { class: 'lp-ws-att' }, 'Saaru tries to force a swap with Mrunali…'),
+        h('span', { class: 'lp-ws-atr' }, 'Blocked! Mrunali holds a Sentinel 🛡️ — the guard card that refuses every swap and never loses.'),
+      ),
+    ),
+    ws(3, 'lp-ws-round', 'Cards up! Everyone reveals at once:'),
+    h('div', { class: 'lp-ws-deal' },
+      dealSeat(4, 'Saaru', false, '58'),
+      dealSeat(4, 'Mrunali', false, '🛡️'),
+      dealSeat(4, 'Ranjani', false, '2'),
+      dealSeat(4, 'Ankit', true, '34'),
+    ),
+    verdict(6, '💔 Ranjani\'s 2 is the lowest card, so she loses a heart. She could have swapped. She stayed. Respect.'),
+  ];
+
+  // Sleepless: first the cast — every role explained — then the night/dawn/day
+  // loop with all four points of view side by side, so a stranger watching
+  // understands both who does what and how a round actually flows.
+  const sleeplessScene = () => [
+    ws(0, 'lp-ws-round', 'Sleepless · roles are dealt in secret — here is what each one does'),
+    h('div', { class: 'lp-ws-tiles lp-ws-tiles4' },
+      tile(0.6, '🐾', 'Dinesh', false, '', h('span', {}, h('b', {}, 'Prowler · '), 'visits one door a night; that player never wakes')),
+      tile(1.1, '🩺', 'Tushita', false, '', h('span', {}, h('b', {}, 'Medic · '), 'guards one door; a guarded attack fails')),
+      tile(1.6, '🔮', 'Mrunali', false, '', h('span', {}, h('b', {}, 'Oracle · '), 'reads one player\'s true role each night')),
+      tile(2.1, '😴', 'Ankit', true, '', h('span', {}, h('b', {}, 'Sleeper · '), 'keeps watch on a door — a witness at the right one learns a lot')),
+    ),
+    ws(2.8, 'lp-ws-round', '🌙 Night 1 · everyone picks on the same screen, so no phone gives a role away'),
+    h('div', { class: 'lp-ws-tiles lp-ws-tiles4' },
+      tile(3.2, '🐾', 'Dinesh', false, '🤫', '“choose who to visit” → Saaru'),
+      tile(3.6, '🩺', 'Tushita', false, '🤫', '“choose who to guard” → Saaru'),
+      tile(4.0, '🔮', 'Mrunali', false, '🤫', '“whose role do you read?” → Trupti'),
+      tile(4.4, '😴', 'Ankit', true, '🤫', '“whose door do you watch?” → Saaru'),
+    ),
+    ws(5, 'lp-ws-banner', '🌅 Dawn 1: everyone woke up — the Medic guarded the attacked door. Ankit, watching that same door, witnessed it: he now knows someone who is NOT the Prowler.'),
+    ws(5.6, 'lp-ws-round', '☀️ Day 1 · the village argues, then votes — sealed until everyone has cast one'),
+    clueRow(6.0, '🦊', 'Saaru', false, 'Someone came to MY door last night. I want names.', [['😱', 2]]),
+    clueRow(6.5, '🐾', 'Dinesh', false, 'Could be anyone. Honestly it was probably the cat.', [['🧐', 3]]),
+    clueRow(7.0, '🐢', 'Trupti', false, 'Who says “the cat” on night one? Suspicious.', [['😂', 2]]),
+    ws(7.6, 'lp-ws-attempt lp-ws-ok',
+      h('span', { class: 'lp-ws-atv', 'aria-hidden': 'true' }, '🗳️'),
+      h('span', {},
+        h('span', { class: 'lp-ws-att' }, 'Votes open all at once: no majority.'),
+        h('span', { class: 'lp-ws-atr' }, 'Nobody is voted out. The village goes back to sleep uneasy.'),
+      ),
+    ),
+    ws(8.2, 'lp-ws-attempt',
+      h('span', { class: 'lp-ws-atv', 'aria-hidden': 'true' }, '🌙'),
+      h('span', {},
+        h('span', { class: 'lp-ws-att' }, 'Night 2 → Dawn 2: Mrunali did not wake up.'),
+        h('span', { class: 'lp-ws-atr' }, 'She was the Oracle — the Prowler found her before she could tell what she read.'),
+      ),
+    ),
+    ws(8.8, 'lp-ws-round', '☀️ Day 2 · the argument gets sharper'),
+    clueRow(9.2, '😴', 'Ankit', true, 'I kept watch at Saaru\'s door on night 1. I saw who the Medic is — so I know someone who is clean.', [['😱', 3]]),
+    clueRow(9.7, '🐾', 'Dinesh', false, 'Convenient. Very convenient.', [['🤔', 2]]),
+    ws(10.2, 'lp-ws-attempt lp-ws-ok',
+      h('span', { class: 'lp-ws-atv', 'aria-hidden': 'true' }, '🗳️'),
+      h('span', {},
+        h('span', { class: 'lp-ws-att' }, 'Sealed votes again: split between Dinesh and Trupti.'),
+        h('span', { class: 'lp-ws-atr' }, 'Still no majority. One more night — and everyone knows it.'),
+      ),
+    ),
+    ws(10.8, 'lp-ws-attempt',
+      h('span', { class: 'lp-ws-atv', 'aria-hidden': 'true' }, '🌙'),
+      h('span', {},
+        h('span', { class: 'lp-ws-att' }, 'Night 3 → Dawn 3: Trupti did not wake up.'),
+        h('span', { class: 'lp-ws-atr' }, 'The one who called Dinesh suspicious. The room goes very quiet.'),
+      ),
+    ),
+    ws(11.4, 'lp-ws-round', '☀️ Day 3 · last chance — the village is outnumbered if it misses again'),
+    clueRow(11.8, '🦊', 'Saaru', false, 'Trupti pointed at Dinesh. Now Trupti is gone. Do the math.', [['😱', 2], ['🧐', 2]]),
+    ws(12.4, 'lp-ws-attempt lp-ws-ok',
+      h('span', { class: 'lp-ws-atv', 'aria-hidden': 'true' }, '🗳️'),
+      h('span', {},
+        h('span', { class: 'lp-ws-att' }, 'Day 3 votes, sealed until the last one lands…'),
+        h('span', { class: 'lp-ws-atr' }, 'Nobody looks at anybody. Everybody looks at Dinesh.'),
+      ),
+    ),
+    verdict(13, '🌅 The village voted. Dinesh was the Prowler all along. He blamed the cat.'),
+  ];
+
+  const SCENES = [
+    { name: 'Blend In', emoji: '🕵️', build: blendIn, cap: 'One of them got a different word. Watch the clues give it away.' },
+    { name: 'Island Rules', emoji: '🏝️', build: island, cap: 'The boat has a secret rule. Guess items, read the pattern, crack it.' },
+    { name: 'Silent Order', emoji: '🃏', build: cardsScene, cap: 'A cooperative trick: everyone must play in silence, in order.' },
+    { name: 'Swap or Stay', emoji: '🔁', build: swapScene, cap: 'One card each. Swap it, keep it, or guard it — lowest card pays.' },
+    { name: 'Sleepless', emoji: '🌙', build: sleeplessScene, cap: 'Social deduction after dark: someone prowls, the village votes.' },
+  ];
+
+  const title = h('span', { class: 'lp-watch-title' });
+  // The picker: one emoji tab per game. Real buttons, so keyboard and screen
+  // readers get them for free. Picking a tab pins that scene: it replays on a
+  // loop so the reader can take their time, and the tour only resumes once the
+  // frame scrolls out of view.
+  const dots = h('span', { class: 'lp-watch-dots', role: 'group', 'aria-label': 'Choose a game preview' });
+  const stage = h('div', { class: 'lp-watch-stage' });
+  const cap = h('p', { class: 'lp-watch-cap' });
+  const pinNote = h('span', { class: 'lp-watch-pin', 'aria-live': 'polite' });
+
+  let idx = 0, timer = 0, running = false, pinned = false;
+  const show = (i) => {
+    idx = i % SCENES.length;
+    const s = SCENES[idx];
+    title.replaceChildren(`${s.emoji} ${s.name}`);
+    cap.replaceChildren(s.cap);
+    pinNote.replaceChildren(pinned ? '📌 holding this one — scroll on to resume the tour' : '');
+    dots.replaceChildren(...SCENES.map((sc, d) =>
+      h('button', {
+        class: `lp-watch-tab ${d === idx ? 'lp-on' : ''}`,
+        'aria-label': `Watch ${sc.name}`,
+        'aria-pressed': String(d === idx),
+        onClick: () => { deps.sound.tap(); pinned = true; show(d); },
+      }, sc.emoji)));
+    stage.replaceChildren(...s.build());
+    const beats = stage.querySelectorAll('.lp-ws').length;
+    if (timer) clearTimeout(timer);
+    // Reduced motion shows the finished scene and just rotates slowly. A
+    // pinned scene renders once and then holds still so it can be read;
+    // the tour resumes only after the reader scrolls the frame away.
+    if (pinned) return;
+    timer = setTimeout(() => {
+      if (running && !pinned) show(idx + 1);
+    }, rm ? 9000 : 1400 + beats * 640 + 3400);
+  };
+
+  const frame = h('div', { class: `lp-watch-frame lp-reveal ${rm ? '' : 'lp-anim'}` },
+    h('div', { class: 'lp-watch-head' },
+      h('span', { class: 'lp-watch-live' }, h('span', { class: 'lp-watch-pulse', 'aria-hidden': 'true' }), 'live preview'),
+      title,
+      dots,
+    ),
+    stage,
+    cap,
+    pinNote,
+  );
+
+  // Play only while on screen (and restart the current scene when returning).
+  const io = new IntersectionObserver((entries) => {
+    const en = entries[entries.length - 1];
+    const on = en.isIntersecting && !document.hidden;
+    if (on && !running) { running = true; frame.classList.add('lp-run'); show(idx); }
+    else if (!on && running) {
+      running = false;
+      pinned = false; // leaving the frame releases a held preview
+      frame.classList.remove('lp-run');
+      if (timer) { clearTimeout(timer); timer = 0; }
+    }
+  }, { threshold: 0.3 });
+  io.observe(frame);
+  onCleanup(() => { io.disconnect(); if (timer) { clearTimeout(timer); timer = 0; } running = false; });
+
+  return h('section', { class: 'lp-sec lp-watch', id: 'lp-watch', 'aria-label': 'Watch a round' },
+    sectionHead(h, 'Watch a round', 'See a round play itself.',
+      'These are the real game screens with a real crew — clues, reactions and verdicts exactly as they land on your phones.'),
+    frame,
+  );
+}
+
+// ============================================================
 // section pieces
 // ============================================================
 function sectionHead(h, eyebrow, title, sub) {
+  // Each word of the title is its own tile so it can deal itself in like a
+  // hand of letter cards when the section reveals. Screen readers get the
+  // whole line via aria-label; the tiles are decoration.
+  const words = String(title).split(' ');
   return h('header', { class: 'lp-shead lp-reveal' },
     h('p', { class: 'lp-eyebrow' }, eyebrow),
-    h('h2', { class: 'lp-h2' }, title),
+    h('h2', { class: 'lp-h2', 'aria-label': title },
+      words.map((w, i) => [
+        h('span', { class: 'lp-h2w', style: `--wi:${i}`, 'aria-hidden': 'true' }, w),
+        i < words.length - 1 ? ' ' : '',
+      ]),
+    ),
     sub && h('p', { class: 'lp-ssub' }, sub),
   );
 }
@@ -434,6 +811,7 @@ function sectionHead(h, eyebrow, title, sub) {
 function navBtn(deps, target, label) {
   return deps.h('button', {
     class: 'lp-nav-btn',
+    'data-lpt': target,
     onClick: () => { deps.sound.tap(); scrollToSection(target); },
   }, label);
 }
@@ -442,6 +820,39 @@ function scrollToSection(id) {
   const el = document.getElementById(id);
   if (!el) return;
   el.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
+}
+
+// "We are N" — dial in tonight's headcount and the shelf answers which games fit.
+function headcount(deps) {
+  const { h } = deps;
+  let n = 2;         // starts at the smallest real table…
+  let touched = false; // …but nothing dims until the dial is actually used.
+  const label = h('span', { class: 'lp-hc-n' }, '2');
+  const note = h('span', { class: 'lp-hc-note' }, '');
+  const apply = () => {
+    label.textContent = String(n);
+    const fits = deps.GAMES.filter((g) => n >= (g.minPlayers || 1) && n <= (g.maxPlayers || 99));
+    note.textContent = !touched ? ''
+      : fits.length === deps.GAMES.length ? 'Every game fits tonight.'
+      : fits.length ? `${fits.length} of ${deps.GAMES.length} games fit tonight`
+      : 'That is a lot of friends. Split into two rooms!';
+    document.querySelectorAll('.lp-gcard').forEach((card, i) => {
+      const g = deps.GAMES[i];
+      const ok = !touched || (n >= (g.minPlayers || 1) && n <= (g.maxPlayers || 99));
+      card.classList.toggle('lp-gc-dim', !ok);
+    });
+  };
+  const step = (d) => { touched = true; n = Math.max(2, Math.min(16, n + d)); deps.sound.tick(); apply(); };
+  // The shelf mounts after this control, so the first paint waits one frame.
+  requestAnimationFrame(apply);
+  return h('div', { class: 'lp-hc' },
+    h('span', { class: 'lp-hc-label' }, 'We are'),
+    h('button', { class: 'lp-hc-btn', 'aria-label': 'fewer players', onClick: () => step(-1) }, '−'),
+    label,
+    h('button', { class: 'lp-hc-btn', 'aria-label': 'more players', onClick: () => step(1) }, '+'),
+    h('span', { class: 'lp-hc-label' }, 'players.'),
+    note,
+  );
 }
 
 function gameCard(deps, g, i) {
@@ -453,13 +864,22 @@ function gameCard(deps, g, i) {
     onClick: () => { deps.sound.tap(); deps.showRules(g.id); },
   },
     h('span', { class: 'lp-gcard-glare', 'aria-hidden': 'true' }),
+    h('span', { class: 'lp-gcard-sweep', 'aria-hidden': 'true' }),
     h('span', { class: 'lp-gcard-pip lp-tl', 'aria-hidden': 'true' }, g.emoji),
     h('span', { class: 'lp-gcard-pip lp-br', 'aria-hidden': 'true' }, g.emoji),
+    // Hover bloom: three tiny card backs fan open behind the emoji in this
+    // game's accent. Decorative only; appears on fine-pointer hover/focus.
+    h('span', { class: 'lp-gbloom', 'aria-hidden': 'true' },
+      Array.from({ length: 3 }, (_, b) => h('span', { class: 'lp-gbcard', style: `--gi:${b - 1}` })),
+    ),
     h('span', { class: 'lp-gcard-emoji', 'aria-hidden': 'true' }, g.emoji),
     h('span', { class: 'lp-gcard-title' }, g.title),
     h('span', { class: 'lp-gcard-tagline' }, g.tagline),
     h('span', { class: 'lp-gcard-meta' },
-      (g.tags || []).map((t) => h('span', { class: 'lp-chip' }, t)),
+      (g.tags || []).map((t) => h('span', {
+        class: 'lp-chip',
+        title: t.startsWith('🎥') ? 'Best when everyone is together on a group call, faces visible.' : null,
+      }, t)),
     ),
     h('span', { class: 'lp-gcard-cta' }, 'How to play', h('span', { class: 'lp-gcard-arrow', 'aria-hidden': 'true', html: svgArrow() })),
   );
@@ -526,7 +946,15 @@ function tableau(h, cardBack) {
     },
       s.front
         ? h('span', { class: 'lp-pcard lp-pc-front lp-pc-seat' }, '🎭')
-        : cardBack('lp-pc-seat'),
+        : i === 4
+          // The rightmost card is dealt face down, then turns over to reveal 42.
+          ? h('span', { class: 'lp-fliphold lp-pc-seat' },
+              h('span', { class: 'lp-tflip' },
+                cardBack('lp-pc-tback'),
+                h('span', { class: 'lp-pcard lp-pc-front lp-pc-tfront' }, h('b', { class: 'lp-42' }, '42')),
+              ),
+            )
+          : cardBack('lp-pc-seat'),
     )),
   );
 }
@@ -570,6 +998,17 @@ function wireMotion(root, { hero, nav, canvas, rm }) {
     }
   }
 
+  // ----- finale fan: blooms every time it comes on screen -----
+  const fin = root.querySelector('.lp-cta-inner');
+  if (fin && !rm) {
+    const bio = new IntersectionObserver((entries) => {
+      const en = entries[entries.length - 1];
+      fin.classList.toggle('lp-bloom', en.isIntersecting);
+    }, { threshold: 0.35 });
+    bio.observe(fin);
+    onCleanup(() => bio.disconnect());
+  }
+
   // ----- hero progress: the fan deals itself away; the mini-nav arrives -----
   // Cheap scroll choreography: an observer with many thresholds, transforms
   // smoothed by a CSS transition. No scroll listeners, no layout reads per frame.
@@ -588,6 +1027,54 @@ function wireMotion(root, { hero, nav, canvas, rm }) {
   pio.observe(hero);
   onCleanup(() => pio.disconnect());
 
+  // ----- scroll-progress hairline in the mini-nav -----
+  // A passive listener that only reads window.scrollY and writes one transform.
+  // Document height is cached by a ResizeObserver, so no layout reads per frame.
+  const prog = nav.querySelector('.lp-nav-prog');
+  if (prog) {
+    let span = 1;
+    const sro = new ResizeObserver(() => {
+      span = Math.max(1, root.scrollHeight - window.innerHeight);
+    });
+    sro.observe(root);
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const p = Math.min(1, Math.max(0, window.scrollY / span));
+        prog.style.transform = `scaleX(${p.toFixed(4)})`;
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    onCleanup(() => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+      sro.disconnect();
+    });
+  }
+
+  // ----- scrollspy: the mini-nav underlines the section you are in -----
+  // One observer over the five anchor sections; the most recently intersecting
+  // one wins. Class toggles only, so nothing is measured.
+  {
+    const btns = [...nav.querySelectorAll('.lp-nav-btn')];
+    const setCur = (id) => {
+      for (const b of btns) b.classList.toggle('lp-cur', b.dataset.lpt === id);
+    };
+    const spy = new IntersectionObserver((entries) => {
+      for (const en of entries) {
+        if (en.isIntersecting) setCur(en.target.id);
+      }
+    }, { rootMargin: '-38% 0px -52% 0px' });
+    for (const b of btns) {
+      const sec = root.querySelector(`#${b.dataset.lpt}`);
+      if (sec) spy.observe(sec);
+    }
+    onCleanup(() => spy.disconnect());
+  }
+
   if (motes) {
     const onVis = () => {
       if (!canvas.isConnected) { document.removeEventListener('visibilitychange', onVis); return; }
@@ -595,6 +1082,36 @@ function wireMotion(root, { hero, nav, canvas, rm }) {
     };
     document.addEventListener('visibilitychange', onVis);
     onCleanup(() => document.removeEventListener('visibilitychange', onVis));
+  }
+
+  // ----- desktop candlelight: a soft glow trails the pointer -----
+  // One fixed element moved by transform inside a rAF; the CSS transition on
+  // transform gives it a candle-like lag. Fine pointers only, never under
+  // reduced motion, and it disappears with the node on cleanup.
+  if (canHoverTilt()) {
+    const glow = document.createElement('div');
+    glow.className = 'lp-glow';
+    glow.setAttribute('aria-hidden', 'true');
+    root.appendChild(glow);
+    let graf = 0, gx = 0, gy = 0;
+    const gmove = (e) => {
+      gx = e.clientX; gy = e.clientY;
+      if (graf) return;
+      graf = requestAnimationFrame(() => {
+        graf = 0;
+        glow.style.transform = `translate3d(${gx}px, ${gy}px, 0)`;
+        glow.classList.add('lp-glow-on');
+      });
+    };
+    const gout = () => glow.classList.remove('lp-glow-on');
+    window.addEventListener('pointermove', gmove, { passive: true });
+    document.documentElement.addEventListener('pointerleave', gout);
+    onCleanup(() => {
+      if (graf) cancelAnimationFrame(graf);
+      window.removeEventListener('pointermove', gmove);
+      document.documentElement.removeEventListener('pointerleave', gout);
+      glow.remove();
+    });
   }
 
   // ----- ambient hero parallax: a couple of degrees, pointer only -----
@@ -635,12 +1152,17 @@ function attachTilt(card) {
     const dy = (e.clientY - (r.top + r.height / 2)) / (r.height / 2);
     card.style.setProperty('--tx', (dy * -4).toFixed(2) + 'deg');
     card.style.setProperty('--ty', (dx * 5).toFixed(2) + 'deg');
+    // Magnetic pull: the card leans a few px toward the cursor. Fine pointers only.
+    card.style.setProperty('--mvx', (dx * 4).toFixed(2) + 'px');
+    card.style.setProperty('--mvy', (dy * 3).toFixed(2) + 'px');
     card.style.setProperty('--gx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
     card.style.setProperty('--gy', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
   });
   card.addEventListener('pointerleave', () => {
     card.style.setProperty('--tx', '0deg');
     card.style.setProperty('--ty', '0deg');
+    card.style.setProperty('--mvx', '0px');
+    card.style.setProperty('--mvy', '0px');
   });
 }
 

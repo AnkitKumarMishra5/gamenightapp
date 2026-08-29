@@ -4,7 +4,8 @@ import { h } from '../../core/ui.js';
 export function rulesNode() {
   return h('div', { class: 'rules-body' },
     h('p', {}, 'A co-operative card game for 2–8 players. You are all on one team, sharing three lives, and there is one rule you must never break:'),
-    h('div', { class: 'example' }, '🤫 Nobody may say, hint, or mime what cards they are holding.'),
+    h('div', { class: 'example' }, '🤫 Never say or signal your numbers. Read each other instead: the leaning-in, the hovering finger, the held breath. That IS the game.'),
+    h('p', { class: 'hint' }, '🎥 Best played on a group call, so everyone can see the hesitation on everyone else\'s face.'),
     h('h4', {}, '🃏 The deal'),
     h('ul', {},
       h('li', {}, 'Each level deals everyone that many secret cards from 1 to 100: one card each on level 1, two on level 2, and so on.'),
