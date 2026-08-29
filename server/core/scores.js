@@ -38,10 +38,9 @@ export const POINTS = {
     villageWinAlive: 4,    // villagers still standing when the Prowler falls
     villageWinDead: 2,     // villagers who fell along the way
     medicSave: 2,          // per night the guard was on the right door (paid on a village win)
-    oracleRead: 3,         // reading the Prowler at least once (paid on a village win)
     prowlerWin: 8,         // the Prowler outlasting the village
     prowlerSurvivedVote: 1, // per completed vote the Prowler walked away from (paid on a prowler win)
-    instinct: 1,            // per night a Sleeper's silent pick found a Prowler (revealed at the end)
+    puzzle: 1,              // per night the player answered their sum correctly
   },
 };
 
@@ -77,10 +76,9 @@ export const SCORING_RULES = {
     ['🌅', `+${POINTS.sleepless.villageWinAlive}`, 'Seeing the sun rise on a village win'],
     ['🪦', `+${POINTS.sleepless.villageWinDead}`, 'Falling before a village win'],
     ['🩺', `+${POINTS.sleepless.medicSave}`, 'Each night the Medic guarded the right door'],
-    ['🔮', `+${POINTS.sleepless.oracleRead}`, 'The Oracle reading the Prowler'],
     ['🐾', `+${POINTS.sleepless.prowlerWin}`, 'The Prowler outlasting the village'],
     ['🗳️', `+${POINTS.sleepless.prowlerSurvivedVote}`, 'Each vote the Prowler stared down'],
-    ['🫀', `+${POINTS.sleepless.instinct}`, 'Each night a Sleeper\'s gut silently found the Prowler'],
+    ['🧮', `+${POINTS.sleepless.puzzle}`, 'Each night-sum answered correctly'],
   ],
 };
 

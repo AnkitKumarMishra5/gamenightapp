@@ -71,18 +71,28 @@ export function suites(harness) {
       prowler: role('prowler'),
       prowlers: players.filter((p) => sl(p)?.you?.role === 'prowler'),
       medic: role('medic'),
-      oracle: role('oracle'),
       sleepers: players.filter((p) => sl(p)?.you?.role === 'sleeper'),
     };
   }
 
+  // Tonight's sum arrives in the snapshot without its answer, exactly as it reaches a
+  // real phone. Working it out here is the test playing the game, not peeking at state.
+  function solve(text) {
+    const m = String(text).match(/^(\d+)\s*([+\u00d7])\s*(\d+)(?:\s*\+\s*(\d+))?$/);
+    if (!m) throw new Error(`unreadable sum: ${text}`);
+    const [a, b, c] = [Number(m[1]), Number(m[3]), Number(m[4] || 0)];
+    return (m[2] === '+' ? a + b : a * b) + c;
+  }
+  const answerOf = (p) => solve(sl(p).puzzle.text);
+  const night = (p, targetId) => p.emit('sl:night', { answer: answerOf(p), targetId });
+
+  // picks maps a player to their target; a player mapped to null answers and sleeps.
+  // Players absent from the map do not submit at all, so the night keeps waiting.
   async function submitNights(players, picks) {
     for (const p of players) {
-      if (!sl(p)?.you?.alive) continue;
-      const target = picks.get(p);
-      if (!target) continue;
-      const r = await p.emit('sl:night', { targetId: target });
-      if (!r.ok) check(`night pick accepted for ${p.name}`, false, r.error);
+      if (!sl(p)?.you?.alive || !picks.has(p)) continue;
+      const r = await night(p, picks.get(p) || undefined);
+      if (!r.ok) check(`night submission accepted for ${p.name}`, false, r.error);
       await sleep(15);
     }
   }
@@ -102,17 +112,16 @@ export function suites(harness) {
     const { players, host } = await makeRoom(5);
     await startSleepless(players, host);
 
-    // [TEST role counts] 5 players deal to exactly 1/1/1 and 2 sleepers.
-    const { prowler, medic, oracle, sleepers } = castOf(players);
-    check('exactly one prowler, medic, oracle', Boolean(prowler && medic && oracle));
-    check('the rest are sleepers', sleepers.length === 2);
+    // [TEST role counts] 5 players deal to exactly one prowler, one medic, 3 sleepers.
+    const { prowler, medic, sleepers } = castOf(players);
+    check('exactly one prowler and one medic', Boolean(prowler && medic));
+    check('the rest are sleepers', sleepers.length === 3);
 
     // Snapshot secrecy at the deal: nobody's snapshot names anyone else's card.
     for (const p of players) {
       const json = JSON.stringify(sl(p));
       if (p !== prowler) check(`${p.name} cannot see the prowler`, !json.includes('"prowler"'), json.slice(0, 200));
       check(`${p.name} has no role map mid-game`, !json.includes('"roles"'));
-      if (p !== oracle) check(`${p.name} gets no oracle field`, sl(p).oracle === null);
     }
     check('non-host cannot deal', !(await players[1].emit('sl:start')).ok);
 
@@ -124,18 +133,24 @@ export function suites(harness) {
     await untilAll(players, (s) => s.sleepless.phase === 'night', 'all ready → night 1');
     check('round counter starts at night 1', sl(host).round === 1);
 
+    // [TEST] the sum gates every submission, whatever the role.
+    check('everyone is handed a sum', players.every((p) => Boolean(sl(p).puzzle?.text)));
+    check('the answer never ships to the client', !JSON.stringify(sl(prowler)).includes('"answer"'));
+    check('a wrong answer is refused', !(await prowler.emit('sl:night', {
+      answer: answerOf(prowler) + 1, targetId: sleepers[0].playerId })).ok);
+    check('a missing answer is refused', !(await sleepers[0].emit('sl:night', {})).ok);
+
     // [TEST] self-picks: only the Medic may guard their own door.
-    check('prowler cannot visit themselves', !(await prowler.emit('sl:night', { targetId: prowler.playerId })).ok);
-    check('oracle cannot read themselves', !(await oracle.emit('sl:night', { targetId: oracle.playerId })).ok);
-    check('a sleeper cannot pick themselves', !(await sleepers[0].emit('sl:night', { targetId: sleepers[0].playerId })).ok);
-    check('junk target is refused', !(await prowler.emit('sl:night', { targetId: 'nobody' })).ok);
+    check('prowler cannot visit themselves', !(await night(prowler, prowler.playerId)).ok);
+    check('junk target is refused', !(await night(prowler, 'nobody')).ok);
 
     // [TEST medic self-guard allowed] and [TEST night ends only when ALL have submitted].
     const victim = sleepers[1];
+    const s3 = sleepers[2];
     await submitNights(players, new Map([
       [prowler, victim.playerId],
       [medic, medic.playerId],
-      [oracle, prowler.playerId],
+      [s3, null],
     ]));
     await untilAll(players, (s) => s.sleepless.submitted === 3, 'three picks in');
     check('night waits for the sleepers', sl(host).phase === 'night', sl(host).phase);
@@ -144,34 +159,23 @@ export function suites(harness) {
     // Looks for the KEY form `"night":` — the phase VALUE "night" is public and fine.
     check('picks never appear in a snapshot', !JSON.stringify(sl(sleepers[0])).includes('"night":'));
 
-    // [TEST the watch] One sleeper watches a Prowler's door (instinct), the doomed one
-    // watches their own attacker's target... they ARE the target, so the survivor's watch
-    // goes to the victim's door and earns the witness clue. The dawn itself is still
-    // decided by the prowler and medic alone.
+    // The remaining Sleepers answer their sums and turn in. They send no target, and
+    // the dawn is decided by the Prowler and the Medic alone.
     await submitNights(players, new Map([
-      [sleepers[0], victim.playerId],       // watching the attacked door: witnesses it
-      [victim, prowler.playerId],           // watching a Prowler's door: banks instinct
+      [sleepers[0], null],
+      [victim, null],
     ]));
     await untilAll(players, (s) => s.sleepless.phase === 'day', 'all picks in → dawn');
     check('the unguarded victim dies', sl(host).dawn?.kind === 'death'
       && sl(host).dawn.victimId === victim.playerId, JSON.stringify(sl(host).dawn));
     check('their role is revealed publicly', sl(host).dawn.role === 'sleeper');
-    check('watching a door never changes who dies', players.filter((p) => sl(host).players
+    check('a sleeper\'s night changes nothing about who dies', players.filter((p) => sl(host).players
       .find((q) => q.id === p.playerId && !q.alive)).length === 1);
-    // The witness clue: private, correct, and only for the watcher of the attacked door.
-    const w = sl(sleepers[0]).witness;
-    check('the watcher of the attacked door gets a witness clue', Boolean(w), JSON.stringify(w));
-    check('the cleared player is never a prowler', w && w.clearedId !== prowler.playerId, w?.clearedId);
-    check('the clue names a living third party', w && w.clearedId !== victim.playerId && w.clearedId !== sleepers[0].playerId);
-    check('nobody else received a witness clue',
-      players.filter((p) => p !== sleepers[0]).every((p) => !sl(p).witness));
-
-    // [TEST oracle secrecy] Only the Oracle learns the reading.
-    check('oracle learns the truth', sl(oracle).oracle?.targetId === prowler.playerId
-      && sl(oracle).oracle.isProwler === true, JSON.stringify(sl(oracle).oracle));
-    for (const p of players.filter((x) => x !== oracle)) {
-      check(`${p.name} never sees the reading`, sl(p).oracle === null
-        && !JSON.stringify(sl(p)).includes('isProwler'));
+    // [TEST] the night hands nothing private to anyone: no clue fields at all.
+    for (const p of players) {
+      const json = JSON.stringify(sl(p));
+      check(`${p.name} learns nothing private overnight`,
+        !json.includes('dream') && !json.includes('witness') && !json.includes('instinct'));
     }
 
     // [TEST dead player snap secrecy] The dead spectate with no extra knowledge.
@@ -191,7 +195,7 @@ export function suites(harness) {
     check('votes stay sealed until all are in', sl(medic).votes === null);
 
     // Everyone turns on the prowler → the village wins on the spot.
-    await voteAll([medic, oracle, prowler], (p) => (p === prowler ? medic.playerId : prowler.playerId));
+    await voteAll([medic, s3, prowler], (p) => (p === prowler ? medic.playerId : prowler.playerId));
     await untilAll(players, (s) => s.sleepless.phase === 'gameOver', 'prowler voted out → game over');
     check('village wins', sl(host).winner?.side === 'village', JSON.stringify(sl(host).winner));
     check('winner names the prowler', sl(host).winner.prowlerId === prowler.playerId);
@@ -199,16 +203,15 @@ export function suites(harness) {
     check('ballots are public at the reveal', sl(host).votes?.[s0.playerId] === 'skip',
       JSON.stringify(sl(host).votes));
 
-    // Scoring settles at the end: villagers paid by survival, oracle paid for the read.
+    // Scoring settles at the end: villagers paid by survival, instinct paid on top.
     await until(host, (s) => (s.leaderboard || []).some((e) => e.total > 0), 'points awarded');
     const board = host.snap.leaderboard;
     const total = (p) => board.find((e) => e.id === p.playerId)?.total || 0;
-    check('living villagers earn 4', total(s0) === 4 && total(medic) === 4, `${total(s0)}/${total(medic)}`);
-    // 2 for falling on the winning side, +1 instinct: their final watch was on a
-    // Prowler's door (see the night picks above), and a good gut pays even posthumously.
-    check('the fallen villager earns 2 + 1 instinct', total(victim) === 3, String(total(victim)));
-    check('the oracle banks the correct read', total(oracle) === 7, String(total(oracle)));
-    check('the losing prowler earns nothing', total(prowler) === 0, String(total(prowler)));
+    // 4 for surviving, plus 1 for the single night-sum this game got through.
+    check('living villagers earn 4 + their sum', total(s0) === 5 && total(medic) === 5, `${total(s0)}/${total(medic)}`);
+    // 2 for falling on the winning side, plus the sum they answered before it.
+    check('the fallen villager earns 2 + their sum', total(victim) === 3, String(total(victim)));
+    check('the losing prowler earns only their sum', total(prowler) === 1, String(total(prowler)));
 
     // The same button deals the next game.
     check('host can run it back', (await host.emit('sl:next')).ok);
@@ -222,22 +225,19 @@ export function suites(harness) {
     const { players, host } = await makeRoom(5);
     await startSleepless(players, host);
     await allReady(players, host);
-    const { prowler, medic, oracle, sleepers } = castOf(players);
-    const [s1, s2] = sleepers;
+    const { prowler, medic, sleepers } = castOf(players);
+    const [s1, s2, s3] = sleepers;
 
     // Night 1: the Medic guards the exact door the Prowler visits. [TEST medic save]
     await submitNights(players, new Map([
       [prowler, s1.playerId],
       [medic, s1.playerId],
-      [oracle, s2.playerId],
-      [s1, prowler.playerId],
-      [s2, s1.playerId],
+      [s1, null], [s2, null], [s3, null],
     ]));
     await untilAll(players, (s) => s.sleepless.phase === 'day', 'dawn after the save');
     check('a guarded victim survives', sl(host).dawn?.kind === 'saved', JSON.stringify(sl(host).dawn));
     check('the survivor is never named', sl(host).dawn.victimId === undefined);
     check('nobody died', sl(host).players.every((p) => p.alive));
-    check('oracle read a villager as not the prowler', sl(oracle).oracle?.isProwler === false);
 
     // Day 1: everyone skips → nobody goes home. [TEST skip]
     await voteAll(players, () => 'skip');
@@ -248,21 +248,24 @@ export function suites(harness) {
     await host.emit('sl:next');
     await untilAll(players, (s) => s.sleepless.phase === 'night' && s.sleepless.round === 2, 'night 2');
 
-    // Night 2: the guard is elsewhere, so the Medic falls.
+    // [TEST the medic must move] Last night's door — s1 — is barred tonight.
+    check('the medic is told which door is barred', sl(medic).lastGuard === s1.playerId);
+    check('nobody else sees the barred door', sl(s2).lastGuard === null && sl(prowler).lastGuard === null);
+    check('the medic cannot guard the same door twice', !(await night(medic, s1.playerId)).ok);
+
+    // Night 2: the guard moves elsewhere, so the Medic falls.
     await submitNights(players, new Map([
       [prowler, medic.playerId],
-      [medic, s1.playerId],
-      [oracle, s1.playerId],
-      [s1, s2.playerId],
-      [s2, s1.playerId],
+      [medic, s2.playerId],
+      [s1, null], [s2, null], [s3, null],
     ]));
     await untilAll(players, (s) => s.sleepless.phase === 'day', 'dawn 2');
     check('the medic falls unguarded', sl(host).dawn?.victimId === medic.playerId
       && sl(host).dawn.role === 'medic');
 
     // Day 2: a dead 2–2 tie → nobody goes home. [TEST tie]
-    await voteAll([prowler, oracle, s1, s2], (p) => {
-      if (p === prowler || p === oracle) return s1.playerId;
+    await voteAll([prowler, s3, s1, s2], (p) => {
+      if (p === prowler || p === s3) return s1.playerId;
       return prowler.playerId;
     });
     await untilAll(players, (s) => s.sleepless.phase === 'verdict', 'tie vote resolves');
@@ -273,29 +276,29 @@ export function suites(harness) {
     await untilAll(players, (s) => s.sleepless.phase === 'night' && s.sleepless.round === 3, 'night 3');
     // The fallen Medic is a spectator now, at night as much as by day — and no longer
     // a target either. [TEST prowler picks a dead target → GameError]
-    check('a dead player cannot pick at night', !(await medic.emit('sl:night', { targetId: s1.playerId })).ok);
-    check('the prowler cannot visit the dead', !(await prowler.emit('sl:night', { targetId: medic.playerId })).ok);
+    check('a dead player cannot pick at night', !(await medic.emit('sl:night', { answer: 1, targetId: s1.playerId })).ok);
+    check('the prowler cannot visit the dead', !(await night(prowler, medic.playerId)).ok);
 
     // Night 3 and 4: the Prowler works the table down to two. [TEST prowler win]
     await submitNights(players, new Map([
-      [prowler, s1.playerId], [oracle, s1.playerId], [s1, s2.playerId], [s2, s1.playerId],
+      [prowler, s1.playerId], [s3, null], [s1, null], [s2, null],
     ]));
     await untilAll(players, (s) => s.sleepless.phase === 'day', 'dawn 3');
-    await voteAll([prowler, oracle, s2], () => 'skip');
+    await voteAll([prowler, s3, s2], () => 'skip');
     await untilAll(players, (s) => s.sleepless.phase === 'verdict', 'day 3 skipped');
     await host.emit('sl:next');
     await untilAll(players, (s) => s.sleepless.phase === 'night' && s.sleepless.round === 4, 'night 4');
 
     await submitNights(players, new Map([
-      [prowler, oracle.playerId], [oracle, s2.playerId], [s2, oracle.playerId],
+      [prowler, s3.playerId], [s3, null], [s2, null],
     ]));
     await untilAll(players, (s) => s.sleepless.phase === 'gameOver', 'two left → prowler wins');
     check('prowler wins at two standing', sl(host).winner?.side === 'prowler', JSON.stringify(sl(host).winner));
 
-    // 8 for the win plus 1 for each of the three completed votes stared down.
+    // 8 for the win, 1 for each of the three completed votes stared down, plus sums.
     await until(host, (s) => (s.leaderboard || []).some((e) => e.id === prowler.playerId), 'prowler on the board');
     const entry = host.snap.leaderboard.find((e) => e.id === prowler.playerId);
-    check('prowler paid for the win and the votes survived', entry?.total === 11, String(entry?.total));
+    check('prowler paid for the win, the votes survived and their sums', entry?.total === 15, String(entry?.total));
     await cleanup(players);
   }
 
@@ -306,8 +309,8 @@ export function suites(harness) {
     const small = await makeRoom(4);
     await startSleepless(small.players, small.host);
     const c4 = castOf(small.players);
-    check('4 players: one of each role', Boolean(c4.prowler && c4.medic && c4.oracle));
-    check('4 players: exactly one sleeper', c4.sleepers.length === 1);
+    check('4 players: one prowler and one medic', Boolean(c4.prowler && c4.medic));
+    check('4 players: exactly two sleepers', c4.sleepers.length === 2);
     await cleanup(small.players);
 
     // [TEST 12-player start] From nine players the Prowlers hunt as a pack of two.
@@ -315,8 +318,8 @@ export function suites(harness) {
     await startSleepless(big.players, big.host);
     const c12 = castOf(big.players);
     check('12 players: a pack of two prowlers', c12.prowlers.length === 2, String(c12.prowlers.length));
-    check('12 players: one medic, one oracle', Boolean(c12.medic && c12.oracle));
-    check('12 players: eight sleepers', c12.sleepers.length === 8, String(c12.sleepers.length));
+    check('12 players: exactly one medic', Boolean(c12.medic));
+    check('12 players: nine sleepers', c12.sleepers.length === 9, String(c12.sleepers.length));
     // Each prowler sees the other; nobody else carries an allies list.
     const [pa, pb] = c12.prowlers;
     check('the pack knows each other', sl(pa).you.allies.includes(pb.playerId) && sl(pb).you.allies.includes(pa.playerId));
@@ -329,7 +332,7 @@ export function suites(harness) {
     await startSleepless(max.players, max.host);
     const c16 = castOf(max.players);
     check('16 players: a pack of three prowlers', c16.prowlers.length === 3, String(c16.prowlers.length));
-    check('16 players: eleven sleepers', c16.sleepers.length === 11, String(c16.sleepers.length));
+    check('16 players: twelve sleepers', c16.sleepers.length === 12, String(c16.sleepers.length));
     await cleanup(max.players);
 
     // Too small to hide a Prowler in.
@@ -345,22 +348,20 @@ export function suites(harness) {
     const { players, host, code } = await makeRoom(6);
     await startSleepless(players, host);
     await allReady(players, host);
-    const { prowler, medic, oracle, sleepers } = castOf(players);
+    const { prowler, medic, sleepers } = castOf(players);
     // The player who drops and later gets kicked must not be the room owner: the test
     // needs the owner's socket alive to do the kicking. Any role can be the owner, but
-    // with three sleepers at a six-seat table at least two are not.
+    // with four sleepers at a six-seat table at least three are not.
     const sC = sleepers.find((p) => p !== host);
-    const [sA, sB] = sleepers.filter((p) => p !== sC);
+    const [sA, sB, sD] = sleepers.filter((p) => p !== sC);
 
     // Everyone but one sleeper settles in, then that sleeper's connection drops.
     await submitNights(players, new Map([
       [prowler, sB.playerId],
       [medic, medic.playerId],
-      [oracle, prowler.playerId],
-      [sA, sB.playerId],
-      [sB, prowler.playerId],
+      [sD, null], [sA, null], [sB, null],
     ]));
-    await untilAll([prowler, oracle], (s) => s.sleepless.submitted === 5, 'five of six picks in');
+    await untilAll([prowler, sD], (s) => s.sleepless.submitted === 5, 'five of six picks in');
     sC.disconnect();
     await sleep(300);
     // [TEST disconnect at night: night waits] Their pick is theirs to make.
@@ -373,7 +374,7 @@ export function suites(harness) {
     await back.connect();
     check('they can reconnect into the night', (await back.join(code)).ok);
     await until(back, (s) => s.sleepless?.phase === 'night', 'rejoined mid-night');
-    check('their pick still lands', (await back.emit('sl:night', { targetId: prowler.playerId })).ok);
+    check('their answer still lands', (await night(back)).ok);
     await untilAll([prowler, back], (s) => s.sleepless.phase === 'day', 'night resolves after the return');
     check('the dawn arrived', sl(prowler).dawn?.victimId === sB.playerId);
 
@@ -384,30 +385,31 @@ export function suites(harness) {
     await host.emit('sl:next');
     await untilAll([prowler, back], (s) => s.sleepless.phase === 'night' && s.sleepless.round === 2, 'night 2');
 
-    await submitNights([prowler, medic, oracle, sA], new Map([
+    // The medic guarded their own door on night 1, so tonight the guard must move.
+    check('the medic cannot repeat last night\'s guard', !(await night(medic, medic.playerId)).ok);
+    await submitNights([prowler, medic, sD, sA], new Map([
       [prowler, sA.playerId],
-      [medic, medic.playerId],
-      [oracle, sA.playerId],
-      [sA, prowler.playerId],
+      [medic, prowler.playerId],
+      [sD, null], [sA, null],
     ]));
     await until(prowler, (s) => s.sleepless.submitted === 4, 'four of five picks in');
     check('still waiting on the removed-to-be', sl(prowler).phase === 'night');
 
     // [TEST removed at night: pending submit dropped from the wait set]
     check('host removes the absent player', (await host.emit('room:kick', { targetId: back.playerId })).ok);
-    await untilAll([prowler, oracle], (s) => s.sleepless.phase === 'day', 'kick unblocks the dawn');
+    await untilAll([prowler, sD], (s) => s.sleepless.phase === 'day', 'kick unblocks the dawn');
     check('the night resolved without them', sl(prowler).dawn?.victimId === sA.playerId);
     check('the removed player is marked as gone', sl(prowler).players
       .find((p) => p.id === back.playerId)?.left === true);
 
     // [TEST prowler removed → village wins immediately]
-    await voteAll([prowler, medic, oracle], () => 'skip');
-    await untilAll([prowler, oracle], (s) => s.sleepless.phase === 'verdict', 'day 2 skipped');
+    await voteAll([prowler, medic, sD], () => 'skip');
+    await untilAll([prowler, sD], (s) => s.sleepless.phase === 'verdict', 'day 2 skipped');
     await host.emit('sl:next');
-    await until(oracle, (s) => s.sleepless.phase === 'night' && s.sleepless.round === 3, 'night 3');
+    await until(sD, (s) => s.sleepless.phase === 'night' && s.sleepless.round === 3, 'night 3');
     await prowler.emit('room:leave');
-    await until(oracle, (s) => s.sleepless.phase === 'gameOver', 'prowler leaves → game over');
-    check('village wins the moment the prowler leaves', sl(oracle).winner?.side === 'village');
+    await until(sD, (s) => s.sleepless.phase === 'gameOver', 'prowler leaves → game over');
+    check('village wins the moment the prowler leaves', sl(sD).winner?.side === 'village');
     back.disconnect();
     await cleanup(players);
   }

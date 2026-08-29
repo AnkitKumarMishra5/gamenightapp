@@ -21,7 +21,7 @@ export const SENTINEL_VALUE = 99;
 const DECK_HIGH = 40;
 const SENTINELS = 4;
 
-// The point values live in core/scores.js like every game's (see WIRING.md). The fallback
+// The point values live in core/scores.js like every game's. The fallback
 // keeps the engine playable before that entry lands, and defers to it the moment it does.
 function pts() {
   return POINTS.swaporstay || { roundSurvived: 1, gameWon: 6 };

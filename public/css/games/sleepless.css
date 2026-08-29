@@ -146,9 +146,9 @@
 }
 .sl-flip-back { transform: rotateY(180deg); border-color: rgba(212, 175, 55, 0.6); background: linear-gradient(160deg, #262b52, #141838); }
 
-/* ---------- the Oracle's reading ----------
-   Violet like the Oracle's role tag, and quiet: a small card under the dawn news that
-   only ever exists on the Oracle's own screen. */
+/* ---------- private night notes (dream clue, role memo) ----------
+   Violet and quiet: a small card under the dawn news that only ever exists on the
+   screen of the player it belongs to. */
 .sl-oracle-note { text-align: center; border-color: rgba(139, 92, 246, 0.35); }
 .sl-oracle-head { color: var(--violet); }
 
@@ -215,7 +215,6 @@
 }
 .sl-role-prowler { color: var(--red); border-color: rgba(248, 113, 113, 0.45); }
 .sl-role-medic { color: var(--emerald); border-color: rgba(52, 211, 153, 0.45); }
-.sl-role-oracle { color: var(--violet); border-color: rgba(139, 92, 246, 0.5); }
 .sl-role-sleeper { color: var(--ink-dim); }
 
 /* The Prowler's win settles over the whole screen as a slow red edge, and stays. */
@@ -261,3 +260,13 @@
   color: var(--amber); border: 1px solid rgba(251, 191, 36, 0.45);
   border-radius: 999px; padding: 2px 9px; background: rgba(251, 191, 36, 0.08);
 }
+
+/* ---------- the night sum ----------
+   Everyone gets one, so every screen looks equally busy while the Prowler chooses. */
+.sl-sum {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin: 12px auto 2px;
+}
+.sl-sum-q { font-size: 22px; font-weight: 800; letter-spacing: 1px; }
+.sl-sum-eq { font-size: 20px; color: var(--ink-faint); }
+.sl-sum-input { width: 96px; text-align: center; font-size: 20px; font-weight: 800; }

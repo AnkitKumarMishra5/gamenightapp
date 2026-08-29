@@ -369,6 +369,7 @@ function ctx() {
   return {
     emit,
     sound,
+    toast,
     // Lets a game module re-draw after local-only state changes, such as a vote that has
     // been picked but not yet confirmed.
     rerender: render,
@@ -903,7 +904,7 @@ function showFeedback() {
 function showAbout() {
   openModal(h('div', {},
     h('button', { class: 'icon-btn modal-close', onClick: closeModal, 'aria-label': 'Close' }, '✕'),
-    h('div', { class: 'modal-title' }, `🎭 ${BRAND.short}`),
+    h('div', { class: 'modal-title gn-modal-brand' }, h('img', { src: '/icons/logo.svg', width: '26', height: '26', alt: '', style: 'vertical-align:-6px; margin-right:8px; border-radius:7px' }), BRAND.short),
     h('p', { class: 'hint', style: 'margin-bottom:14px' }, 'Real-time multiplayer party games: Blend In, Island Rules, and a growing lineup. Built with Node.js, Socket.IO and a sprinkle of AI.'),
     h('div', { class: 'dev-card dev-showcase' },
       h('div', { class: 'ds-label' }, 'Meet the developer'),
@@ -972,7 +973,8 @@ let joinOpen = false;
 
 function renderLanding() {
   setScreen(landingScreen({
-    h, GAMES, BRAND, DEV, COPYRIGHT, AVATARS, prefs, sound, toast, shake,
+    h, GAMES, BRAND, DEV, COPYRIGHT, AVATARS, prefs, sound, toast, shake, ORIGIN_STORY,
+    devIcons: { mail: svgMail, linkedin: svgLinkedIn, github: svgGitHub },
     extractRoomCode, showRules, showLegal, showFeedback, installRow, devPhoto, sendHello,
     connected: () => store.connected,
     onCreate: () => emit('room:create', { name: prefs.name, avatar: prefs.avatar, ...identity }),

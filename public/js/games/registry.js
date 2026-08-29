@@ -65,7 +65,7 @@ export const GAMES = [
     title: 'Sleepless',
     emoji: '🌙',
     accent: 'sl',
-    tagline: 'Prowlers hunt by night. Guard a door, read a face, keep watch — and vote before nobody is left to.',
+    tagline: 'Prowlers hunt by night while everyone answers the same sum. No powers, no proof — just the argument.',
     minPlayers: 4, maxPlayers: 16,
     tags: ['4–16 players', 'social deduction', '🎥 play on a group call'],
     render: renderSleepless,

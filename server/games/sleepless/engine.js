@@ -1,15 +1,20 @@
 // Game Night — © 2026 Ankit Kumar Mishra. All rights reserved. See LICENSE.
 // Sleepless: a night-and-day social deduction game.
 //
-// One Prowler hunts by night. One Medic guards a door. One Oracle reads a face. Everyone
-// else is a Sleeper with nothing but instincts and a vote. Nights alternate with daytime
-// votes until the Prowler is voted out (the village wins) or almost nobody is left
-// standing (the Prowler wins).
+// One Prowler hunts by night. One Medic guards a door (never the same door two nights
+// running). Everyone else is a Sleeper, with no night power at all.
+//
+// The night is a counting puzzle: every living player is handed the same kind of sum,
+// types an answer and taps "ready to sleep". Prowler and Medic get one extra tap on a
+// grid of names — but everyone is typing, everyone is tapping, and the night ends only
+// when the last answer is in. Nothing about a player's screen time, speed or silence
+// says which card they hold. Days are sealed votes, and nobody gets private information
+// to argue from: only what people say and how they vote.
 //
 // The one rule everything below serves: nothing a player knows in secret may ever reach
 // another player's snapshot. Night picks are stored but only ever surfaced as a count,
-// the Oracle's reading goes to the Oracle alone, votes stay sealed until the last one is
-// in, and the full role map exists in a snapshot only once the game is over.
+// night picks are never surfaced as anything but a count, votes stay sealed until the
+// last one is in, and the full role map exists in a snapshot only once the game is over.
 import { GameError, pick, shuffle } from '../../lib/util.js';
 import { pickQuip } from '../../lib/quips.js';
 import { POINTS, award } from '../../core/scores.js';
@@ -18,16 +23,15 @@ export const SL_MIN_PLAYERS = 4;
 export const SL_MAX_PLAYERS = 16;
 
 // The engine reads its point values through this so it still runs (and the tests still
-// pass) if the scores.js entries land a beat later than this file. The real values live
-// in WIRING.md for the integrator to add; these mirror them exactly.
+// pass) even if the scores.js entries are missing; these mirror them exactly.
 const P = () => POINTS.sleepless || {
-  villageWinAlive: 4, villageWinDead: 2, medicSave: 2, oracleRead: 3,
-  prowlerWin: 8, prowlerSurvivedVote: 1, instinct: 1,
+  villageWinAlive: 4, villageWinDead: 2, medicSave: 2,
+  prowlerWin: 8, prowlerSurvivedVote: 1, puzzle: 1,
 };
 
-const ROLES = ['prowler', 'medic', 'oracle'];
+const ROLES = ['prowler', 'medic'];
 // Big tables get a pack, not a lone hunter: one Prowler up to eight players, two from
-// nine, three from fourteen. The Medic and Oracle stay singular at every size.
+// nine, three from fourteen. The Medic stays singular at every size.
 const prowlerCountFor = (n) => (n >= 14 ? 3 : n >= 9 ? 2 : 1);
 
 // ---------- helpers ----------
@@ -90,7 +94,6 @@ export function startGame(room, playerId) {
   dealt.forEach((id, i) => {
     roles[id] = i < packSize ? 'prowler'
       : i === packSize ? 'medic'
-      : i === packSize + 1 ? 'oracle'
       : 'sleeper';
   });
 
@@ -108,11 +111,10 @@ export function startGame(room, playerId) {
     night: {},                   // playerId -> targetId, wiped every dusk
     dawn: null,                  // the last morning's public result
     dawnSeq: 0,                  // bumps every dawn so clients can play the reveal exactly once
-    oracle: null,                // { targetId, isProwler } — surfaces only in the Oracle's snapshot
-    oracleHit: false,            // scoring: did the Oracle ever read the Prowler
+    lastGuard: null,             // the door the Medic held last night — off-limits tonight
     medicSaves: 0,               // scoring: nights where the guard was on the right door
-    instinct: {},                // scoring: per-Sleeper nights their watch was on a Prowler's door
-    witness: {},                 // per-Sleeper private clue from watching the attacked door
+    puzzles: {},                 // playerId -> tonight's sum; the answer never leaves the server
+    solved: {},                  // scoring: nights each player got their sum right
     votesSurvived: 0,            // scoring: completed votes the Prowler walked away from
     votes: {},                   // playerId -> targetId | 'skip', sealed until all are in
     verdict: null,               // { outId, role, tie, tally, skips } once a vote resolves
@@ -134,10 +136,25 @@ export function markReady(room, playerId) {
   if (here.length && here.every((id) => state.ready.has(id))) return beginNight(state);
 }
 
+// A small sum, sized to be quick on a phone in a dark room but not automatic — the
+// point is that everyone is visibly busy, not that anyone is stumped.
+function makePuzzle(round) {
+  const hard = round > 2;
+  const a = 3 + Math.floor(Math.random() * (hard ? 17 : 9));
+  const b = 2 + Math.floor(Math.random() * (hard ? 12 : 8));
+  const c = Math.floor(Math.random() * 9);
+  const op = Math.random() < 0.5 ? '+' : '\u00d7';
+  const base = op === '+' ? a + b : a * b;
+  return { a, b, c, op, text: `${a} ${op} ${b} ${c ? `+ ${c}` : ''}`.trim(), answer: base + c };
+}
+
 function beginNight(state) {
   state.round += 1;
   state.phase = 'night';
   state.night = {};
+  // A fresh sum each, so an answer overheard across the room is worth nothing.
+  state.puzzles = {};
+  for (const id of aliveIds(state)) state.puzzles[id] = makePuzzle(state.round);
   state.votes = {};
   state.verdict = null;
   return { fx: [{ kind: 'sl-night', round: state.round }] };
@@ -145,24 +162,40 @@ function beginNight(state) {
 
 // ---------- night ----------
 
-// Every living player submits a pick, whatever their role, so nobody's screen time gives
-// them away. The Sleeper's pick is recorded and then deliberately never read again.
+// Every living player answers the same kind of sum and taps ready. Prowler and Medic
+// send a target with it; a Sleeper sends only the answer. The wrong answer is simply
+// not accepted, so a player who is guessing looks exactly like a player who is thinking.
 export function submitNight(room, playerId, payload) {
   const state = st(room);
   requirePhase(state, 'night');
   if (!state.alive.has(playerId)) throw new GameError('The night is not yours anymore. You are watching.');
 
-  const targetId = String(payload?.targetId || '');
-  if (!state.alive.has(targetId)) throw new GameError('Pick someone who is still in the game.');
+  const puzzle = state.puzzles[playerId];
+  const answer = Number(payload?.answer);
+  if (!puzzle || !Number.isFinite(answer)) throw new GameError('Answer tonight\'s sum first.');
+  if (answer !== puzzle.answer) throw new GameError('That is not the right answer. Check it and try again.');
+
   const role = state.roles[playerId];
-  // Only the Medic may point at their own door; everyone else must look outward.
-  if (targetId === playerId && role !== 'medic') throw new GameError('Pick someone other than yourself.');
-  if (role === 'prowler' && state.roles[targetId] === 'prowler') {
-    throw new GameError('The pack hunts outward. Pick someone else.');
+  const needsTarget = role === 'prowler' || role === 'medic';
+  const targetId = String(payload?.targetId || '');
+  if (needsTarget) {
+    if (!state.alive.has(targetId)) throw new GameError('Pick someone who is still in the game.');
+    // Only the Medic may point at their own door; the pack must look outward.
+    if (targetId === playerId && role !== 'medic') throw new GameError('Pick someone other than yourself.');
+    if (role === 'prowler' && state.roles[targetId] === 'prowler') {
+      throw new GameError('The pack hunts outward. Pick someone else.');
+    }
+    // A guard that never moves is a guard the Prowler can play around. The same door
+    // (own included) is barred two nights running.
+    if (role === 'medic' && state.lastGuard && targetId === state.lastGuard) {
+      throw new GameError('You guarded that door last night. The Medic must move every night.');
+    }
   }
 
-  // Last write wins until the night resolves, so a changed mind costs nothing.
-  state.night[playerId] = targetId;
+  // Sleepers still occupy a slot in state.night — the night waits on everyone equally,
+  // and the value is never read for anyone but the Prowler and the Medic.
+  state.night[playerId] = needsTarget ? targetId : 'asleep';
+  state.solved[playerId] = (state.solved[playerId] || 0) + 1;
 
   const fx = [{ kind: 'sl-tuck', submitted: Object.keys(state.night).length, total: aliveIds(state).length }];
   const resolved = maybeResolveNight(room, state);
@@ -183,15 +216,6 @@ function maybeResolveNight(room, state) {
 function resolveDawn(room, state) {
   const prowlerId = roleHolder(state, 'prowler');
   const medicId = roleHolder(state, 'medic');
-  const oracleId = roleHolder(state, 'oracle');
-
-  // The Oracle's reading is taken before anyone dies, and never leaves their snapshot.
-  if (oracleId && state.alive.has(oracleId)) {
-    const targetId = state.night[oracleId];
-    const isProwler = state.roles[targetId] === 'prowler';
-    state.oracle = { targetId, isProwler, round: state.round };
-    if (isProwler) state.oracleHit = true;
-  }
 
   // The pack hunts together: each living Prowler names a door, the most-named door is
   // the kill, and a split vote falls to chance among the tied doors.
@@ -204,25 +228,8 @@ function resolveDawn(room, state) {
     victim = pick(Object.keys(counts).filter((t) => counts[t] === max));
   }
   const guard = medicId && state.alive.has(medicId) ? state.night[medicId] : null;
-
-  // The Sleepers' watch pays out here, before anyone dies, while "who was where" is
-  // still true. One pick, two silent rewards, nothing announced at dawn:
-  //  - a watch on a Prowler's door banks an Instinct point, revealed only at game over;
-  //  - a watch on the attacked door witnesses the scuffle, and the watcher privately
-  //    learns one player who is provably not a Prowler. Live ammunition for the day.
-  for (const id of aliveIds(state)) {
-    if (state.roles[id] !== 'sleeper') continue;
-    const door = state.night[id];
-    if (!door) continue;
-    if (state.roles[door] === 'prowler' && state.alive.has(door)) {
-      state.instinct[id] = (state.instinct[id] || 0) + 1;
-    }
-    if (victim && door === victim) {
-      const cleared = pick(aliveIds(state).filter((c) =>
-        c !== id && c !== victim && state.roles[c] !== 'prowler'));
-      if (cleared) state.witness[id] = { round: state.round, clearedId: cleared };
-    }
-  }
+  // Remembered so tomorrow's guard must land somewhere new; cleared if there was none.
+  state.lastGuard = guard || null;
 
   state.dawnSeq += 1;
 
@@ -361,10 +368,6 @@ function endGame(room, state, side) {
     if (medicId && !state.left.has(medicId) && state.medicSaves) {
       award(room, medicId, 'sleepless', pts.medicSave * state.medicSaves, 'guarded the right door');
     }
-    const oracleId = roleHolder(state, 'oracle');
-    if (oracleId && !state.left.has(oracleId) && state.oracleHit) {
-      award(room, oracleId, 'sleepless', pts.oracleRead, 'read the Prowler\'s face');
-    }
   } else if (everPlayed && side === 'prowler') {
     for (const id of pack) {
       if (state.left.has(id)) continue;
@@ -376,15 +379,15 @@ function endGame(room, state, side) {
   }
 
   if (everPlayed) {
-    for (const [id, hits] of Object.entries(state.instinct)) {
-      if (hits && !state.left.has(id)) {
-        award(room, id, 'sleepless', pts.instinct * hits, 'trusted the right gut');
+    for (const [id, nights] of Object.entries(state.solved)) {
+      if (nights && !state.left.has(id)) {
+        award(room, id, 'sleepless', pts.puzzle * nights, 'kept a clear head at night');
       }
     }
   }
 
-  // Instinct tallies join the reveal: they were the one secret with no owner to out.
-  state.winner = { side, prowlerId: pack[0] || null, prowlerIds: pack, instinct: { ...state.instinct } };
+  // Night-sums solved join the reveal: a small, harmless brag with no secret in it.
+  state.winner = { side, prowlerId: pack[0] || null, prowlerIds: pack, solved: { ...state.solved } };
   state.endQuip = pickQuip(side === 'village' ? 'insiderWin' : 'outsiderWin');
   state.phase = 'gameOver';
   return { fx: [{ kind: 'sl-over', side }] };
@@ -465,7 +468,6 @@ export function snapshot(room, forPlayerId) {
   if (!state || room.game !== 'sleepless') return null;
   const over = state.phase === 'gameOver';
   const role = state.roles[forPlayerId] || null;
-  const isOracle = role === 'oracle';
 
   return {
     phase: state.phase,
@@ -496,10 +498,12 @@ export function snapshot(room, forPlayerId) {
     youSubmitted: state.phase === 'night' ? Boolean(state.night[forPlayerId]) : false,
     yourPick: state.phase === 'night' ? state.night[forPlayerId] || null : null,
     dawn: state.dawn,
-    // The reading is the Oracle's alone until the very end.
-    oracle: isOracle ? state.oracle : null,
-    // What your watch saw, if it saw anything. Yours alone, same rule as the reading.
-    witness: role === 'sleeper' ? (state.witness[forPlayerId] || null) : null,
+    // The Medic alone is told which door is barred tonight; to anyone else the field
+    // would be a free read on where the guard stood.
+    lastGuard: role === 'medic' ? state.lastGuard : null,
+    // Tonight's sum, without its answer — the check happens on the server.
+    puzzle: state.phase === 'night' && state.puzzles[forPlayerId]
+      ? { text: state.puzzles[forPlayerId].text } : null,
     // Progress is counted over the same set the vote resolves over, so the count can
     // never read as more ballots than voters.
     voteCount: state.phase === 'day'

@@ -1,37 +1,46 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Game Night logo — two friends, one of them masked">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Game Night logo — a fan of cards under a crescent moon">
   <defs>
-    <linearGradient id="gn-badge" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#8b5cf6"/>
-      <stop offset="0.5" stop-color="#6366f1"/>
-      <stop offset="1" stop-color="#22d3ee"/>
+    <linearGradient id="gn-tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1a2140"/>
+      <stop offset="0.55" stop-color="#10152b"/>
+      <stop offset="1" stop-color="#0b0e1a"/>
     </linearGradient>
-    <radialGradient id="gn-glow" cx="0.32" cy="0.22" r="0.82">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.28"/>
-      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    <linearGradient id="gn-gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff7dd"/>
+      <stop offset="0.45" stop-color="#efe2b0"/>
+      <stop offset="1" stop-color="#d9bc63"/>
+    </linearGradient>
+    <linearGradient id="gn-card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#232c55"/>
+      <stop offset="1" stop-color="#151b38"/>
+    </linearGradient>
+    <radialGradient id="gn-sheen" cx="0.5" cy="0.12" r="0.9">
+      <stop offset="0" stop-color="#e5cd7e" stop-opacity="0.20"/>
+      <stop offset="0.5" stop-color="#e5cd7e" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#e5cd7e" stop-opacity="0"/>
     </radialGradient>
   </defs>
 
-  <rect x="2" y="2" width="96" height="96" rx="24" fill="url(#gn-badge)"/>
-  <rect x="2" y="2" width="96" height="96" rx="24" fill="url(#gn-glow)"/>
+  <!-- badge -->
+  <rect x="2" y="2" width="96" height="96" rx="24" fill="url(#gn-tile)"/>
+  <rect x="2" y="2" width="96" height="96" rx="24" fill="url(#gn-sheen)"/>
+  <rect x="3.25" y="3.25" width="93.5" height="93.5" rx="22.75" fill="none" stroke="url(#gn-gold)" stroke-opacity="0.85" stroke-width="2.5"/>
 
-  <!-- friend behind, on the right: smaller and softer so it reads as depth -->
-  <g fill="#ffffff" opacity="0.5">
-    <circle cx="68.5" cy="33" r="11"/>
-    <path d="M50 84c0-10.2 8.3-18.5 18.5-18.5S87 73.8 87 84z"/>
-  </g>
+  <!-- crescent moon, top right -->
+  <path d="M76.5 21.5a10.6 10.6 0 1 0 3.9 14.6 8.6 8.6 0 0 1-3.9-14.6z" fill="url(#gn-gold)"/>
+  <circle cx="62.5" cy="20.5" r="1.6" fill="#efe2b0"/>
 
-  <!-- friend in front, on the left: the masked one -->
-  <g fill="#ffffff">
-    <circle cx="37" cy="38" r="15"/>
-    <path d="M12 88c0-13.8 11.2-25 25-25s25 11.2 25 25z"/>
-  </g>
-
-  <!-- domino mask across the eyes only: a band with two eye holes, in the badge colour -->
-  <g fill="url(#gn-badge)">
-    <path d="M22.6 33.2h28.8c1.3 0 2.3 1 2.3 2.3v3.1c0 4.6-3.7 8.3-8.3 8.3-2.9 0-5.5-1.5-6.9-3.8-1.4 2.3-4 3.8-6.9 3.8-4.6 0-8.3-3.7-8.3-8.3v-3.1c0-1.3 1-2.3 2.3-2.3z"/>
-  </g>
-  <g fill="#ffffff">
-    <ellipse cx="30.4" cy="38.6" rx="2.9" ry="3.3"/>
-    <ellipse cx="45.6" cy="38.6" rx="2.9" ry="3.3"/>
+  <!-- fan of three cards -->
+  <g transform="translate(50 66)">
+    <g transform="rotate(-22) translate(-11 0)">
+      <rect x="-11" y="-19" width="22" height="31" rx="4.5" fill="url(#gn-card)" stroke="url(#gn-gold)" stroke-opacity="0.55" stroke-width="1.8"/>
+    </g>
+    <g transform="rotate(22) translate(11 0)">
+      <rect x="-11" y="-19" width="22" height="31" rx="4.5" fill="url(#gn-card)" stroke="url(#gn-gold)" stroke-opacity="0.55" stroke-width="1.8"/>
+    </g>
+    <g>
+      <rect x="-12.5" y="-22" width="25" height="35" rx="5" fill="url(#gn-card)" stroke="url(#gn-gold)" stroke-width="2.2"/>
+      <path d="M0 -12.5 L6.4 -4.5 L0 5.5 L-6.4 -4.5 Z" fill="url(#gn-gold)"/>
+    </g>
   </g>
 </svg>

@@ -50,11 +50,12 @@ loses a heart; last player standing wins.
 
 ### 🌙 Sleepless (4 to 16 players)
 
-Prowlers hunt at night (a pack of up to three on big tables); a Medic guards a door, an
-Oracle reads a face, and every Sleeper keeps watch on a door of their choice — witness the
-attack and you privately learn someone innocent; watch a Prowler's empty bed and your gut
-banks a point for the end. Everyone acts on an identical screen, so phones betray no roles.
-Days are sealed votes, ties walk free, and the village wins when the last Prowler falls.
+Prowlers hunt at night (a pack of up to three on big tables) and a Medic guards a door,
+never the same one two nights running. Everyone else just sleeps — no night powers. The
+night is a counting puzzle: every player answers the same kind of sum and taps ready, so
+every screen is equally busy and nothing betrays a role. Days are sealed votes with no
+private information to lean on, ties walk free, and the village wins when the last Prowler
+falls.
 
 ## Run it
 

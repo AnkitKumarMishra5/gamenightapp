@@ -90,13 +90,14 @@ button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 }
 .brand-mark {
   width: 34px; height: 34px; display: block; border-radius: 10px;
-  filter: drop-shadow(0 3px 10px rgba(139, 92, 246, 0.55));
+  filter: drop-shadow(0 3px 10px rgba(229, 205, 126, 0.35));
   transition: transform 0.3s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
 .brand:hover .brand-mark { transform: rotate(-7deg) scale(1.07); }
 .brand-name {
   font-weight: 800; font-size: 19px; letter-spacing: 0.2px;
-  background: var(--grad-brand); -webkit-background-clip: text; background-clip: text; color: transparent;
+  background: linear-gradient(180deg, #fffdf6 30%, #efe2b0 72%, #d9bc63 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .app-bar-right { display: flex; align-items: center; gap: 8px; }
 

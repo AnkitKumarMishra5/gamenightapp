@@ -14,23 +14,18 @@ import { confettiRain } from '../../core/fx.js';
 const ROLES = {
   prowler: {
     emoji: '🐾', word: 'Prowler',
-    prompt: 'Choose who to visit.',
-    blurb: 'Each night you visit someone, and they will not wake up. On big tables you hunt as a pack. Stay calm by day. Vote like everyone else.',
+    prompt: 'Answer the sum, then choose who to kill.',
+    blurb: 'Each night you answer the same sum as everyone else, and tap one name: that player will not wake up. On big tables you hunt as a pack. Stay calm by day. Vote like everyone else.',
   },
   medic: {
     emoji: '🩺', word: 'Medic',
-    prompt: 'Choose who to guard.',
-    blurb: 'Each night you guard one door — yours counts too. If the Prowler comes knocking there, nobody dies.',
-  },
-  oracle: {
-    emoji: '🔮', word: 'Oracle',
-    prompt: 'Choose who to read.',
-    blurb: 'Each night you read one player and learn, privately, whether they are the Prowler.',
+    prompt: 'Answer the sum, then choose who to guard.',
+    blurb: 'Each night you answer the same sum as everyone else, and tap one door to guard — yours counts too. If the Prowler comes knocking there, nobody dies. But a guard that never moves is no guard: you cannot hold the same door two nights in a row.',
   },
   sleeper: {
     emoji: '😴', word: 'Sleeper',
-    prompt: 'Keep watch: whose door do you watch tonight?',
-    blurb: 'Your weapon is where you point your eyes. Watch the door that gets attacked and you witness the scuffle — you privately learn someone who is NOT a Prowler. Watch a Prowler\'s door and their empty bed banks you an Instinct point, revealed only at the very end.',
+    prompt: 'Answer the sum, then sleep.',
+    blurb: 'You have no night power — and that is the point. You answer the same sum as everyone else and tap ready, so the Prowler is typing exactly when you are typing. Your weapon is the daytime: what people say, and how they vote.',
   },
 };
 
@@ -49,6 +44,8 @@ const seen = { night: null, dawn: null, verdict: null, over: null, round: null }
 let pendingVote = null;      // picked but not yet confirmed (two-step, like Blend In)
 let repicking = false;       // "change my night pick" is open
 let revoting = false;        // "change my vote" is open
+let nightAnswer = '';        // what is typed into tonight's sum, before it is sent
+let nightTarget = null;      // Prowler/Medic tap target, before it is sent
 
 function roundKey(sl) { return `${sl.dealId}:${sl.round}`; }
 
@@ -59,6 +56,8 @@ function resetRoundState(sl) {
   pendingVote = null;
   repicking = false;
   revoting = false;
+  nightAnswer = '';
+  nightTarget = null;
 }
 
 // ---------- entry ----------
@@ -80,7 +79,7 @@ export function renderSleepless(snap, ctx) {
   const parts = [hud(sl, ctx)];
   switch (sl.phase) {
     case 'night': parts.push(nightPhase(sl, ctx)); break;
-    case 'day': parts.push(dawnBanner(sl, ctx), oracleNote(sl, ctx), voteBoard(sl, ctx)); break;
+    case 'day': parts.push(dawnBanner(sl, ctx), voteBoard(sl, ctx)); break;
     case 'verdict': parts.push(verdictPhase(sl, ctx)); break;
     case 'gameOver': parts.push(gameOver(sl, ctx)); break;
   }
@@ -179,30 +178,8 @@ function openRoleModal(sl, ctx) {
     peekCard({ face: r.emoji, hint: 'Hold to look' }),
     h('p', { class: 'sl-role-word' }, `You are the ${r.word}`),
     h('p', { class: 'hint', style: 'text-align:center' }, r.blurb),
-    oracleMemo(sl, ctx),
-    witnessMemo(sl, ctx),
     h('button', { class: 'btn btn-ghost btn-block', style: 'margin-top:12px', onClick: closeModal }, 'Tuck it away'),
   ));
-}
-
-// The Oracle's latest reading, kept behind the same private door as the role itself,
-// so it can be checked again any time after the dawn card has scrolled away.
-// What the watcher saw, pinned like the Oracle's reading: private, quiet, and exactly
-// the kind of thing a day argument is built from.
-function witnessMemo(sl, ctx) {
-  if (!sl.witness) return null;
-  const cleared = ctx.player(sl.witness.clearedId);
-  return h('p', { class: 'sl-oracle-memo' },
-    `🕯️ Night ${sl.witness.round}: you were watching that door. In the scuffle you saw `,
-    h('b', {}, cleared.name), ' slip back into bed — they are NOT a Prowler.');
-}
-
-function oracleMemo(sl, ctx) {
-  if (!sl.oracle) return null;
-  const target = ctx.player(sl.oracle.targetId);
-  return h('p', { class: 'sl-oracle-memo' },
-    `🔮 Night ${sl.oracle.round}: `, h('b', {}, target.name),
-    ` ${sl.oracle.isProwler ? 'is' : 'is not'} the Prowler 🐾`);
 }
 
 // The one player grid every phase shares. At night everyone sees the same grid doing the
@@ -286,7 +263,7 @@ function dealingPhase(sl, ctx) {
   }, 'Dealing…');
   const note = h('p', { class: 'hint sl-deal-note' },
     sl.you
-      ? `One ${ROLES.prowler.emoji} Prowler walks tonight. One ${ROLES.medic.emoji} Medic and one ${ROLES.oracle.emoji} Oracle stand watch. Tell no one what you hold.`
+      ? `One ${ROLES.prowler.emoji} Prowler walks tonight. One ${ROLES.medic.emoji} Medic stands watch. Everyone else just sleeps. Tell no one what you hold.`
       : 'The roles are already out — you\'ll join the next game.');
 
   mount = {
@@ -364,28 +341,56 @@ function nightPhase(sl, ctx) {
   }
 
   const role = ROLES[me.role];
-  // Everyone picks from the same grid. The Medic may pick their own door; nobody else may.
+  const needsTarget = me.role === 'prowler' || me.role === 'medic';
+  // The Medic may guard their own door; the pack must look outward. Last night's
+  // guarded door is barred, so it is not offered at all.
   const selectable = sl.players
-    .filter((p) => p.alive && (me.role === 'medic' || p.id !== ctx.me.id))
+    .filter((p) => p.alive && (me.role === 'medic' ? p.id !== sl.lastGuard : p.id !== ctx.me.id))
     .map((p) => p.id);
 
   // On a big table the pack hunts together; each Prowler quietly sees who else is out
   // tonight. Nobody else's screen carries this line, so its presence is itself a secret.
-  const allies = sl.you?.role === 'prowler' ? (sl.you.allies || []) : [];
+  const allies = me.role === 'prowler' ? (me.allies || []) : [];
+
+  const answerBox = h('input', {
+    class: 'input sl-sum-input', type: 'text', inputmode: 'numeric',
+    autocomplete: 'off', placeholder: '?', 'aria-label': 'Your answer',
+    value: nightAnswer,
+    onInput: (e) => { nightAnswer = e.currentTarget.value; },
+  });
+
+  const send = async (btn) => {
+    const res = await ctx.emit('sl:night', {
+      answer: Number(nightAnswer),
+      targetId: needsTarget ? nightTarget : undefined,
+    });
+    if (res.ok) { repicking = false; nightAnswer = ''; ctx.sound.pop(); }
+    else { shake(btn || answerBox); ctx.sound.tap(); ctx.toast(res.error); }
+  };
+
   return h('div', { class: 'card sl-night-card' },
     h('h2', { class: 'subtitle', style: 'text-align:center' }, `🌙 ${role.prompt}`),
     allies.length > 0 && h('p', { class: 'hint sl-allies', style: 'text-align:center; margin:2px 0 0; color:var(--amber)' },
       `🐾 Hunting with ${allies.map((id) => ctx.player(id).name).join(' and ')}. The most-named door falls.`),
+    // The sum everyone answers: the reason every screen looks equally busy tonight.
+    h('div', { class: 'sl-sum' },
+      h('span', { class: 'sl-sum-q' }, sl.puzzle?.text || '…'),
+      h('span', { class: 'sl-sum-eq' }, '='),
+      answerBox,
+    ),
     h('p', { class: 'hint', style: 'text-align:center; margin:6px 0 12px' },
-      `Everyone chooses someone tonight. ${sl.submitted}/${sl.submittedTotal} asleep so far.`),
-    grid(sl, ctx, {
+      needsTarget
+        ? `Answer the sum and tap a name. ${sl.submitted}/${sl.submittedTotal} asleep so far.`
+        : `Answer the sum to settle in. ${sl.submitted}/${sl.submittedTotal} asleep so far.`),
+    needsTarget && grid(sl, ctx, {
       selectable,
-      selected: sl.yourPick,
-      onSelect: async (id) => {
-        const res = await ctx.emit('sl:night', { targetId: id });
-        if (res.ok) { repicking = false; ctx.sound.pop(); } else ctx.sound.tap();
-      },
+      selected: nightTarget,
+      onSelect: (id) => { nightTarget = id; ctx.sound.tap(); ctx.rerender(); },
     }),
+    h('button', {
+      class: 'btn sl-btn btn-lg btn-block', style: 'margin-top:12px',
+      onClick: (e) => send(e.currentTarget),
+    }, needsTarget ? '🌙 Ready to sleep' : '😴 Ready to sleep'),
   );
 }
 
@@ -415,20 +420,6 @@ function dawnBanner(sl, ctx) {
     h('div', { class: 'sl-dawn-head' }, '🌅 Dawn'),
     h('div', { class: 'sl-saved-mark' }, '🛡️'),
     h('p', { class: 'sl-dawn-line' }, 'Everyone woke up. Someone was attacked in the night — and survived.'),
-  );
-}
-
-// What the Oracle learned overnight. The snapshot only carries sl.oracle to the Oracle
-// themself, so this card simply never exists on anyone else's screen.
-function oracleNote(sl, ctx) {
-  if (!sl.oracle || sl.oracle.round !== sl.round) return null;
-  const target = ctx.player(sl.oracle.targetId);
-  return h('div', { class: `card sl-oracle-note ${animOnce(`sl-oracle:${sl.dealId}:${sl.oracle.round}`, 'sl-rise')}` },
-    h('div', { class: 'sl-dawn-head sl-oracle-head' }, '🔮 Your reading'),
-    h('p', { class: 'sl-dawn-line' },
-      'You read ', h('b', {}, `${target.avatar} ${target.name}`),
-      `: they ${sl.oracle.isProwler ? 'are' : 'are not'} the Prowler 🐾`),
-    h('p', { class: 'sl-confirm-warn' }, 'Only you can see this.'),
   );
 }
 
@@ -578,9 +569,9 @@ function gameOver(sl, ctx) {
           h('span', {}, info.avatar),
           h('span', { class: 'rl-name' }, info.name, p.left ? ' (left)' : (!p.alive ? ' 💀' : '')),
           role && h('span', { class: `sl-role-tag sl-role-${role}` }, `${ROLES[role].emoji} ${ROLES[role].word}`),
-          // The one secret with no owner to protect any more: whose gut kept scoring.
-          (sl.winner?.instinct?.[p.id] || 0) > 0 && h('span', { class: 'sl-instinct' },
-            `🫀 gut ×${sl.winner.instinct[p.id]}`),
+          // A harmless brag: who kept a clear head through the nights.
+          (sl.winner?.solved?.[p.id] || 0) > 0 && h('span', { class: 'sl-instinct' },
+            `🧮 sums ×${sl.winner.solved[p.id]}`),
         );
       }),
     ),
