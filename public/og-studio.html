@@ -19,14 +19,15 @@
   .maker span { display:flex; flex-direction:column; line-height:1.25; }
   .maker b { font-size:21px; font-weight:700; }
   .maker i { font-style:normal; font-size:15.5px; color:#b9bdda; }
-  .copy { position:absolute; left:56px; bottom:64px; max-width:660px; }
+  .copy { position:absolute; left:56px; bottom:56px; max-width:700px; }
   h1 { font-family:'Baloo 2'; font-weight:800; font-size:88px; line-height:1.02;
     background:linear-gradient(115deg,#fff8e7 20%, #e8c766 55%, #b8912f 90%);
     -webkit-background-clip:text; background-clip:text; color:transparent; }
   .sub { margin-top:18px; font-size:29px; font-weight:600; color:#cfd3ee; max-width:620px; }
-  .chips { margin-top:22px; display:flex; gap:12px; }
+  .chips { margin-top:22px; display:flex; flex-wrap:wrap; gap:10px; max-width:700px; }
   .chip { border:1.5px solid rgba(212,175,55,0.55); color:#f3e3b4; border-radius:999px;
-    padding:8px 20px; font-size:23px; font-weight:700; background:rgba(11,14,26,0.55); }
+    padding:7px 17px; font-size:21px; font-weight:700; background:rgba(11,14,26,0.55); white-space:nowrap; }
+  .chip.more { border-style:dashed; border-color:rgba(212,175,55,0.4); color:#cfd3ee; }
   /* dealt-card motif */
   .fan { position:absolute; right:88px; bottom:-30px; width:330px; height:430px; }
   .pc { position:absolute; left:50%; bottom:0; width:230px; height:330px; border-radius:18px;
