@@ -527,7 +527,7 @@ function renderAppBar() {
   items.push(h('button', { class: 'icon-btn', title: 'About', onClick: showAbout }, 'ℹ️'));
   if (store.snap) {
     items.push(h('button', {
-      class: 'icon-btn danger-btn', title: 'Leave this room',
+      class: 'icon-btn danger-btn', title: 'Leave the game or the room',
       onClick: leaveRoom,
     }, '🚪'));
   }
@@ -563,22 +563,48 @@ async function shareInvite(code) {
   }
 }
 
+// Two different exits, and they are easy to confuse: ending the round puts the whole
+// table back in the lobby with the room intact, while leaving takes you out of the room
+// altogether. Both are offered wherever a game is running.
 function leaveRoom() {
   const isHost = store.snap?.you?.isHost;
-  confirmModal(
-    'Leave this room?',
-    isHost
-      ? 'You will be removed from the game. Another player becomes the owner, and the room closes once the last player leaves.'
-      : 'You will be removed from the game in progress. You can rejoin with the room code.',
-    async () => {
-      await emit('room:leave');
-      leaveLocal();
-      landingStep = 2;
-      joinOpen = false;
-      toast('You left the room. 👋');
-      render();
-    },
-  );
+  const s = store.snap;
+  const inGame = Boolean(s?.blendin || s?.island || s?.silentorder || s?.swaporstay || s?.sleepless);
+  const canEndGame = inGame && isHost;
+
+  const quit = async () => {
+    await emit('room:leave');
+    leaveLocal();
+    landingStep = 2;
+    joinOpen = false;
+    toast('You left the room. 👋');
+    render();
+  };
+
+  openModal(h('div', { style: 'text-align:center' },
+    h('div', { class: 'modal-title', style: 'justify-content:center' }, 'Leaving?'),
+    h('p', { class: 'hint' },
+      isHost
+        ? 'You will be removed from the game. Another player becomes the owner, and the room closes once the last player leaves.'
+        : 'You will be removed from the game in progress. You can rejoin with the room code.'),
+    h('div', { style: 'display:grid; gap:10px; margin-top:16px' },
+      canEndGame && h('button', {
+        class: 'btn btn-primary',
+        onClick: async (e) => {
+          e.currentTarget.disabled = true;
+          const res = await emit('room:backToLobby');
+          if (!res.ok) { e.currentTarget.disabled = false; toast(res.error, 'error'); return; }
+          closeModal();
+          toast('Back in the lobby. 🏠');
+        },
+      }, '🏠 End the game, stay in the room'),
+      inGame && !isHost && h('p', { class: 'hint' },
+        'Only the room owner can end the game and send everyone back to the lobby.'),
+      h('button', { class: 'btn btn-danger', onClick: () => { closeModal(); quit(); } },
+        isHost ? '🚪 Leave the room' : '🚪 Leave the room'),
+      h('button', { class: 'btn btn-ghost', onClick: closeModal }, 'Stay'),
+    ),
+  ));
 }
 
 function confirmModal(title, body, onYes) {

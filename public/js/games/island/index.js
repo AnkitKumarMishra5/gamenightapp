@@ -285,15 +285,27 @@ function auditPanel(is, ctx) {
   if (is.mode !== 'ai' || is.phase !== 'playing') return null;
   const last = is.lastAudit;
   return h('div', { class: 'audit-box' },
+    is.auditing && h('div', { class: 'card audit-note', style: 'padding:10px 14px; margin-bottom:8px' },
+      h('b', {}, '👁 Re-reading the round… '),
+      'Three passes over every call. Nothing can be played until the boat is done.'),
     last && h('div', { class: `card audit-note ${last.fixed.length ? 'warn' : ''}`, style: 'padding:10px 14px; margin-bottom:8px' },
       h('b', {}, last.fixed.length ? '🐟 The boat stands corrected. ' : '✅ The boat re-checked itself. '),
       last.note,
       last.fixed.length
-        ? h('span', {}, ' Moved on the list: ', last.fixed.map((f) => `"${f.text}"`).join(' · '))
+        ? h('span', { class: 'audit-moves' },
+            (() => {
+              const on = last.fixed.filter((f) => f.fits).map((f) => `"${f.text}"`);
+              const off = last.fixed.filter((f) => !f.fits).map((f) => `"${f.text}"`);
+              const parts = [];
+              if (on.length) parts.push(`${on.join(' · ')} → moved aboard`);
+              if (off.length) parts.push(`${off.join(' · ')} → moved off the boat`);
+              return ` ${parts.join('. ')}.`;
+            })())
         : null,
     ),
     h('button', {
       class: 'btn btn-ghost btn-sm btn-block',
+      disabled: is.auditing || undefined,
       onClick: async (e) => {
         const btn = e.currentTarget;
         btn.disabled = true;
@@ -345,6 +357,14 @@ function attemptLog(is, ctx) {
 function actionBar(is, ctx) {
   const parts = [];
   const myTurn = is.currentTurn === ctx.me.id;
+
+  // While the boat re-reads the round the table waits: a call judged against a list
+  // that is about to change would be judged twice.
+  if (is.auditing) {
+    return h('div', { class: 'action-bar' }, h('div', { class: 'card' },
+      h('p', { class: 'hint', style: 'text-align:center; margin:0' },
+        '👁 The boat is re-reading every call. Hold on a moment…')));
+  }
 
   if (is.youAreGamemaster) {
     parts.push(h('p', { class: 'hint', style: 'text-align:center; margin:0' },

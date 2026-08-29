@@ -144,10 +144,11 @@ function safeRemark(remark, pattern) {
     .map(stem);
 
   const secretStems = new Set(distinctive(`${pattern.name} ${pattern.description}`));
-  // Mechanism words give the game away even when the rule itself words them differently.
+  // Mechanism words give the game away whatever the rule turns out to be: a remark that
+  // talks about letters or spelling is a clue even when this round is about meaning.
   for (const hint of ['sound', 'letter', 'spell', 'rhyme', 'syllab', 'vowel', 'consonant',
     'begin', 'start', 'end', 'double', 'contain', 'hidden', 'palindrome', 'compound', 'prefix', 'suffix']) {
-    if (normalize(`${pattern.name} ${pattern.description}`).includes(hint)) secretStems.add(hint);
+    secretStems.add(hint);
   }
 
   const leaks = normalize(text).split(' ').some((w) => {
@@ -257,29 +258,53 @@ export async function judgeItem(pattern, item, mockHints = null) {
 
 const VERIFY_ITEM_SYSTEM = `You verify a party-game ruling. Given the secret rule, an item, and a first verdict, decide independently whether the item satisfies the rule, exactly as written. Reply as JSON: {"fits": true|false, "remark": "short player-facing line only if you flip"}. Be strict about the rule's letter and spirit; do not invent extra conditions.`;
 
-// The whole round, re-read in one pass: every accepted and rejected item checked against
-// the rule again. Used by the table's "smells fishy" appeal and the gamemaster re-check.
+// The whole round, re-read three times over: every accepted and rejected item checked
+// against the rule again, independently, and a call is only overturned when at least two
+// of the three passes agree. One model reading its own homework is exactly how a wrong
+// call became wrong in the first place. Used by the table's "smells fishy" appeal.
+const AUDIT_PASSES = 3;
+const AUDIT_SYSTEM = `You re-audit a party-game round. Given the secret rule and every past ruling, list ONLY the rulings that are wrong, with the correct verdict. Reply as JSON: {"corrections":[{"text":"item","fits":true|false}]}. If everything is right, return {"corrections":[]}. Never invent items not in the list; be strict about the rule exactly as written. Never explain your reasoning: the players are still trying to work the rule out.`;
+
 export async function auditRound(pattern, judged) {
-  if (MOCK || !process.env.OPENAI_API_KEY) return { corrections: [], note: 'Every call checks out.' };
+  if (MOCK || !process.env.OPENAI_API_KEY) return { corrections: [], note: '' };
   const rule = mechanicalRule(pattern);
   if (rule) {
     const corrections = judged
       .filter((j) => rule.test(j.text) !== j.fits)
       .map((j) => ({ text: j.text, fits: rule.test(j.text) }));
-    return { corrections, note: corrections.length ? '' : 'Every call checks out.' };
+    return { corrections, note: '' };
   }
+
   const lines = judged.map((j) => `- "${j.text}" was ruled ${j.fits ? 'FITS' : 'DOES NOT FIT'}`).join('\n');
-  const out = await chatJSON({
-    system: `You re-audit a party-game round. Given the secret rule and every past ruling, list ONLY the rulings that are wrong, with the correct verdict and one honest sentence about what was misread. Reply as JSON: {"corrections":[{"text":"item","fits":true|false,"why":"..."}]}. If everything is right, return {"corrections":[]}. Never invent items not in the list; be strict about the rule exactly as written.`,
-    user: `Rule: ${pattern.description}\nOpening items that fit: ${pattern.starters.join(', ')}\n\nPast rulings:\n${lines}`,
-    temperature: 0, maxTokens: 400,
-  });
-  const corrections = Array.isArray(out?.corrections)
-    ? out.corrections
-        .filter((c) => typeof c?.fits === 'boolean' && judged.some((j) => normalize(j.text) === normalize(String(c.text || ''))))
-        .map((c) => ({ text: String(c.text), fits: c.fits, why: String(c.why || '').slice(0, 140) }))
-    : [];
-  return { corrections, note: corrections.length ? '' : 'Every call checks out.' };
+  const user = `Rule: ${pattern.description}\nOpening items that fit: ${pattern.starters.join(', ')}\n\nPast rulings:\n${lines}`;
+  const passes = await Promise.all(Array.from({ length: AUDIT_PASSES }, () => chatJSON({
+    system: AUDIT_SYSTEM, user,
+    // A little heat, or three identical passes just repeat one opinion three times.
+    temperature: 0.3, maxTokens: 400,
+  }).catch(() => null)));
+
+  // A correction needs a majority of the passes that actually came back.
+  const answered = passes.filter(Boolean);
+  if (!answered.length) return { corrections: [], note: '' };
+  const votes = new Map();
+  for (const out of answered) {
+    const seen = new Set();
+    for (const c of Array.isArray(out?.corrections) ? out.corrections : []) {
+      if (typeof c?.fits !== 'boolean') continue;
+      const match = judged.find((j) => normalize(j.text) === normalize(String(c.text || '')));
+      if (!match || match.fits === c.fits) continue;
+      const key = `${normalize(match.text)}:${c.fits}`;
+      if (seen.has(key)) continue;         // one pass, one vote per call
+      seen.add(key);
+      const row = votes.get(key) || { text: match.text, fits: c.fits, n: 0 };
+      row.n += 1;
+      votes.set(key, row);
+    }
+  }
+  const needed = Math.ceil(answered.length / 2);
+  const corrections = [...votes.values()].filter((v) => v.n >= needed)
+    .map(({ text, fits }) => ({ text, fits }));
+  return { corrections, note: '' };
 }
 
 const JUDGE_GUESS_SYSTEM = `You are the fair judge of the party game "The Island". You know the secret pattern. A player attempts to state the pattern in their own words.

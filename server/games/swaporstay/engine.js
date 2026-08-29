@@ -105,6 +105,13 @@ function setAction(state, action) {
   // and it survives reconnects where a transient fx event would not.
   state.actionSeq += 1;
   state.lastAction = { ...action, seq: state.actionSeq };
+  // The same beats kept as a list, so a player who looks away can still read the round
+  // back. Card values are never in here: only who did what to whom.
+  state.log = state.log || [];
+  state.log.push({
+    seq: state.actionSeq, round: state.round,
+    kind: action.kind, by: action.by, with: action.with || null,
+  });
 }
 
 function dealRound(state) {
@@ -164,6 +171,7 @@ export function startGame(room, playerId) {
     acted: [],
     ready: [],
     lastAction: null,
+    log: [],
     actionSeq: 0,
     reveal: null,
     losers: [],
@@ -448,6 +456,7 @@ export function snapshot(room, forPlayerId) {
     // Public table talk only: who stayed, who swapped with whom, who bounced off a
     // Sentinel, who drew. Never a card value.
     lastAction: state.lastAction,
+    log: (state.log || []).slice(-24),
     reveal: showReveal ? state.reveal : null,
     losers: showReveal ? state.losers : [],
     eliminated: showReveal ? state.eliminatedThisRound : [],

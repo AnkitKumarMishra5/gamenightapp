@@ -79,7 +79,7 @@ function buildRound(key, ss, ctx) {
     laugh: ss.round === 1,
     peekMs: 4000,
     holdHint: 'Hold to peek at your card',
-    deckName: `Deck · ${ss.deckLeft}`,
+    deckName: `${ss.deckLeft} cards left`,
     onDone: () => {
       api.tableDone = true;
       for (const fn of api.afterDeal.splice(0)) fn();
@@ -90,10 +90,17 @@ function buildRound(key, ss, ctx) {
   api.table = table;
   api.status = h('div', { class: 'ss-status' });
   api.dock = h('div', { class: 'ss-dock' });
+  api.log = h('ol', { class: 'ss-log' });
 
   mount.key = key;
   mount.api = api;
-  mount.node = h('div', { class: 'ss-wrap stack' }, table, reactionBar(ctx), api.status, api.dock);
+  mount.node = h('div', { class: 'ss-wrap stack' },
+    table, reactionBar(ctx), api.status, api.dock,
+    h('details', { class: 'card ss-logbox' },
+      h('summary', {}, '📜 What happened this round'),
+      api.log,
+    ),
+  );
 }
 
 // Defer work until the cards are actually on the felt.
@@ -118,7 +125,8 @@ function updateRound(ss, ctx) {
   const table = api.table;
   const youPlay = ss.order.includes(ctx.me.id);
 
-  setDeckLabel(table, `Deck · ${ss.deckLeft}`);
+  setDeckLabel(table, `${ss.deckLeft} cards left`);
+  syncLog(api, ss, ctx);
   setTurn(table, ss.phase === 'acting' ? ss.turnId : null);
 
   // Ready up once the deal has been watched. Under reduced motion the table reports
@@ -363,6 +371,7 @@ function animateAction(api, act, ctx) {
       .then(() => { target.card.style.visibility = ''; playMeme('cardSlap'); });
     ghostFly(api, target.slot, by.slot, { lift: -32, spin: -10, delay: 70 })
       .then(() => { by.card.style.visibility = ''; playMeme('cardSlap'); });
+    if (act.by === ctx.me.id || act.with === ctx.me.id) showMyNewCard(api, ctx);
     return;
   }
 
@@ -376,7 +385,24 @@ function animateAction(api, act, ctx) {
     ghostFly(api, by.slot, deckEl, { lift: 6, spin: -8, ms: 420 });
     ghostFly(api, deckEl, by.slot, { lift: -42, spin: 14, ms: 520, delay: 250 })
       .then(() => { by.card.style.visibility = ''; playMeme('cardSlap'); });
+    if (act.by === ctx.me.id) showMyNewCard(api, ctx);
   }
+}
+
+// A card that lands in your hand is yours to see. It turns over for a moment once the
+// swap has finished flying, then goes back face down like every other card on the felt.
+function showMyNewCard(api, ctx) {
+  later(api, () => {
+    // The reveal may have started while the cards were in the air; it owns every face
+    // from that point and must not be flipped back down underneath it.
+    if (api.revealDone) return;
+    const mine = seatOf(api.table, ctx.me.id);
+    const card = api.ss?.yourCard;
+    if (!mine || card == null) return;
+    say(api.table, 'Your new card 👀');
+    flipUp(mine, faceOf(card));
+    later(api, () => { if (!api.revealDone) flipDown(api, mine, faceOf(card)); }, 2200);
+  }, 700);
 }
 
 // ---------- the reveal ----------
@@ -454,6 +480,25 @@ function maybeCelebrate(api) {
   confettiRain(2600);
 }
 
+// The round read back as a list: who kept, who forced a swap, who was refused, and who
+// went to the deck. Card values are never in it — only the moves.
+function syncLog(api, ss, ctx) {
+  const entries = ss.log || [];
+  if (api.log.childElementCount === entries.length) return;
+  const name = (id) => (id ? ctx.player(id).name : 'someone');
+  api.log.replaceChildren(...entries.map((e) => {
+    const who = name(e.by);
+    const text = e.kind === 'stay' ? `${who} kept their card.`
+      : e.kind === 'draw' ? `${who} had nobody left to swap with, so they drew from the deck.`
+      : e.kind === 'blocked' ? `${who} tried to swap with ${name(e.with)} — blocked by a Sentinel 🛡️.`
+      : `${who} swapped with ${name(e.with)}.`;
+    return h('li', { class: `ss-log-row ss-log-${e.kind}` },
+      h('span', { class: 'ss-log-round' }, `R${e.round}`),
+      h('span', {}, text),
+    );
+  }));
+}
+
 // ---------- hearts and skulls ----------
 
 // Heart pips live inside each chair's name tag, so they are always upright and readable
@@ -467,7 +512,9 @@ function syncHearts(api, ss) {
     if (!el) {
       el = h('span', { class: 'ss-lives', 'aria-hidden': 'true' });
       for (let k = 0; k < (ss.startLives || 3); k++) el.append(h('i', { class: 'ss-pip on' }, '♥'));
-      chair.querySelector('b')?.append(el);
+      // Beside the name tag rather than inside it: the name is allowed to ellipsis, the
+      // hearts never are.
+      chair.append(el);
     }
     [...el.children].forEach((pip, k) => {
       const on = k < lives;

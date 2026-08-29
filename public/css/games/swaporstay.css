@@ -68,7 +68,10 @@
 
 /* ---------- hearts ---------- */
 /* Pips ride inside the chair's name tag so they stay upright at every seat. */
-.ss-wrap .ss-lives { display: inline-flex; gap: 1px; margin-left: 5px; }
+/* Hearts get their own line beside the figure rather than sharing the name tag: the
+   name is allowed to ellipsis when a chair is tight against the table edge, the hearts
+   never are. */
+.ss-wrap .ss-lives { display: flex; gap: 1px; line-height: 1; }
 .ss-wrap .ss-pip {
   font-style: normal; font-size: 0.85em; line-height: 1;
   color: rgba(255, 255, 255, 0.16);
@@ -249,3 +252,13 @@
 }
 .ss-react-btn:hover { transform: translateY(-2px) scale(1.12); border-color: rgba(212, 175, 55, 0.5); }
 .ss-react-btn:active { transform: scale(0.94); }
+
+/* The round log: collapsed by default so it never competes with the table. */
+.ss-logbox { padding: 10px 14px; }
+.ss-logbox > summary { cursor: pointer; font-weight: 700; font-size: 13.5px; color: var(--ink-dim); list-style: none; }
+.ss-logbox > summary::-webkit-details-marker { display: none; }
+.ss-logbox[open] > summary { margin-bottom: 8px; }
+.ss-log { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 220px; overflow-y: auto; }
+.ss-log-row { display: flex; gap: 8px; align-items: baseline; font-size: 13px; color: var(--ink-dim); }
+.ss-log-round { flex: none; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: var(--ink-faint); }
+.ss-log-blocked { color: var(--ink); }

@@ -123,6 +123,9 @@ function layoutSeats(table, ringSeats) {
     const z = Math.round((1 - yf) * 10);
     const place = `--xf:${xf.toFixed(3)}; --yf:${yf.toFixed(3)}; --s:${scale}; --z:${z};`;
     chair.setAttribute('style', place);
+    // Chairs left of centre read outward to the left, so anything a game hangs off the
+    // name (hearts, badges) belongs on that side or it runs off the table.
+    chair.classList.toggle('ct-left', xf < -0.05);
     seat.setAttribute('style', `${place} --rot:${rot.toFixed(1)}deg; --d:${(j + 1) * DEAL_STEP_MS}ms;`);
   });
 }

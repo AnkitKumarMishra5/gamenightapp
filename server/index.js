@@ -887,8 +887,14 @@ io.on('connection', (socket) => {
     } catch (err) {
       return cb?.({ ok: false, error: err instanceof GameError ? err.message : 'No re-check right now.' });
     }
+    // The round holds still while the boat re-reads it: a call landing mid-audit would be
+    // judged against a list that is about to change under it.
+    gate.state.auditing = true;
+    broadcast(room);
+    const release = () => { if (room.state === gate.state) gate.state.auditing = false; };
     islandAI.auditRound(gate.state.pattern, gate.judged)
       .then(({ corrections, note }) => {
+        release();
         if (room.state !== gate.state || gate.state.phase !== 'playing') return cb?.({ ok: false, error: 'The round moved on.' });
         const result = island.applyAudit(room, playerId, corrections, note);
         broadcast(room);
@@ -897,6 +903,8 @@ io.on('connection', (socket) => {
       })
       .catch((err) => {
         console.error('[island audit]', err.message);
+        release();
+        broadcast(room);
         room.auditCooldownUntil = 0;
         cb?.({ ok: false, error: 'The boat could not re-check just now, try again.' });
       });

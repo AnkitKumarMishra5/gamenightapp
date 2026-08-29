@@ -201,9 +201,16 @@ export function knownItems(state) {
   ];
 }
 
+// While the boat re-reads the round, nothing else may land: a call judged against a list
+// that is about to change is a call judged twice.
+function requireNotAuditing(state) {
+  if (state.auditing) throw new GameError('The boat is re-reading the round. One moment.');
+}
+
 // Anyone can ask, not just whoever's turn it is: the hint helps the whole boat.
 export function requestHint(room, playerId) {
   const state = st(room);
+  requireNotAuditing(state);
   if (state.phase !== 'playing') throw new GameError('Hints are only for a round in progress.');
   if (state.pendingJudge) throw new GameError('Wait for the current call to be judged.');
   // With a human gamemaster the hint is theirs to give; otherwise it belongs to the
@@ -235,6 +242,7 @@ export function applyHint(room, playerId, items) {
 
 export function attemptItem(room, playerId, payload) {
   const state = st(room);
+  requireNotAuditing(state);
   requireTurn(room, state, playerId);
   const text = cleanText(payload?.text, 40);
   if (!text) throw new GameError('Name the thing you want to bring!');
@@ -254,6 +262,7 @@ export function attemptItem(room, playerId, payload) {
 
 export function attemptPattern(room, playerId, payload) {
   const state = st(room);
+  requireNotAuditing(state);
   requireTurn(room, state, playerId);
   if (state.solvedOrder.includes(playerId)) throw new GameError('You already cracked it, give item hints instead!');
   if (guessesLeft(state, playerId) <= 0) throw new GameError('You have used all three guesses this round.');
@@ -346,12 +355,30 @@ export function resolveAttempt(room, attemptId, result) {
 export function requestAudit(room, playerId) {
   const state = st(room);
   if (state.phase !== 'playing') throw new GameError('Nothing to re-check right now.');
+  if (state.auditing) throw new GameError('The boat is already re-reading the round.');
   if (state.mode !== 'ai') throw new GameError('A human judged this round. Argue with them directly!');
   if (state.pendingJudge) throw new GameError('Wait for the current call to be judged first.');
   const judged = state.attempts.filter((a) => a.type === 'item' && a.verdict !== 'pending');
   if (!judged.length) throw new GameError('Nothing has been judged yet.');
   return { state, judged: judged.map((a) => ({ text: a.text, fits: a.fits === true })) };
 }
+
+// The boat owning its mistakes. Three passes agreed before any of this reached the table,
+// so the apology is for a call that really was wrong.
+const AUDIT_SORRY = [
+  'Sorry — I am an AI and I do hallucinate. Read it three more times and I disagreed with myself.',
+  'My apologies. I checked it three times over and past me was wrong.',
+  'Awkward. Three re-reads later, I have to overrule myself.',
+  'Turns out I was confidently incorrect. Three passes say so.',
+  'Sorry about that one. I read it again, twice more, and changed my mind.',
+  'Correction incoming, and yes, the mistake was mine.',
+];
+const AUDIT_CLEAN = [
+  'I read the whole round three times over. Everything stands.',
+  'Three passes, no changes. The calls were right the first time.',
+  'Checked myself thoroughly. Nothing to take back today.',
+  'Re-read it all three times. I am sticking with every call.',
+];
 
 // Corrections flip the original rulings in place, so the packing list, the story and the
 // hints everyone reasons from all update together. Solved ranks already awarded are left
@@ -363,14 +390,16 @@ export function applyAudit(room, playerId, corrections, note) {
     const attempt = state.attempts.find((a) => a.type === 'item' && normalize(a.text) === normalize(c.text));
     if (!attempt || attempt.fits === c.fits) continue;
     attempt.fits = c.fits;
-    attempt.remark = c.why || (c.fits ? 'On second reading, this fits after all.' : 'On second reading, this never fit.');
+    // Never the model's reasoning: a sentence explaining WHY an item fits is the rule,
+    // written out. The corrected call speaks for itself.
+    attempt.remark = c.fits ? 'On second reading, this fits after all.' : 'On second reading, this never fit.';
     fixed.push({ text: attempt.text, fits: c.fits });
   }
   state.lastAudit = {
     id: (state.lastAudit?.id || 0) + 1,
     byId: playerId,
     fixed,
-    note: fixed.length ? `The boat re-read the whole round and corrected ${fixed.length} call${fixed.length === 1 ? '' : 's'}.` : (note || 'Every call checks out.'),
+    note: fixed.length ? pick(AUDIT_SORRY) : (note || pick(AUDIT_CLEAN)),
     at: Date.now(),
   };
   return { fx: [{ kind: 'island-audit', byId: playerId, fixed: fixed.length }] };
@@ -510,6 +539,7 @@ export function snapshot(room, forPlayerId) {
     hintsAvailable: hintsAvailable(state),
     hintSpent: (state.hints?.length || 0) >= 1,
     lastAudit: state.lastAudit || null,
+    auditing: Boolean(state.auditing),
     turnsToNextHint: (() => {
       if (hintsAvailable(state) > 0 || (state.hints?.length || 0) >= 1) return 0;
       const n = Math.max(state.order.length, 1);
