@@ -4,6 +4,12 @@ import { renderBlendIn } from './blendin/index.js';
 import { rulesNode as blendInRules } from './blendin/rules.js';
 import { renderIsland } from './island/index.js';
 import { rulesNode as islandRules } from './island/rules.js';
+import { renderSilentOrder } from './silentorder/index.js';
+import { rulesNode as silentOrderRules } from './silentorder/rules.js';
+import { renderSwapOrStay } from './swaporstay/index.js';
+import { rulesNode as swapOrStayRules } from './swaporstay/rules.js';
+import { renderSleepless } from './sleepless/index.js';
+import { rulesNode as sleeplessRules } from './sleepless/rules.js';
 
 export const GAMES = [
   {
@@ -19,7 +25,7 @@ export const GAMES = [
   },
   {
     id: 'island',
-    title: 'The Island',
+    title: 'Island Rules',
     emoji: '🏝️',
     accent: 'island',
     tagline: '"I\'m bringing a Heart and a Window…" Crack the secret pattern before your friends do.',
@@ -27,6 +33,39 @@ export const GAMES = [
     render: renderIsland,
     rules: islandRules,
     snapshotKey: 'island',
+  },
+  {
+    id: 'silentorder',
+    title: 'Silent Order',
+    emoji: '🕯️',
+    accent: 'so',
+    tagline: 'One team, three lives, no talking. Play every card in rising order on nerve alone.',
+    tags: ['2–8 players', 'co-operative', 'pure nerve'],
+    render: renderSilentOrder,
+    rules: silentOrderRules,
+    snapshotKey: 'silentorder',
+  },
+  {
+    id: 'swaporstay',
+    title: 'Swap or Stay',
+    emoji: '🃏',
+    accent: 'ss',
+    tagline: 'One card, one choice. Keep what you drew, or force a trade. The lowest card loses a heart.',
+    tags: ['3–10 players', 'push your luck', 'card table'],
+    render: renderSwapOrStay,
+    rules: swapOrStayRules,
+    snapshotKey: 'swaporstay',
+  },
+  {
+    id: 'sleepless',
+    title: 'Sleepless',
+    emoji: '🌙',
+    accent: 'sl',
+    tagline: 'One Prowler hunts by night. Guard a door, read a face, and vote before nobody is left to.',
+    tags: ['4–12 players', 'social deduction', 'night & day'],
+    render: renderSleepless,
+    rules: sleeplessRules,
+    snapshotKey: 'sleepless',
   },
 ];
 

@@ -30,7 +30,12 @@ export function startGame(room, playerId, payload) {
     throw new GameError('The AI Gamemaster is unavailable right now, choose "You are the Gamemaster" instead.');
   }
   const connected = [...room.players.keys()].filter((id) => room.players.get(id).connected);
-  const participants = mode === 'host' ? connected.filter((id) => id !== playerId) : connected;
+  // The judge's chair defaults to the owner, but the owner can hand it to anyone present:
+  // the person who has the best pattern in mind is not always the person paying for pizza.
+  const gmId = mode === 'host'
+    ? (payload?.gmId && connected.includes(payload.gmId) ? payload.gmId : playerId)
+    : null;
+  const participants = mode === 'host' ? connected.filter((id) => id !== gmId) : connected;
   if (participants.length < ISLAND_MIN_PLAYERS) {
     throw new GameError(`The Island needs at least ${ISLAND_MIN_PLAYERS} guessing players${mode === 'host' ? ' besides you' : ''}.`);
   }
@@ -41,7 +46,7 @@ export function startGame(room, playerId, payload) {
     phase: 'setup',
     startedAt: Date.now(),   // only used to measure how long a game runs
     mode,
-    gmId: mode === 'host' ? playerId : null,
+    gmId,
     roundNum: (room.state?.kind === 'island' ? room.state.roundNum : 0) + 1,
     pattern: null,
     bankEntry: null, // full bank entry when pattern came from the bank (mock judging hints)
@@ -87,12 +92,22 @@ function beginPlaying(room, state, pattern, bankEntry) {
 }
 
 // Host wrote their own pattern, or asked for a surprise one from the bank.
+export function drawSurprise(room, playerId) {
+  const state = st(room);
+  if (state.phase !== 'setup') throw new GameError('The round is already underway.');
+  if (state.mode !== 'host') throw new GameError('Surprises are for the human gamemaster.');
+  if (playerId !== state.gmId) throw new GameError('Only the gamemaster sets the pattern.');
+  const avoid = new Set(state.usedPatternNames.map(normalize));
+  const options = ISLAND_PATTERNS.filter((p) => !avoid.has(normalize(p.name)));
+  const entry = pick(options.length ? options : ISLAND_PATTERNS);
+  return { name: entry.name, description: entry.description, starters: entry.starters.slice(0, 2) };
+}
+
 export function setupHostPattern(room, playerId, payload) {
   const state = st(room);
-  requireHost(room, playerId);
   if (state.phase !== 'setup') throw new GameError('The round is already underway.');
   if (state.mode !== 'host') throw new GameError('You are not the gamemaster this round.');
-  state.gmId = playerId;
+  if (playerId !== state.gmId) throw new GameError('Only the gamemaster sets the pattern.');
 
   if (payload?.surprise) {
     const avoid = new Set(state.usedPatternNames.map(normalize));
@@ -148,7 +163,8 @@ export function advanceTurn(room, state) {
   for (let step = 1; step <= n; step++) {
     const idx = (state.turnPtr + step) % n;
     const id = state.order[idx];
-    if (room.players.get(id)?.connected && !state.knockedOut.includes(id)) { state.turnPtr = idx; return; }
+    if (room.players.get(id)?.connected && !state.knockedOut.includes(id)
+      && !state.solvedOrder.includes(id)) { state.turnPtr = idx; return; }
   }
   // Everyone left is out or offline — park the pointer rather than spinning.
   state.turnPtr = (state.turnPtr + 1) % n;
@@ -164,8 +180,16 @@ export function lapsCompleted(state) {
   return Math.floor((state.turnsTaken || 0) / n);
 }
 
+// One hint per round, and it has to be earned: with three or fewer hunters everyone gets
+// two turns first, with more everyone gets one. The room owner spends it for the table
+// after checking out loud that everyone wants it.
+export function hintLapsNeeded(state) {
+  return (state.order?.length || 0) <= 3 ? 2 : 1;
+}
+
 export function hintsAvailable(state) {
-  return Math.max(0, lapsCompleted(state) - (state.hints?.length || 0));
+  if ((state.hints?.length || 0) >= 1) return 0;
+  return lapsCompleted(state) >= hintLapsNeeded(state) ? 1 : 0;
 }
 
 // Everything already on the table, so a hint never repeats a word the room has seen.
@@ -182,11 +206,12 @@ export function requestHint(room, playerId) {
   const state = st(room);
   if (state.phase !== 'playing') throw new GameError('Hints are only for a round in progress.');
   if (state.pendingJudge) throw new GameError('Wait for the current call to be judged.');
-  if (playerId === state.gmId) throw new GameError('You wrote the pattern, you already know.');
+  if (room.hostId !== playerId) throw new GameError('Only the room owner can spend the hint, after the table agrees.');
+  if ((state.hints?.length || 0) >= 1) throw new GameError('The one hint for this round is already spent.');
   if (hintsAvailable(state) < 1) {
     const n = Math.max(state.order.length, 1);
-    const left = n - ((state.turnsTaken || 0) % n);
-    throw new GameError(`No hint yet. ${left} more turn${left === 1 ? '' : 's'} to finish this lap.`);
+    const left = hintLapsNeeded(state) * n - (state.turnsTaken || 0);
+    throw new GameError(`No hint yet. ${left} more turn${left === 1 ? '' : 's'} until it unlocks.`);
   }
   return state;
 }
@@ -307,6 +332,43 @@ export function resolveAttempt(room, attemptId, result) {
   return { fx };
 }
 
+// ---------- the table's appeal ----------
+// Anyone who thinks the AI judge misread something can demand a full re-read of the round.
+// The gate is here; the actual re-reading is an AI call the socket layer makes, and the
+// result comes back through applyAudit.
+export function requestAudit(room, playerId) {
+  const state = st(room);
+  if (state.phase !== 'playing') throw new GameError('Nothing to re-check right now.');
+  if (state.mode !== 'ai') throw new GameError('A human judged this round. Argue with them directly!');
+  if (state.pendingJudge) throw new GameError('Wait for the current call to be judged first.');
+  const judged = state.attempts.filter((a) => a.type === 'item' && a.verdict !== 'pending');
+  if (!judged.length) throw new GameError('Nothing has been judged yet.');
+  return { state, judged: judged.map((a) => ({ text: a.text, fits: a.fits === true })) };
+}
+
+// Corrections flip the original rulings in place, so the packing list, the story and the
+// hints everyone reasons from all update together. Solved ranks already awarded are left
+// alone: a past win is history, not something an audit can claw back.
+export function applyAudit(room, playerId, corrections, note) {
+  const state = st(room);
+  const fixed = [];
+  for (const c of corrections || []) {
+    const attempt = state.attempts.find((a) => a.type === 'item' && normalize(a.text) === normalize(c.text));
+    if (!attempt || attempt.fits === c.fits) continue;
+    attempt.fits = c.fits;
+    attempt.remark = c.why || (c.fits ? 'On second reading, this fits after all.' : 'On second reading, this never fit.');
+    fixed.push({ text: attempt.text, fits: c.fits });
+  }
+  state.lastAudit = {
+    id: (state.lastAudit?.id || 0) + 1,
+    byId: playerId,
+    fixed,
+    note: fixed.length ? `The boat re-read the whole round and corrected ${fixed.length} call${fixed.length === 1 ? '' : 's'}.` : (note || 'Every call checks out.'),
+    at: Date.now(),
+  };
+  return { fx: [{ kind: 'island-audit', byId: playerId, fixed: fixed.length }] };
+}
+
 // Host abandons a stuck pending judgment (e.g. the AI failed repeatedly).
 export function cancelPending(room, playerId) {
   const state = st(room);
@@ -393,6 +455,9 @@ export function isStalled(room) {
   if (state.mode === 'host' && !room.players.get(state.gmId)?.connected) return true;
   const present = [...room.players.values()].filter((p) => p.connected).length;
   if (present < ISLAND_MIN_PLAYERS) return true;
+  // During setup there is no turn order yet, so the no-one-can-play test below would
+  // read a perfectly healthy room as abandoned while the gamemaster types the pattern.
+  if (state.phase === 'setup') return false;
   const canPlay = (state.order || []).filter((id) => room.players.get(id)?.connected
     && !(state.knockedOut || []).includes(id));
   return canPlay.length === 0;
@@ -436,9 +501,12 @@ export function snapshot(room, forPlayerId) {
     starters: state.pattern?.starters || null,
     hints: (state.hints || []).map((h) => ({ items: h.items, byId: h.byId })),
     hintsAvailable: hintsAvailable(state),
+    hintSpent: (state.hints?.length || 0) >= 1,
+    lastAudit: state.lastAudit || null,
     turnsToNextHint: (() => {
+      if (hintsAvailable(state) > 0 || (state.hints?.length || 0) >= 1) return 0;
       const n = Math.max(state.order.length, 1);
-      return hintsAvailable(state) > 0 ? 0 : n - ((state.turnsTaken || 0) % n);
+      return Math.max(0, hintLapsNeeded(state) * n - (state.turnsTaken || 0));
     })(),
     pendingJudge: state.pendingJudge
       ? {

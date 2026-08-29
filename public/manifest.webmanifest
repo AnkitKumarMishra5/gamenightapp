@@ -1,7 +1,7 @@
 {
   "name": "Game Night by Ankit Kumar Mishra",
   "short_name": "Game Night",
-  "description": "Play Blend In, The Island and more with friends in one browser tab. Share a room code, no download, no sign-up.",
+  "description": "Play Blend In, Island Rules and more with friends in one browser tab. Share a room code, no download, no sign-up.",
   "id": "/",
   "start_url": "/",
   "scope": "/",

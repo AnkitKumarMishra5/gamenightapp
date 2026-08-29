@@ -9,8 +9,9 @@ import {
 } from './core/ambience.js';
 import { startBackdrop } from './core/backdrop.js';
 import { showRules } from './core/rules-modal.js';
-import { memes, playMeme, loadSampleIndex, reactionSound } from './core/memes.js';
+import { memes, playMeme, playReaction, loadSampleIndex, reactionSound } from './core/memes.js';
 import { GAMES, gameById } from './games/registry.js';
+import { renderLanding as landingScreen } from './landing.js';
 
 const AVATARS = ['🦊', '🐼', '🦁', '🐸', '🐙', '🦄', '🐳', '🦉', '🐯', '🦋', '🐺', '🦖', '🐨', '🐹', '🦜', '🍩', '🌵', '👾', '🤖', '👻', '🎃', '🍕', '⚡', '🌈'];
 // Brand strings live here so the app bar, share sheet, modals and install prompt can
@@ -188,7 +189,8 @@ function leaveLocal() {
 
 function currentPhase(snap) {
   if (!snap) return null;
-  return `${snap.game}:${snap.blendin?.phase || snap.island?.phase || 'lobby'}`;
+  return `${snap.game}:${snap.blendin?.phase || snap.island?.phase || snap.silentorder?.phase
+    || snap.swaporstay?.phase || snap.sleepless?.phase || 'lobby'}`;
 }
 
 function showConnOverlay() {
@@ -213,12 +215,44 @@ socket.on('fx', (fx) => {
     // ---- Blend In ----
     case 'clue': if (!mine) sound.pop(); break;
     case 'reaction': {
-      // Only the reactor and the room hear it once — the server sends it to everyone.
-      if (fx.added) playMeme(reactionSound(fx.emoji));
+      if (fx.added) {
+        // Seeded: the whole room hears the same clip, and a fresh reaction cuts the
+        // previous one short rather than being skipped.
+        playReaction(fx.emoji, fx.seed);
+        // And everyone sees who it came from: the emoji floats up out of their tile.
+        const tile = document.querySelector(`[data-pid="${CSS.escape(fx.playerId)}"]`);
+        if (tile) {
+          const float = h('span', { class: 'react-float' }, fx.emoji);
+          tile.style.position = 'relative';
+          tile.append(float);
+          setTimeout(() => float.remove(), 2600);
+        }
+      }
+      break;
+    }
+    case 'bi-autovote': {
+      // The table hears the round close: three beats, then the vote screen arrives.
+      let n = fx.seconds || 3;
+      toast(`🗳️ Everyone has spoken. Voting in ${n}…`);
+      const tick = setInterval(() => {
+        n -= 1;
+        if (n <= 0) { clearInterval(tick); return; }
+        toast(`🗳️ Voting in ${n}…`);
+        sound.tick();
+      }, 1000);
       break;
     }
     case 'vote-start': memes.suspense(); break;
     case 'vote-cast': sound.tick(); break;
+    // Sleepless: night and vote progress deliberately carry no playerId, so these tick
+    // for everyone. Naming who moved would be a tell.
+    case 'sl-tuck': sound.tick(); break;
+    case 'sl-vote': sound.tick(); break;
+    case 'ss-left': {
+      const who = store.snap?.players.find((p) => p.id === fx.playerId);
+      toast(`${who?.name || 'Someone'} left the table. Their card goes back to the deck.`, 'info');
+      break;
+    }
     case 'vote-tie': {
       memes.crickets();
       if (fx.quip) { setTimeout(() => memes.rimshot(), 700); toast(fx.quip); }
@@ -303,7 +337,15 @@ const app = $('#app');
 // replaceChildren() turns null/false into the literal text "null"/"false", so
 // flatten and drop the empty slots that conditional rendering produces.
 function setScreen(...nodes) {
-  app.replaceChildren(...nodes.flat(Infinity).filter(Boolean));
+  const next = nodes.flat(Infinity).filter(Boolean);
+  // A game may hand back the exact node it handed back last time, on purpose: the card
+  // table is a long choreography, and re-parenting a node restarts every CSS animation on
+  // it. When nothing has actually changed, the correct amount of DOM work is none.
+  // Overlays render() prepends afterwards (the stalled-game escape) are ignored by the
+  // comparison, or their presence would defeat the whole skip.
+  const current = [...app.children].filter((el) => !el.hasAttribute('data-overlay'));
+  if (next.length === 1 && current.length === 1 && next[0] === current[0]) return;
+  app.replaceChildren(...next);
 }
 
 function ctx() {
@@ -319,6 +361,7 @@ function ctx() {
     isHost: snap.you?.isHost || false,
     hostId: snap.hostId,
     player: (id) => snap.players.find((p) => p.id === id) || fallback,
+    players: () => snap.players.filter((p) => p.connected),
   };
 }
 
@@ -388,7 +431,10 @@ function render() {
   const saved = snapshotInputs(app);
   renderAppBar();
   app.className = store.snap ? 'app-main' : 'app-main landing';
-  const inGame = Boolean(store.snap && (store.snap.blendin || store.snap.island));
+  // A round is live when the chosen game's own snapshot is present. Derived from the
+  // registry so a new game never has to remember to add itself here.
+  const snapKey = store.snap?.game ? gameById(store.snap.game)?.snapshotKey : null;
+  const inGame = Boolean(snapKey && store.snap[snapKey]);
   // Atmosphere for the landing page and the lobby; silence once a round is live so it
   // never competes with the game's own sounds.
   if (inGame) stopAmbience(); else startAmbience();
@@ -398,7 +444,13 @@ function render() {
   else renderGame();
   // A game nobody present can finish needs a visible way out, above whatever dead screen
   // the round happens to be stuck on.
-  if (store.snap?.stalled && inGame) app.prepend(stalledEscape());
+  const stalledBanner = app.querySelector('[data-overlay="stalled"]');
+  if (store.snap?.stalled && inGame) {
+    if (!stalledBanner) app.prepend(stalledEscape());
+  } else {
+    // The skip above can leave a stale banner behind once the game unsticks itself.
+    stalledBanner?.remove();
+  }
   restoreInputs(app, saved);
   if (!store.snap) { wireReveals(); wireParallax(); wireTilt(); }
   // Jump to the top when the screen genuinely changes (landing → lobby → game phase),
@@ -414,7 +466,7 @@ function render() {
 // Shown when everyone who could act has gone. Rejoining an abandoned round otherwise
 // dropped you on a vote with "0 of 0 votes are in" and no control that did anything.
 function stalledEscape() {
-  return h('div', { class: 'card stalled-card' },
+  return h('div', { class: 'card stalled-card', 'data-overlay': 'stalled' },
     h('span', { class: 'sc-emoji' }, '🫥'),
     h('div', {},
       h('div', { class: 'sc-title' }, 'This round was abandoned'),
@@ -701,7 +753,7 @@ function showLegal(tab = 'privacy') {
     h('p', {}, 'No advertising or cross-site trackers, and no device fingerprinting. Your IP address is never stored, only passed through a one-way hash. Nothing you type inside a game, such as clues, words, guesses or chat, is recorded.'),
 
     h('h4', {}, '🤖 The AI Gamemaster'),
-    h('p', {}, 'In The Island, the items and pattern guesses you type are sent to OpenAI so they can be judged, together with the round\'s secret pattern. No name, room or identifier is sent with them. A room owner who would rather nothing left the server can choose to be the gamemaster instead, and no AI is used at all.'),
+    h('p', {}, 'In Island Rules, the items and pattern guesses you type are sent to OpenAI so they can be judged, together with the round\'s secret pattern. No name, room or identifier is sent with them. A room owner who would rather nothing left the server can choose to be the gamemaster instead, and no AI is used at all.'),
 
     h('h4', {}, '🔤 Other services'),
     h('p', {}, 'The typeface is loaded from Google Fonts, so Google receives the request for the font file. There are no other third-party requests.'),
@@ -837,7 +889,7 @@ function showAbout() {
   openModal(h('div', {},
     h('button', { class: 'icon-btn modal-close', onClick: closeModal, 'aria-label': 'Close' }, '✕'),
     h('div', { class: 'modal-title' }, `🎭 ${BRAND.short}`),
-    h('p', { class: 'hint', style: 'margin-bottom:14px' }, 'Real-time multiplayer party games: Blend In, The Island, and a growing lineup. Built with Node.js, Socket.IO and a sprinkle of AI.'),
+    h('p', { class: 'hint', style: 'margin-bottom:14px' }, 'Real-time multiplayer party games: Blend In, Island Rules, and a growing lineup. Built with Node.js, Socket.IO and a sprinkle of AI.'),
     h('div', { class: 'dev-card dev-showcase' },
       h('div', { class: 'ds-label' }, 'Meet the developer'),
       developerProfile({ compact: true }),
@@ -904,36 +956,13 @@ let landingStep = prefs.name ? 2 : 1;
 let joinOpen = false;
 
 function renderLanding() {
-  setScreen(
-    landingHero(),
-    connectionNotice(),
-    landingStep === 1 ? stepIdentity() : stepPlay(),
-    demoCard(),
-    h('div', { class: 'game-cards reveal' },
-      GAMES.map((g) => h('button', { class: 'game-card tilt', onClick: () => showRules(g.id) },
-        h('div', { class: `gc-glow ${g.accent}` }),
-        h('div', { class: 'gc-emoji' }, g.emoji),
-        h('h3', {}, g.title),
-        h('p', {}, g.tagline),
-        h('div', { class: 'gc-meta' }, g.tags.map((t) => h('span', { class: 'badge' }, t)), h('span', { class: 'badge' }, 'how to play →')),
-      )),
-    ),
-    developerCard(),
-    h('div', { class: 'landing-footer reveal' },
-      installRow(),
-      h('p', { class: 'hint', style: 'margin-top:16px' },
-        `🎭 ${BRAND.short} · built by `,
-        devPhoto('sm', 22),
-        h('span', { class: 'dev-name', style: 'font-size:13.5px' }, DEV.name),
-      ),
-      h('p', { class: 'hint legal-line' },
-        COPYRIGHT, ' · ',
-        h('button', { class: 'footer-link as-link', onClick: () => showLegal('privacy') }, 'Privacy'),
-        ' · ',
-        h('button', { class: 'footer-link as-link', onClick: () => showLegal('terms') }, 'Terms'),
-      ),
-    ),
-  );
+  setScreen(landingScreen({
+    h, GAMES, BRAND, DEV, COPYRIGHT, AVATARS, prefs, sound, toast, shake,
+    extractRoomCode, showRules, showLegal, showFeedback, installRow, devPhoto, sendHello,
+    connected: () => store.connected,
+    onCreate: () => emit('room:create', { name: prefs.name, avatar: prefs.avatar, ...identity }),
+    onJoin: (code) => emit('room:join', { code, name: prefs.name, avatar: prefs.avatar, ...identity }),
+  }));
 }
 
 function landingHero() {
@@ -955,7 +984,7 @@ function landingHero() {
     ),
     h('div', { class: 'hero-byline' }, BRAND.byline),
     h('p', { class: 'hero-tag' }, 'Your crew, your rules. ', h('b', {}, 'One room code away.')),
-    h('p', {}, 'Real-time party games like ', h('b', {}, 'Blend In'), ' and ', h('b', {}, 'The Island'), ': host a night in under a minute, no app store required.'),
+    h('p', {}, 'Real-time party games like ', h('b', {}, 'Blend In'), ' and ', h('b', {}, 'Island Rules'), ': host a night in under a minute, no app store required.'),
     h('button', {
       class: 'meet-dev',
       onClick: () => {
@@ -1220,24 +1249,24 @@ function demoCard() {
     h('div', { class: 'clue-round-label' }, 'Round 1'),
     h('div', { class: 'demo-clues' },
       [
-        ['🦊', 'Maya', 'bitter', [['🤔', 2]], false],
-        ['🐼', 'Leo', 'morning fuel', [['🔥', 3], ['😂', 1]], false],
-        ['🦁', 'Zara', 'leafy?', [['🧐', 2], ['😱', 1]], true],
-        ['🐙', 'Ravi', 'espresso vibes', [['😂', 4, true]], false],
+        ['🦊', 'Saaru', 'bitter', [['🤔', 2]], false],
+        ['🐼', 'Tushita', 'morning fuel', [['🔥', 3], ['😂', 1]], false],
+        ['🦁', 'Ranjani', 'leafy?', [['🧐', 2], ['😱', 1]], true],
+        ['🐙', 'Ankit', 'espresso vibes', [['😂', 4, true]], false],
       ].map(([avatar, name, clue, rx, dead], i) => h('div', {
         class: `clue-row ${dead ? 'dead-clue' : ''} anim-slide`,
         style: `animation-delay:${i * 120}ms`,
       },
         h('div', { class: 'cr-avatar' }, avatar),
         h('div', { class: 'cr-body' },
-          h('div', { class: 'cr-name' }, name, name === 'Ravi' && ' (you)'),
+          h('div', { class: 'cr-name' }, name, name === 'Ankit' && ' (you)'),
           h('div', { class: 'clue-bubble' }, clue),
           reactions(rx),
         ),
       )),
     ),
     h('div', { class: 'demo-verdict', style: 'animation-delay:620ms' },
-      '🗳️ Voted out: Zara. She had “Tea”, everyone else had “Coffee”.'),
+      '🗳️ Voted out: Ranjani. She had “Tea”, everyone else had “Coffee”.'),
   ];
 
   const islandScene = () => [
@@ -1248,16 +1277,16 @@ function demoCard() {
     ),
     h('div', { class: 'players-grid demo-tiles' },
       [
-        ['🐙', 'Ravi', '🥇', 'cracked it! · 8 pts', ''],
-        ['🦄', 'Kim', '', 'their turn…', 'current-turn'],
-        ['💀', 'Ana', '', 'out of guesses', 'dead'],
+        ['🐙', 'Ankit', '🥇', 'cracked it! · 8 pts', ''],
+        ['🦄', 'Dinesh', '', 'their turn…', 'current-turn'],
+        ['💀', 'Mrunali', '', 'out of guesses', 'dead'],
       ].map(([avatar, name, mark, sub, cls], i) => h('div', {
         class: `player-tile anim-pop ${cls}`,
         style: `animation-delay:${i * 90}ms`,
       },
         mark && h('span', { class: 'pt-mark' }, mark),
         h('div', { class: 'pt-avatar' }, avatar),
-        h('div', { class: 'pt-name' }, name, name === 'Ravi' && h('span', { class: 'pt-you' }, ' (you)')),
+        h('div', { class: 'pt-name' }, name, name === 'Ankit' && h('span', { class: 'pt-you' }, ' (you)')),
         h('div', { class: 'pt-sub' }, sub),
       )),
     ),
@@ -1292,7 +1321,7 @@ function demoCard() {
 
   const SCENES = [
     { game: 'Blend In', emoji: '🕵️', build: blendInScene },
-    { game: 'The Island', emoji: '🏝️', build: islandScene },
+    { game: 'Island Rules', emoji: '🏝️', build: islandScene },
   ];
 
   let index = 0;
@@ -1369,7 +1398,7 @@ function showScoring(snap) {
     h('div', { class: 'rules-body' },
       h('p', {}, 'Points stay with you all night, through new rounds, new games, and if you drop out and rejoin. Your title comes from where the points came from.'),
       section('blendin', 'Blend In', '🕵️'),
-      section('island', 'The Island', '🏝️'),
+      section('island', 'Island Rules', '🏝️'),
       h('h4', {}, '📊 About the board'),
       h('p', {}, 'Points cover everyone in this room, across every round and both games. They follow you if you drop out and rejoin, and the board clears once the last player leaves.'),
     ),
@@ -1470,6 +1499,24 @@ function renderLobby() {
 
   if (snap.game === 'blendin') parts.push(blendInLobbyPanel(snap, c));
   if (snap.game === 'island') parts.push(islandLobbyPanel(snap, c));
+  if (snap.game === 'silentorder') parts.push(cardGameLobbyPanel(snap, c, {
+    emoji: '🕯️', title: 'Silent Order setup', startEvent: 'so:start',
+    min: snap.limits.soMin ?? 2, max: snap.limits.soMax ?? 8,
+    blurb: 'One team, three lives, no talking. Play your cards in rising order using nothing but nerve.',
+    startLabel: (n) => `🃏 Deal level 1 for ${n} players`,
+  }));
+  if (snap.game === 'swaporstay') parts.push(cardGameLobbyPanel(snap, c, {
+    emoji: '🔁', title: 'Swap or Stay setup', startEvent: 'ss:start',
+    min: snap.limits.ssMin ?? 3, max: snap.limits.ssMax ?? 10,
+    blurb: 'One card each, lowest loses a life. Keep what you have, or force a swap and hope.',
+    startLabel: (n) => `🃏 Deal the first round for ${n} players`,
+  }));
+  if (snap.game === 'sleepless') parts.push(cardGameLobbyPanel(snap, c, {
+    emoji: '🌙', title: 'Sleepless setup', startEvent: 'sl:start',
+    min: snap.limits.slMin ?? 4, max: snap.limits.slMax ?? 12,
+    blurb: 'Someone at this table is the Prowler. Survive the nights, find them by day.',
+    startLabel: (n) => `🌙 Deal roles for ${n} players`,
+  }));
 
   parts.push(h('div', { class: 'lobby-exit' },
     h('button', { class: 'btn btn-ghost', onClick: leaveRoom },
@@ -1481,6 +1528,33 @@ function renderLobby() {
   ));
 
   setScreen(...parts);
+}
+
+// The three card games share one lobby shape: a blurb, a player-count gate and a start
+// button. Anything richer (difficulty, role toggles) belongs to the game's own screens.
+function cardGameLobbyPanel(snap, c, { emoji, title, startEvent, min, max, blurb, startLabel }) {
+  const n = snap.players.filter((p) => p.connected).length;
+  const canStart = n >= min && n <= max;
+  const gateText = n < min
+    ? `Needs at least ${min} players (${n} here). Invite more friends!`
+    : `Seats ${min}–${max} players.`;
+  return h('div', { class: `card ${c.isHost ? '' : 'guest-view'}` },
+    h('h2', { class: 'subtitle' }, `${emoji} ${title}`),
+    ownerOnlyNote(c, snap, 'Only the room owner can start it. You will see the game begin here.'),
+    h('p', { class: 'hint', style: 'margin: 4px 0 10px' }, blurb),
+    c.isHost
+      ? h('button', {
+          class: 'btn btn-primary btn-lg btn-block', disabled: !canStart,
+          onClick: async (e) => {
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            const res = await emit(startEvent);
+            if (!res.ok) { btn.disabled = false; shake(btn); render(); }
+          },
+        }, canStart ? startLabel(n) : `Need ${min}+ players (${n} here)`)
+      : h('p', { class: 'hint' }, gateText),
+    c.isHost && h('p', { class: 'hint', style: 'margin-top:8px' }, gateText),
+  );
 }
 
 function blendInLobbyPanel(snap, c) {
@@ -1586,7 +1660,7 @@ function islandLobbyPanel(snap, c) {
   const needed = mode === 'ai' ? snap.limits.islandMin : snap.limits.islandMin + 1;
   const canStart = n >= needed;
   return h('div', { class: `card ${c.isHost ? '' : 'guest-view'}` },
-    h('h2', { class: 'subtitle' }, '🏝️ The Island setup'),
+    h('h2', { class: 'subtitle' }, '🏝️ Island Rules setup'),
     ownerOnlyNote(c, snap, 'They pick the gamemaster and set sail when everyone is in.'),
     h('p', { class: 'hint', style: 'margin:6px 0 12px' },
       snap.aiAvailable
@@ -1599,7 +1673,7 @@ function islandLobbyPanel(snap, c) {
         }, canStart ? `🚀 Set sail with ${n} players` : `Need ${needed}+ players (${n} here)`)
       : h('p', { class: 'waiting-note' }, canStart
           ? `⏳ Everyone's in. Waiting for ${c.player(snap.hostId)?.name || 'the owner'} to set sail…`
-          : `The Island needs ${needed}+ players, invite more friends!`),
+          : `Island Rules needs ${needed}+ players, invite more friends!`),
     mode === 'host' && c.isHost && !canStart && h('p', { class: 'hint', style: 'margin-top:8px; text-align:center' },
       `You'll be the gamemaster this round, so you need ${snap.limits.islandMin} other players.`),
   );

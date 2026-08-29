@@ -1,12 +1,16 @@
 // Confetti (canvas) and synthesized UI sounds (WebAudio, no assets needed).
 
 // ---------- confetti ----------
+// The canvas is optional. This module is also the app's sound layer, and the sound layer
+// gets imported by things that have no confetti surface, so a missing canvas has to mean
+// "no confetti" rather than an exception thrown at import time that takes the sound with it.
 const canvas = document.getElementById('fx-canvas');
-const ctx = canvas.getContext('2d');
+const ctx = canvas ? canvas.getContext('2d') : null;
 let particles = [];
 let rafId = null;
 
 function fitCanvas() {
+  if (!ctx) return;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.width = innerWidth * dpr;
   canvas.height = innerHeight * dpr;
@@ -18,6 +22,7 @@ fitCanvas();
 const COLORS = ['#8b5cf6', '#22d3ee', '#f472b6', '#fbbf24', '#34d399', '#f87171', '#ffffff'];
 
 export function confettiBurst({ count = 140, origin = null, spread = 1 } = {}) {
+  if (!ctx) return;
   const ox = origin?.x ?? innerWidth / 2;
   const oy = origin?.y ?? innerHeight * 0.35;
   for (let i = 0; i < count; i++) {
@@ -40,6 +45,7 @@ export function confettiBurst({ count = 140, origin = null, spread = 1 } = {}) {
 }
 
 export function confettiRain(ms = 2200) {
+  if (!ctx) return;
   const end = Date.now() + ms;
   const drop = () => {
     for (let i = 0; i < 6; i++) {

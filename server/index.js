@@ -23,6 +23,9 @@ const blendin = await import('./games/blendin/engine.js');
 const island = await import('./games/island/engine.js');
 const islandAI = await import('./games/island/ai.js');
 const blendinAI = await import('./games/blendin/ai.js');
+const silentorder = await import('./games/silentorder/engine.js');
+const swaporstay = await import('./games/swaporstay/engine.js');
+const sleepless = await import('./games/sleepless/engine.js');
 const { aiAvailable, aiStatus } = await import('./lib/openai.js');
 const { GameError, cleanText } = await import('./lib/util.js');
 const analytics = await import('./core/analytics.js');
@@ -104,7 +107,7 @@ function originFor(req) {
 
 const DEFAULT_OG = {
   title: 'Game Night: party games for your crew',
-  desc: 'Your crew, your rules, one room code away. Play Blend In and The Island live with '
+  desc: 'Your crew, your rules, one room code away. Play Blend In and Island Rules live with '
     + 'friends on any device. Built by Ankit Kumar Mishra.',
 };
 
@@ -114,7 +117,10 @@ const attr = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[c]));
 
-const GAME_LABEL = { blendin: 'Blend In', island: 'The Island' };
+const GAME_LABEL = {
+  blendin: 'Blend In', island: 'Island Rules',
+  silentorder: 'Silent Order', swaporstay: 'Swap or Stay', sleepless: 'Sleepless',
+};
 
 // A shared invite deserves its own preview. Rather than trusting a name in the URL, the
 // server looks the room up by its code: no personal data in the link, nothing to escape
@@ -191,6 +197,15 @@ function adminAllowed(req) {
 
 // day | week | month | year | all — anything else falls back to the whole history.
 const rangeOf = (req) => (analytics.RANGES[req.query.range] ? String(req.query.range) : 'all');
+
+// The dashboard's start-over button. POST so a prefetch can never wipe the log, same
+// token gate as everything else under /admin.
+app.post('/admin/purge', (req, res) => {
+  if (!adminAllowed(req)) return res.status(404).end();
+  analytics.purgeAll()
+    .then(() => res.json({ ok: true }))
+    .catch(() => res.status(500).json({ ok: false }));
+});
 
 app.get('/admin/stats.json', (req, res) => {
   if (!adminAllowed(req)) return res.status(404).end();
@@ -284,6 +299,9 @@ function noteFinish(room) {
   if (!state) { room.finishLogged = null; return; }
   const done = room.game === 'blendin' ? Boolean(state.winner)
     : room.game === 'island' ? state.phase === 'reveal'
+    : room.game === 'silentorder' ? Boolean(state.over)
+    : room.game === 'swaporstay' ? state.phase === 'gameOver'
+    : room.game === 'sleepless' ? state.phase === 'gameOver'
     : false;
   if (!done) return;
   const key = `${room.game}:${state.startedAt || state.round || 0}:${state.winner || 'end'}`;
@@ -358,11 +376,17 @@ function detachPlayer(room, playerId, { permanent }) {
     removePlayer(room, playerId);
     if (room.game === 'blendin') results.push(blendin.removePlayerFromGame(room, playerId));
     if (room.game === 'island') results.push(island.removePlayerFromGame(room, playerId));
+    if (room.game === 'silentorder') results.push(silentorder.removePlayerFromGame(room, playerId));
+    if (room.game === 'swaporstay') results.push(swaporstay.removePlayerFromGame(room, playerId));
+    if (room.game === 'sleepless') results.push(sleepless.removePlayerFromGame(room, playerId));
   } else {
     player.connected = false;
     player.socketId = null;
     if (room.game === 'blendin') results.push(blendin.onConnectivityChange(room));
     if (room.game === 'island') results.push(island.onConnectivityChange(room));
+    if (room.game === 'silentorder') results.push(silentorder.onConnectivityChange(room));
+    if (room.game === 'swaporstay') results.push(swaporstay.onConnectivityChange(room));
+    if (room.game === 'sleepless') results.push(sleepless.onConnectivityChange(room));
     if (room.hostId === playerId && !room.hostGraceTimer) {
       // Give a disconnected host a grace window to refresh before passing the crown.
       room.hostGraceTimer = setTimeout(() => {
@@ -513,6 +537,9 @@ io.on('connection', (socket) => {
       if (tookOver) fx.push({ kind: 'host-claimed', playerId });
       if (room.game === 'blendin') fx.push(...(blendin.onConnectivityChange(room)?.fx || []));
       if (room.game === 'island') fx.push(...(island.onConnectivityChange(room)?.fx || []));
+      if (room.game === 'silentorder') fx.push(...(silentorder.onConnectivityChange(room)?.fx || []));
+      if (room.game === 'swaporstay') fx.push(...(swaporstay.onConnectivityChange(room)?.fx || []));
+      if (room.game === 'sleepless') fx.push(...(sleepless.onConnectivityChange(room)?.fx || []));
       broadcast(room);
       emitFx(room, fx);
       cb?.({ ok: true, code: room.code, rejoined: Boolean(existing) });
@@ -561,10 +588,14 @@ io.on('connection', (socket) => {
     if (room.hostId !== playerId) throw new GameError('Only the room owner picks the game.');
     const finished = !room.state
       || (room.state.kind === 'blendin' && room.state.phase === 'gameOver')
-      || (room.state.kind === 'island' && room.state.phase === 'reveal');
+      || (room.state.kind === 'island' && room.state.phase === 'reveal')
+      || (room.state.kind === 'silentorder' && room.state.over)
+      || (room.state.kind === 'swaporstay' && room.state.phase === 'gameOver')
+      || (room.state.kind === 'sleepless' && room.state.phase === 'gameOver');
     if (!finished) throw new GameError('Finish or end the current game first.');
     const game = payload?.game;
-    if (game !== null && game !== 'blendin' && game !== 'island') throw new GameError('Unknown game.');
+    const KNOWN_GAMES = [null, 'blendin', 'island', 'silentorder', 'swaporstay', 'sleepless'];
+    if (!KNOWN_GAMES.includes(game)) throw new GameError('Unknown game.');
     room.game = game;
     room.state = null;
   }));
@@ -647,7 +678,26 @@ io.on('connection', (socket) => {
   socket.on('bi:start', (_payload, cb) => dealAndStart(socket, cb));
   socket.on('bi:ready', action(socket, (room, playerId) => blendin.markReady(room, playerId)));
   socket.on('bi:forceDescribe', action(socket, (room, playerId) => blendin.forceDescribe(room, playerId)));
-  socket.on('bi:clue', action(socket, (room, playerId, payload) => blendin.submitClue(room, playerId, payload)));
+  socket.on('bi:clue', action(socket, (room, playerId, payload) => {
+    const result = blendin.submitClue(room, playerId, payload);
+    // The last clue rolls straight into the vote after a short countdown, so nobody sits
+    // waiting for the owner. The owner's own button still works and simply beats the timer.
+    if (result?.roundDescribed) {
+      const state = room.state;
+      const round = state.round;
+      setTimeout(() => {
+        if (room.state !== state || state.phase !== 'discussion' || state.round !== round) return;
+        try {
+          const started = blendin.startVote(room, null, {});
+          broadcast(room);
+          emitFx(room, started?.fx);
+        } catch (err) {
+          if (!(err instanceof GameError)) console.error('[bi autovote]', err.message);
+        }
+      }, 3600);
+    }
+    return result;
+  }));
   socket.on('bi:skipTurn', action(socket, (room, playerId) => blendin.skipTurn(room, playerId)));
   socket.on('bi:startVote', action(socket, (room, playerId, payload) => blendin.startVote(room, playerId, payload)));
   socket.on('bi:react', action(socket, (room, playerId, payload) => blendin.reactToClue(room, playerId, payload)));
@@ -676,6 +726,19 @@ io.on('connection', (socket) => {
     return island.startGame(room, playerId, payload);
   }));
   socket.on('is:setupHost', action(socket, (room, playerId, payload) => island.setupHostPattern(room, playerId, payload)));
+  // A surprise the gamemaster can look at before committing to it: the ack carries the
+  // draw, nothing changes in the room until they open the island with it.
+  socket.on('is:peekSurprise', (_payload, cb) => {
+    const { roomCode, playerId } = socket.data;
+    try {
+      const room = rooms.get(roomCode);
+      if (!room || !playerId) throw new GameError('You are not in a room.');
+      if (room.game !== 'island') throw new GameError('No island round in progress.');
+      cb?.({ ok: true, draw: island.drawSurprise(room, playerId) });
+    } catch (err) {
+      cb?.({ ok: false, error: err instanceof GameError ? err.message : 'No surprise right now.' });
+    }
+  });
 
   socket.on('is:setupAI', (payload, cb) => {
     const { roomCode, playerId } = socket.data;
@@ -761,9 +824,90 @@ io.on('connection', (socket) => {
   }));
 
   socket.on('is:pass', action(socket, (room, playerId) => island.passTurn(room, playerId)));
+  // The table's appeal: re-read every ruling of the round with a fresh pair of AI eyes.
+  socket.on('is:audit', (_payload, cb) => {
+    const { roomCode, playerId } = socket.data;
+    const room = rooms.get(roomCode);
+    let gate;
+    try {
+      if (!room || !playerId) throw new GameError('You are not in a room.');
+      if (room.game !== 'island') throw new GameError('No island round in progress.');
+      if (Date.now() < (room.auditCooldownUntil || 0)) throw new GameError('The boat just re-checked. Give it a minute.');
+      gate = island.requestAudit(room, playerId);
+      room.auditCooldownUntil = Date.now() + 60_000;
+    } catch (err) {
+      return cb?.({ ok: false, error: err instanceof GameError ? err.message : 'No re-check right now.' });
+    }
+    islandAI.auditRound(gate.state.pattern, gate.judged)
+      .then(({ corrections, note }) => {
+        if (room.state !== gate.state || gate.state.phase !== 'playing') return cb?.({ ok: false, error: 'The round moved on.' });
+        const result = island.applyAudit(room, playerId, corrections, note);
+        broadcast(room);
+        emitFx(room, result.fx);
+        cb?.({ ok: true, fixed: gate.state.lastAudit.fixed.length });
+      })
+      .catch((err) => {
+        console.error('[island audit]', err.message);
+        room.auditCooldownUntil = 0;
+        cb?.({ ok: false, error: 'The boat could not re-check just now, try again.' });
+      });
+  });
   socket.on('is:judge', action(socket, (room, playerId, payload) => island.hostJudge(room, playerId, payload)));
   socket.on('is:cancelPending', action(socket, (room, playerId) => island.cancelPending(room, playerId)));
   socket.on('is:end', action(socket, (room, playerId) => island.endRound(room, playerId)));
+
+  // ----- Silent Order -----
+  socket.on('so:start', action(socket, (room, playerId) => {
+    const result = silentorder.startGame(room, playerId);
+    analytics.track('game_started', {
+      person: socket.data.person,
+      game: 'silentorder',
+      name: room.players.get(playerId)?.name || null,
+      code: room.code,
+      players: room.players.size,
+      roster: [...room.players.values()].map((p) => p.name).join(', ').slice(0, 200),
+    });
+    return result;
+  }));
+  socket.on('so:ready', action(socket, (room, playerId) => silentorder.markReady(room, playerId)));
+  socket.on('so:play', action(socket, (room, playerId) => silentorder.playLowest(room, playerId)));
+  socket.on('so:next', action(socket, (room, playerId) => silentorder.nextRun(room, playerId)));
+
+  // ----- Swap or Stay -----
+  socket.on('ss:start', action(socket, (room, playerId) => {
+    const result = swaporstay.startGame(room, playerId);
+    analytics.track('game_started', {
+      person: socket.data.person,
+      game: 'swaporstay',
+      name: room.players.get(playerId)?.name || null,
+      code: room.code,
+      players: room.players.size,
+      roster: [...room.players.values()].map((p) => p.name).join(', ').slice(0, 200),
+    });
+    return result;
+  }));
+  socket.on('ss:ready', action(socket, (room, playerId) => swaporstay.markReady(room, playerId)));
+  socket.on('ss:choice', action(socket, (room, playerId, payload) => swaporstay.choice(room, playerId, payload)));
+  // One event covers "next round" from a result and "play again" from game over.
+  socket.on('ss:next', action(socket, (room, playerId) => swaporstay.next(room, playerId)));
+
+  // ----- Sleepless -----
+  socket.on('sl:start', action(socket, (room, playerId) => {
+    const result = sleepless.startGame(room, playerId);
+    analytics.track('game_started', {
+      person: socket.data.person,
+      game: 'sleepless',
+      name: room.players.get(playerId)?.name || null,
+      code: room.code,
+      players: room.players.size,
+      roster: [...room.players.values()].map((p) => p.name).join(', ').slice(0, 200),
+    });
+    return result;
+  }));
+  socket.on('sl:ready', action(socket, (room, playerId) => sleepless.markReady(room, playerId)));
+  socket.on('sl:night', action(socket, (room, playerId, payload) => sleepless.submitNight(room, playerId, payload)));
+  socket.on('sl:vote', action(socket, (room, playerId, payload) => sleepless.castVote(room, playerId, payload)));
+  socket.on('sl:next', action(socket, (room, playerId) => sleepless.nextPhase(room, playerId)));
 
   socket.on('disconnect', () => {
     const { roomCode, playerId } = socket.data;

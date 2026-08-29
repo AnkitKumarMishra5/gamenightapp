@@ -83,3 +83,11 @@ re-offering them as stock audio, so do not lift this folder into a sound library
 Processed the same way as the CC0 clips: silence trimmed from both ends (these are spoken
 one-liners, so the whole utterance is kept rather than a loud window), normalised to about
 −1 dBFS, capped at 2.6 seconds, 64 kbps mono AAC.
+
+## Laugh pool (Pixabay Content License)
+- laughTrack.mp3 — "Mischievous Laugh" — pixabay.com
+- laughTrack-2.mp3 — "Goofy Laugh" — pixabay.com
+- laughTrack-3.mp3 — "Goofy Laugh (2)" — pixabay.com
+- laughTrack-4.mp3 — "Burst Laughing Funny Sound" — pixabay.com
+- laughTrack-5.mp3 — "HA HA Echo" — pixabay.com
+- laughTrack-6.mp3 — "Funny Laughing Sound" — pixabay.com

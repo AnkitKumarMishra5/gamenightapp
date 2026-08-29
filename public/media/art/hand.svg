@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 80" width="64" height="80" aria-hidden="true">
+  <!-- Game Night. An open hand, seen from the back, fingers together. Drawn rather than
+       set as an emoji: an emoji hand renders as flat cartoon colour on top of a shaded
+       card and reads as a sticker. -->
+  <defs>
+    <linearGradient id="gnSkin" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#f4e4c8"/>
+      <stop offset="0.55" stop-color="#dcc39a"/>
+      <stop offset="1" stop-color="#b9986e"/>
+    </linearGradient>
+  </defs>
+  <path d="M12 54 L4.5 31 A5.6 5.6 0 0 1 14 26 L16.5 30.5
+           V13 A5 5 0 0 1 26.5 13 V31
+           V7  A5 5 0 0 1 36.5 7  V31
+           V10 A5 5 0 0 1 46.5 10 V33
+           V21 A5 5 0 0 1 56.5 21 V47
+           C56.5 63 47 73.5 35 73.5 C24 73.5 16.5 65.5 12 54 Z"
+        fill="url(#gnSkin)" stroke="#3a2a18" stroke-width="2.2"
+        stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- knuckle and tendon lines, just enough to stop it reading as a mitten -->
+  <g fill="none" stroke="#3a2a18" stroke-width="1.4" stroke-linecap="round" opacity="0.4">
+    <path d="M21.5 33.5v10"/><path d="M31.5 33.5v11"/><path d="M41.5 35.5v9.5"/>
+  </g>
+</svg>

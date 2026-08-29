@@ -12,8 +12,9 @@ export function renderIsland(snap, ctx) {
       judgePanel(is, ctx),
       packingList(is, ctx),
       turnStrip(is, ctx),
-      attemptLog(is, ctx),
       actionBar(is, ctx),
+      attemptLog(is, ctx),
+      auditPanel(is, ctx),
     ); break;
     case 'reveal': parts.push(revealPhase(is, ctx)); break;
   }
@@ -23,11 +24,20 @@ export function renderIsland(snap, ctx) {
 // ---------- setup ----------
 
 function setupPhase(is, ctx) {
-  if (!ctx.isHost) {
+  const meIsGm = is.mode === 'host' && is.gmId === ctx.me.id;
+  if (!ctx.isHost && !meIsGm) {
     return h('div', { class: 'card', style: 'text-align:center' },
       h('span', { class: 'hero-emoji', style: 'font-size:56px' }, '🏝️'),
       h('h2', { class: 'subtitle', style: 'margin-top:10px' }, 'Preparing the boat…'),
       h('p', { class: 'hint', style: 'margin-top:8px' }, `${ctx.player(is.gmId || ctx.hostId).name} is setting up the secret pattern. Get your thinking cap on! 🧢`),
+    );
+  }
+  // A non-host gamemaster skips the mode cards (that choice is the owner's) and goes
+  // straight to writing the pattern.
+  if (!ctx.isHost && meIsGm) {
+    return h('div', { class: 'card' },
+      h('h2', { class: 'subtitle' }, '🧑‍⚖️ You are the gamemaster this round'),
+      patternForm(is, ctx),
     );
   }
 
@@ -51,9 +61,20 @@ function setupPhase(is, ctx) {
       },
         h('div', { class: 'gc-glow island' }),
         h('div', { class: 'gc-emoji' }, '🧑‍⚖️'),
-        h('h3', {}, 'You are the Gamemaster'),
-        h('p', {}, 'You know the pattern and judge every attempt. Write your own, or draw a surprise pattern only you can see.'),
+        h('h3', {}, 'A human Gamemaster'),
+        h('p', {}, 'The gamemaster knows the pattern and judges every attempt. You, or anyone at the table.'),
       ),
+    ),
+    // The judge's chair is the owner's to hand over: whoever has the best pattern in
+    // mind runs the round, and everyone else plays.
+    mode === 'host' && h('div', { class: 'setting-row', style: 'margin-top:12px' },
+      h('div', {}, h('div', { class: 'sr-title' }, 'Who judges?'),
+        h('div', { class: 'sr-sub' }, 'Re-deals the round with them in the chair')),
+      h('select', {
+        class: 'input', style: 'max-width:180px',
+        onChange: (e) => ctx.emit('is:start', { mode: 'host', gmId: e.target.value }),
+      }, (ctx.players ? ctx.players() : []).map((p) =>
+        h('option', { value: p.id, selected: p.id === is.gmId ? '' : null }, `${p.avatar} ${p.name}`))),
     ),
     h('hr', { class: 'divider' }),
   ];
@@ -81,37 +102,55 @@ function setupPhase(is, ctx) {
           : 'The AI Gamemaster is unavailable right now, switch to "You are the Gamemaster" and the game plays exactly the same.'),
       btn,
     );
+  } else if (is.gmId === ctx.me.id) {
+    parts.push(patternForm(is, ctx));
   } else {
-    const name = h('input', { class: 'input', type: 'text', maxlength: 80, placeholder: 'e.g. Things that can break', 'data-preserve': 'is-name' });
-    const desc = h('textarea', { class: 'textarea', maxlength: 300, placeholder: 'Precise rule you\'ll judge by, e.g. "anything that can break, physically or figuratively (hearts, promises, records)"', 'data-preserve': 'is-desc' });
-    const s1 = h('input', { class: 'input', type: 'text', maxlength: 40, placeholder: 'e.g. Heart', 'data-preserve': 'is-s1' });
-    const s2 = h('input', { class: 'input', type: 'text', maxlength: 40, placeholder: 'e.g. Window', 'data-preserve': 'is-s2' });
-    parts.push(
-      h('div', { class: 'stack' },
-        h('div', {}, h('label', { class: 'label' }, 'Pattern name (shown at reveal)'), name),
-        h('div', {}, h('label', { class: 'label' }, 'Secret rule. Your judging guide'), desc),
-        h('div', { style: 'display:grid; grid-template-columns:1fr 1fr; gap:10px' },
-          h('div', {}, h('label', { class: 'label' }, 'Opening item 1'), s1),
-          h('div', {}, h('label', { class: 'label' }, 'Opening item 2'), s2),
-        ),
-        h('button', {
-          class: 'btn btn-island btn-lg btn-block',
-          onClick: async (e) => {
-            const res = await ctx.emit('is:setupHost', { name: name.value, description: desc.value, starters: [s1.value, s2.value] });
-            if (!res.ok) shake(e.target);
-          },
-        }, '⛵ Open the island'),
-        h('button', {
-          class: 'btn btn-ghost btn-block',
-          onClick: async (e) => {
-            const res = await ctx.emit('is:setupHost', { surprise: true });
-            if (!res.ok) shake(e.target);
-          },
-        }, '🎁 Surprise me, secret pattern only I can see'),
-      ),
-    );
+    parts.push(h('p', { class: 'hint', style: 'text-align:center' },
+      `⏳ ${ctx.player(is.gmId).name} is writing the pattern…`));
   }
   return h('div', { class: 'card' }, parts);
+}
+
+// The gamemaster's pattern form. A surprise fills the fields instead of committing, so
+// the judge can look it over, redraw, tweak it, or scrap it for their own idea; nothing
+// reaches the table until they open the island.
+function patternForm(is, ctx) {
+  const name = h('input', { class: 'input', type: 'text', maxlength: 80, placeholder: 'e.g. Things that can break', 'data-preserve': 'is-name' });
+  const desc = h('textarea', { class: 'textarea', maxlength: 300, placeholder: 'Precise rule you\'ll judge by, e.g. "anything that can break, physically or figuratively (hearts, promises, records)"', 'data-preserve': 'is-desc' });
+  const s1 = h('input', { class: 'input', type: 'text', maxlength: 40, placeholder: 'e.g. Heart', 'data-preserve': 'is-s1' });
+  const s2 = h('input', { class: 'input', type: 'text', maxlength: 40, placeholder: 'e.g. Window', 'data-preserve': 'is-s2' });
+  const note = h('p', { class: 'hint', style: 'display:none; text-align:center' });
+  return h('div', { class: 'stack' },
+    h('div', {}, h('label', { class: 'label' }, 'Pattern name (shown at reveal)'), name),
+    h('div', {}, h('label', { class: 'label' }, 'Secret rule. Your judging guide'), desc),
+    h('div', { style: 'display:grid; grid-template-columns:1fr 1fr; gap:10px' },
+      h('div', {}, h('label', { class: 'label' }, 'Opening item 1'), s1),
+      h('div', {}, h('label', { class: 'label' }, 'Opening item 2'), s2),
+    ),
+    h('button', {
+      class: 'btn btn-island btn-lg btn-block',
+      onClick: async (e) => {
+        const res = await ctx.emit('is:setupHost', { name: name.value, description: desc.value, starters: [s1.value, s2.value] });
+        if (!res.ok) shake(e.target);
+      },
+    }, '⛵ Open the island'),
+    h('button', {
+      class: 'btn btn-ghost btn-block',
+      onClick: async (e) => {
+        const btn = e.currentTarget;
+        const res = await ctx.emit('is:peekSurprise');
+        if (!res.ok) { shake(btn); return; }
+        name.value = res.draw.name;
+        desc.value = res.draw.description;
+        s1.value = res.draw.starters[0] || '';
+        s2.value = res.draw.starters[1] || '';
+        note.style.display = '';
+        note.textContent = '🎁 Drawn from the bank, only you can see it. Open it, draw another, or edit it first.';
+        btn.textContent = '🎁 Not this one, draw another';
+      },
+    }, '🎁 Surprise me, secret pattern only I can see'),
+    note,
+  );
 }
 
 // ---------- playing ----------
@@ -241,6 +280,35 @@ function turnStrip(is, ctx) {
   );
 }
 
+// The appeal to a higher power (which is the same power, reading more carefully).
+function auditPanel(is, ctx) {
+  if (is.mode !== 'ai' || is.phase !== 'playing') return null;
+  const last = is.lastAudit;
+  return h('div', { class: 'audit-box' },
+    last && h('div', { class: `card audit-note ${last.fixed.length ? 'warn' : ''}`, style: 'padding:10px 14px; margin-bottom:8px' },
+      h('b', {}, last.fixed.length ? '🐟 The boat stands corrected. ' : '✅ The boat re-checked itself. '),
+      last.note,
+      last.fixed.length
+        ? h('span', {}, ' ', last.fixed.map((f) => `"${f.text}" ${f.fits ? 'actually fits' : 'never fit'}`).join(' · '))
+        : null,
+    ),
+    h('button', {
+      class: 'btn btn-ghost btn-sm btn-block',
+      onClick: async (e) => {
+        const btn = e.currentTarget;
+        btn.disabled = true;
+        btn.textContent = '🐟 The boat is re-reading everything…';
+        const res = await ctx.emit('is:audit');
+        btn.disabled = false;
+        btn.textContent = '🐟 Something smells fishy. Boat, re-check yourself!';
+        if (!res.ok) shake(btn);
+      },
+    }, '🐟 Something smells fishy. Boat, re-check yourself!'),
+    h('p', { class: 'hint', style: 'text-align:center; margin-top:4px' },
+      'Re-reads every ruling of the round, and the secret pattern, with fresh eyes. Owns up to anything it got wrong.'),
+  );
+}
+
 function attemptLog(is, ctx) {
   if (!is.attempts.length) {
     return h('div', { class: 'card', style: 'text-align:center' },
@@ -309,8 +377,9 @@ function actionBar(is, ctx) {
       };
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
       parts.push(
-        h('div', { class: 'turn-banner your-turn', style: 'margin:0 0 12px' }, '🎤 Your turn, ask for an item, or guess the pattern!'),
+        h('div', { class: 'turn-banner your-turn', style: 'margin:0 0 12px' }, '🎤 Your turn! One move: ask for an item OR guess the pattern.'),
         h('div', { class: 'inline-form' }, input, h('button', { class: 'btn btn-island', onClick: submit }, 'Ask')),
+        h('p', { class: 'hint', style: 'text-align:center; margin:6px 0 2px' }, '— or —'),
         h('button', {
           class: 'btn btn-ghost btn-sm btn-block', style: 'margin-top:8px',
           onClick: () => patternGuessModal(ctx, is),
@@ -340,18 +409,20 @@ function actionBar(is, ctx) {
 // The boat gives away two more items each time the table completes a full lap. Anyone can
 // spend a hint, not just whoever is up, because a stuck round is everybody's problem.
 function hintButton(is, ctx) {
-  if (is.youAreGamemaster || !is.youPlay) return null;
+  if (is.hintSpent) return null;
   const ready = (is.hintsAvailable || 0) > 0;
-  const taken = (is.hints || []).length;
 
-  if (!ready) {
-    const left = is.turnsToNextHint || 0;
-    return h('p', { class: 'hint hint-countdown' },
-      taken
-        ? `💡 Next hint after ${left} more turn${left === 1 ? '' : 's'}.`
-        : `💡 A hint unlocks once everyone has had a turn. ${left} to go.`);
+  // The one hint belongs to the whole table, so only the room owner can spend it, and
+  // only after asking out loud. Everyone else just sees how far away it is.
+  if (!ctx.isHost) {
+    return ready
+      ? h('p', { class: 'hint hint-countdown' }, '💡 The table\'s one hint is unlocked. The room owner can spend it if everyone agrees.')
+      : h('p', { class: 'hint hint-countdown' }, `💡 The table's one hint unlocks in ${is.turnsToNextHint} more turn${is.turnsToNextHint === 1 ? '' : 's'}.`);
   }
-
+  if (!ready) {
+    return h('p', { class: 'hint hint-countdown' },
+      `💡 Your one hint for this round unlocks in ${is.turnsToNextHint} more turn${is.turnsToNextHint === 1 ? '' : 's'}.`);
+  }
   return h('button', {
     class: 'btn btn-ghost btn-sm btn-block hint-btn', style: 'margin-top:10px',
     onClick: async (e) => {
@@ -361,7 +432,7 @@ function hintButton(is, ctx) {
       const res = await ctx.emit('is:hint');
       if (!res.ok) { btn.disabled = false; shake(btn); }
     },
-  }, `💡 Ask for a hint (2 more items)${is.hintsAvailable > 1 ? ` · ${is.hintsAvailable} saved up` : ''}`);
+  }, '💡 Spend the table\'s one hint (ask everyone first!)');
 }
 
 async function patternGuessModal(ctx, is) {

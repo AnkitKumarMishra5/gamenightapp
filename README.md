@@ -25,15 +25,34 @@ The AI deals a fresh word pair every game at easy, medium, hard or ultra difficu
 Coffee and Tea down to Ocean and Sea. Roles scale with the table, and the room owner starts
 the vote when the talking is done, so nothing is on a clock.
 
-### 🏝️ The Island (2+ players)
+### 🏝️ Island Rules (2+ players)
 
 *"I'm going to an island and I'm bringing a Heart and a Window."* There is a rule behind
 what the boat accepts. Ask whether your item can come aboard, watch which ones get in, and
 work out the rule before anyone else. State it in your own words and an AI judge decides
 whether you have it, however you phrase it. Three wrong guesses and you sit the round out.
 
-Stuck? Once everyone has had a turn, anyone can spend a hint and the boat names two more
-things it will take. Another lap earns another hint.
+Stuck? The table earns one hint per round, spent by the room owner once everyone agrees.
+An audit button lets the table make the AI judge re-read every ruling if something smells
+off, and the room owner can hand the gamemaster chair to any player.
+
+### 🕯️ Silent Order (2 to 8 players)
+
+One co-operative deck, three lives, no talking. Each level deals everyone cards from 1 to
+100 and the table must play them in ascending order on nothing but nerve. Play too early
+and everything lower burns. A shared 3D card table deals every round with a riffle shuffle.
+
+### 🃏 Swap or Stay (3 to 10 players)
+
+One card each, face down. Keep it, or force a swap with your neighbour — unless they are
+holding a Sentinel, which blocks you and outranks everything. Lowest card at the reveal
+loses a heart; last player standing wins.
+
+### 🌙 Sleepless (4 to 12 players)
+
+One Prowler hunts at night; a Medic guards a door, an Oracle reads a face, and everyone —
+including the Sleepers — submits a night action, so screen time never betrays a role. Days
+are sealed votes, ties walk free, and the village wins the moment the Prowler is caught.
 
 ## Run it
 
@@ -42,7 +61,7 @@ npm install
 npm start          # http://localhost:3456
 ```
 
-That is the whole setup. The Island's AI gamemaster needs a key; without one the room
+That is the whole setup. Island Rules' AI gamemaster needs a key; without one the room
 owner runs the round themselves and can draw from a bank of 60 built-in patterns.
 
 ```bash
@@ -74,8 +93,11 @@ server/
   core/scores.js        points, titles, per-room leaderboard
   core/analytics.js     usage log and the metrics derived from it
   core/dashboard.js     the owner's dashboard, one self-contained page
-  games/blendin/     engine.js, wordPairs.js
+  games/blendin/        engine.js, wordPairs.js
   games/island/         engine.js, patterns.js, ai.js  (the only AI in the app)
+  games/silentorder/    engine.js
+  games/swaporstay/     engine.js
+  games/sleepless/      engine.js
 public/
   index.html            shell, SEO tags, structured data
   css/style.css         one stylesheet
@@ -83,8 +105,10 @@ public/
   js/core/              DOM toolkit, confetti, sound effects, music, backdrop, rules modal
   js/games/registry.js  the game list; register a new game here
   js/games/<game>/      that game's screens and rules copy
+  js/core/cards.js      the shared 3D card table: shuffle, deal, peek, throw
   sw.js                 service worker, network-first for code
-tests/e2e.mjs           220 checks against a real server with real socket clients
+tests/e2e.mjs           570+ checks against a real server with real socket clients
+tests/games/            one self-contained suite per card game
 tools/                  brand assets, backdrop pipeline, bots, link-preview checker
 source-assets/          full-resolution originals, deliberately outside public/
 ```
@@ -117,7 +141,7 @@ writes to a temporary directory, so running it never touches your real usage log
 A Privacy and Terms panel lives in the footer and in **ℹ️ About**. Standard analytics are
 collected (device, browser, visit, activity) and used only to run and improve the app.
 IP addresses are never stored, only hashed. Nothing typed inside a game is recorded. There
-are no cookies, no ad networks and no third-party trackers. In The Island's AI mode the
+are no cookies, no ad networks and no third-party trackers. In Island Rules' AI mode the
 items you type go to OpenAI to be judged, with no name, room or identifier attached.
 
 Every socket is capped at 120 events per 10 seconds. Intended for players 13 and over.

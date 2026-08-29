@@ -3,6 +3,13 @@
 // readable on a phone. Everything it shows comes from core/analytics.js.
 import { RANGES } from './analytics.js';
 
+
+// The person reading this dashboard lives in IST, so every clock on it does too,
+// wherever the server happens to be running.
+const IST = 'Asia/Kolkata';
+const istTime = (t) => new Date(t).toLocaleTimeString('en-IN', { timeZone: IST, hour12: false });
+const istDate = (t) => new Date(t).toLocaleDateString('en-CA', { timeZone: IST });
+
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[c]));
@@ -188,6 +195,7 @@ export function statsPage(s, live, { range = 'all', token = '', nonce = '' } = {
          color:var(--faint);font-size:12px;line-height:1.7}
   code{background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-size:11.5px}
   @media (max-width:600px){ body{padding:16px 12px 50px} .lbl{width:104px} }
+nav .danger { margin-left: auto; background: #3a1520; color: #ff9c9c; border: 1px solid #7a2030; border-radius: 8px; padding: 4px 10px; cursor: pointer; }
 </style></head><body>
 
 <h1>🎭 Game Night, usage</h1>
@@ -195,7 +203,8 @@ export function statsPage(s, live, { range = 'all', token = '', nonce = '' } = {
   server up ${Math.round(process.uptime() / 60)} min</p>
 
 <nav>${Object.entries(RANGES).map(([key, r]) => `<a href="${qs(key)}"${
-  key === range ? ' aria-current="page"' : ''}>${esc(r.label)}</a>`).join('')}</nav>
+  key === range ? ' aria-current="page"' : ''}>${esc(r.label)}</a>`).join('')}
+  <button id="purge" class="danger" title="Deletes every logged event, local and mirrored. There is no undo.">🗑 Start data over</button></nav>
 
 <div class="stats">
   ${stat('people', t.uniqueVisitors, `${t.repeatPeople} came back`)}
@@ -293,8 +302,8 @@ ${roomCount === 0 ? '<p class="muted">No rooms open right now.</p>' : live.map((
   </tr></thead>
   <tbody>${s.activity.map((e) => `<tr data-kind="${esc(e.type)}">
     <td class="eid">${esc(e.id)}</td>
-    <td class="when">${esc(new Date(e.t).toTimeString().slice(0, 8))}${
-    showDate ? `<small>${esc(e.t.slice(0, 10))}</small>` : ''}</td>
+    <td class="when">${esc(istTime(e.t))}${
+    showDate ? `<small>${esc(istDate(e.t))}</small>` : ''}</td>
     <td><span class="pill ${esc(e.type)}">${esc(TYPE_LABEL[e.type] || e.type)}</span></td>
     <td>${chip(e.person)}</td>
     <td class="who">${e.name ? `<b>${esc(e.name)}</b>` : '<span class="muted">—</span>'}</td>
@@ -374,6 +383,14 @@ ${roomCount === 0 ? '<p class="muted">No rooms open right now.</p>' : live.map((
 </footer>
 
 <script nonce="${nonce}">
+  // The wipe asks twice, because there is no undo on either store.
+  document.getElementById('purge').addEventListener('click', async () => {
+    if (!confirm('Delete ALL usage data, including the remote mirror? No undo.')) return;
+    if (!confirm('Really sure? This clears every event ever logged.')) return;
+    const r = await fetch('/admin/purge?token=${encodeURIComponent(token)}', { method: 'POST' });
+    alert(r.ok ? 'Wiped. Reloading.' : 'Purge failed.');
+    if (r.ok) location.reload();
+  });
   // Filtering happens in the page so it stays instant and never costs a round trip.
   const rows = [...document.querySelectorAll('#activity tbody tr')];
   const q = document.getElementById('q');

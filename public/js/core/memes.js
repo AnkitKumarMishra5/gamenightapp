@@ -77,214 +77,6 @@ function crunch(ctx, amount = 12) {
 }
 
 export const memes = {
-  // The big dramatic bass hit. The one everyone knows.
-  boom() {
-    const ctx = ready(); if (!ctx) return;
-    const out = bus(ctx, 1.1);
-    const t = ctx.currentTime;
-    const sh = crunch(ctx, 6);
-    sh.connect(out);
-    tone(ctx, sh, { type: 'sine', from: 160, to: 28, at: t, dur: 1.1, gain: 0.85 });
-    tone(ctx, out, { type: 'sine', from: 80, to: 20, at: t, dur: 1.4, gain: 0.5 });
-    const n = noise(ctx, 0.12, (i, len) => (1 - i / len) ** 3);
-    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 400;
-    const ng = ctx.createGain(); ng.gain.value = 0.5;
-    n.connect(lp).connect(ng).connect(out);
-    n.start(t);
-  },
-
-  // Flat, deadpan, two-syllable — the "bruh" cadence without the sample.
-  bruh() {
-    const ctx = ready(); if (!ctx) return;
-    const out = bus(ctx, 0.9);
-    const t = ctx.currentTime;
-    // A vowel-ish tone: low sawtooth pushed through two formant bandpasses.
-    const osc = ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(126, t);
-    osc.frequency.linearRampToValueAtTime(98, t + 0.42);
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.5, t + 0.04);
-    g.gain.setValueAtTime(0.5, t + 0.3);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.46);
-    const f1 = ctx.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = 620; f1.Q.value = 5;
-    const f2 = ctx.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = 1180; f2.Q.value = 7;
-    const mix = ctx.createGain(); mix.gain.value = 0.8;
-    osc.connect(g);
-    g.connect(f1).connect(mix);
-    g.connect(f2).connect(mix);
-    mix.connect(out);
-    osc.start(t);
-    osc.stop(t + 0.5);
-  },
-
-  // Three rising blasts. Peak celebration.
-  airhorn() {
-    const ctx = ready(); if (!ctx) return;
-    const out = bus(ctx, 0.55);
-    const t = ctx.currentTime;
-    [0, 0.22, 0.44].forEach((offset, i) => {
-      const at = t + offset;
-      const dur = i === 2 ? 0.5 : 0.16;
-      for (const detune of [0, 7, -5]) {
-        const osc = ctx.createOscillator();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(300 + i * 40, at);
-        osc.frequency.linearRampToValueAtTime(430 + i * 45, at + dur);
-        osc.detune.value = detune;
-        const g = ctx.createGain();
-        g.gain.setValueAtTime(0.0001, at);
-        g.gain.exponentialRampToValueAtTime(0.3, at + 0.02);
-        g.gain.setValueAtTime(0.3, at + dur * 0.7);
-        g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
-        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
-        osc.connect(g).connect(lp).connect(out);
-        osc.start(at);
-        osc.stop(at + dur + 0.05);
-      }
-    });
-  },
-
-  // Womp womp womp wommmp.
-  sadTrombone() {
-    const ctx = ready(); if (!ctx) return;
-    const out = bus(ctx, 0.8);
-    const t = ctx.currentTime;
-    const notes = [[233, 220, 0, 0.2], [207, 196, 0.22, 0.2], [185, 175, 0.44, 0.22], [165, 110, 0.68, 0.75]];
-    for (const [from, to, offset, dur] of notes) {
-      const at = t + offset;
-      const osc = ctx.createOscillator();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(from, at);
-      osc.frequency.linearRampToValueAtTime(to, at + dur);
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0.0001, at);
-      g.gain.exponentialRampToValueAtTime(0.34, at + 0.04);
-      g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
-      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1100;
-      osc.connect(g).connect(lp).connect(out);
-      osc.start(at);
-      osc.stop(at + dur + 0.05);
-    }
-  },
-
-  // Ba-dum-tss.
-  rimshot() {
-    const ctx = ready(); if (!ctx) return;
-    const out = bus(ctx, 0.8);
-    const t = ctx.currentTime;
-    tone(ctx, out, { type: 'sine', from: 260, to: 150, at: t, dur: 0.13, gain: 0.5 });
-    tone(ctx, out, { type: 'sine', from: 200, to: 120, at: t + 0.16, dur: 0.13, gain: 0.5 });
-    const n = noise(ctx, 0.5, (i, len) => (1 - i / len) ** 1.5);
-    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 5200;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.4, t + 0.32);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.85);
-    n.connect(hp).connect(g).connect(out);
-    n.start(t + 0.32);
-  },
-
-  // A room full of people laughing. Each "voice" fires a short run of "ha" syllables —
-  // noise pushed through vowel formants — at its own pitch and offset, which is what
-  // makes it read as a crowd rather than one synth blip.
-  // A room full of people losing it. Built from a glottal pulse train rather than a raw
-  // sawtooth: real laughter is a buzzy voiced source shaped by the mouth, and three
-  // formants for an "ah" vowel are what make it read as a person and not a synth. One
-  // lead voice carries the rhythm, the rest pile in behind it a beat late.
-  laughTrack() {
-    const ctx = ready(); if (!ctx) return;
-    const out = bus(ctx, 1.0);
-    const t = ctx.currentTime;
-
-    // A glottal pulse: strong fundamental with a long, steep harmonic tail.
-    const HARMONICS = 22;
-    const real = new Float32Array(HARMONICS);
-    const imag = new Float32Array(HARMONICS);
-    for (let k = 1; k < HARMONICS; k++) imag[k] = (1 / k ** 1.35) * (k % 2 ? 1 : 0.65);
-    const glottal = ctx.createPeriodicWave(real, imag, { disableNormalization: false });
-
-    const formant = (freq, q, gain) => {
-      const f = ctx.createBiquadFilter();
-      f.type = 'bandpass';
-      f.frequency.value = freq;
-      f.Q.value = q;
-      const g = ctx.createGain();
-      g.gain.value = gain;
-      f.connect(g);
-      return { in: f, out: g };
-    };
-
-    // One "ha". Pitch snaps up on the attack then falls away, which is the shape that
-    // makes a syllable sound like a laugh rather than a hum.
-    const ha = (at, f0, level, vowel) => {
-      const dur = 0.115 + Math.random() * 0.03;
-
-      const osc = ctx.createOscillator();
-      osc.setPeriodicWave(glottal);
-      osc.frequency.setValueAtTime(f0 * 1.22, at);
-      osc.frequency.exponentialRampToValueAtTime(f0, at + 0.035);
-      osc.frequency.exponentialRampToValueAtTime(f0 * 0.82, at + dur);
-
-      // A little vibrato keeps it from sounding machine-perfect.
-      const vib = ctx.createOscillator();
-      vib.frequency.value = 5.5 + Math.random() * 2;
-      const vibGain = ctx.createGain();
-      vibGain.gain.value = f0 * 0.03;
-      vib.connect(vibGain).connect(osc.frequency);
-      vib.start(at); vib.stop(at + dur + 0.05);
-
-      const env = ctx.createGain();
-      env.gain.setValueAtTime(0.0001, at);
-      env.gain.exponentialRampToValueAtTime(level, at + 0.012);   // percussive attack
-      env.gain.exponentialRampToValueAtTime(level * 0.35, at + dur * 0.55);
-      env.gain.exponentialRampToValueAtTime(0.0001, at + dur);
-
-      // "ah" formants, scaled with the voice so a high voice keeps a small mouth.
-      const scale = 0.78 + (f0 / 320);
-      const f1 = formant(vowel[0] * scale, 7, 1.0);
-      const f2 = formant(vowel[1] * scale, 9, 0.6);
-      const f3 = formant(vowel[2] * scale, 11, 0.28);
-
-      osc.connect(env);
-      for (const f of [f1, f2, f3]) { env.connect(f.in); f.out.connect(out); }
-      osc.start(at);
-      osc.stop(at + dur + 0.05);
-
-      // The breath that opens every "h".
-      const air = noise(ctx, 0.06, (j, len) => (1 - j / len) ** 3);
-      const bp = ctx.createBiquadFilter();
-      bp.type = 'bandpass'; bp.frequency.value = 1700 + Math.random() * 900; bp.Q.value = 0.9;
-      const ag = ctx.createGain(); ag.gain.value = level * 0.5;
-      air.connect(bp).connect(ag).connect(out);
-      air.start(at);
-    };
-
-    // A bout of laughter: syllables speed up slightly and fall in pitch as it runs out.
-    const bout = (startAt, f0, count, level, vowel) => {
-      let at = startAt;
-      let gap = 0.155;
-      for (let i = 0; i < count; i++) {
-        const decay = 1 - i * 0.055;
-        ha(at, f0 * decay * (0.985 + Math.random() * 0.03), level * Math.max(decay, 0.35), vowel);
-        at += gap * (0.94 + Math.random() * 0.12);
-        gap *= 0.965;
-      }
-    };
-
-    const AH = [730, 1090, 2440];      // "ha"
-    const EH = [610, 1900, 2500];      // "heh", for variety in the crowd
-
-    // The lead laugh, out front and unmistakable.
-    bout(t, 168, 7, 0.30, AH);
-    // The room joining in, staggered so no two land together.
-    bout(t + 0.10, 122, 6, 0.16, AH);
-    bout(t + 0.18, 214, 6, 0.15, EH);
-    bout(t + 0.07, 258, 5, 0.12, AH);
-    bout(t + 0.26, 145, 7, 0.13, EH);
-    bout(t + 0.33, 192, 5, 0.10, AH);
-    bout(t + 0.41, 300, 4, 0.08, EH);
-  },
 
   // A crowd cheer: broadband noise swelling and falling, with a few whistles over it.
   cheer() {
@@ -553,6 +345,186 @@ export const memes = {
     });
     tone(ctx, out, { type: 'sine', from: 90, to: 55, at: t, dur: 1.1, gain: 0.35 });
   },
+
+  // Two slow thumps and a beat of silence, over and over the way a pulse is. Used by the
+  // card games for the moment a player is about to do something they cannot take back.
+  heartbeat() {
+    const ctx = ready(); if (!ctx) return;
+    const out = bus(ctx, 0.9);
+    const t = ctx.currentTime;
+    const thump = (at, gain) => {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(58, at);
+      osc.frequency.exponentialRampToValueAtTime(40, at + 0.16);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, at);
+      g.gain.exponentialRampToValueAtTime(gain, at + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + 0.22);
+      osc.connect(g).connect(out);
+      osc.start(at); osc.stop(at + 0.3);
+    };
+    // lub-DUB, twice: the second pair softer, like it is settling.
+    thump(t, 0.5); thump(t + 0.18, 0.62);
+    thump(t + 0.95, 0.4); thump(t + 1.13, 0.5);
+  },
+
+  // Night falling: a soft high shimmer dissolving downward into a low drone, the audio
+  // version of the lights going down. Built for Sleepless, generic enough for anything.
+  nightfall() {
+    const ctx = ready(); if (!ctx) return;
+    const out = bus(ctx, 0.7);
+    const t = ctx.currentTime;
+    // The shimmer: three detuned high sines gliding down and fading.
+    [880, 1108, 1318].forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, t);
+      osc.frequency.exponentialRampToValueAtTime(f / 4, t + 2.4);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.055 - i * 0.012, t + 0.5);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 2.6);
+      osc.connect(g).connect(out);
+      osc.start(t); osc.stop(t + 2.8);
+    });
+    // The ground the night settles onto.
+    const low = ctx.createOscillator();
+    low.type = 'triangle';
+    low.frequency.value = 55;
+    const lg = ctx.createGain();
+    lg.gain.setValueAtTime(0.0001, t + 0.4);
+    lg.gain.linearRampToValueAtTime(0.16, t + 1.6);
+    lg.gain.exponentialRampToValueAtTime(0.0001, t + 3.4);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 300;
+    low.connect(lg).connect(lp).connect(out);
+    low.start(t + 0.4); low.stop(t + 3.6);
+  },
+
+  // ---- the card table ----------------------------------------------------
+  // Cards are all noise, no pitch: a card is a stiff sheet of paper, and every sound it
+  // makes is a broadband click shaped by how fast it moves. So these are built from
+  // filtered noise bursts rather than oscillators, and what makes them recognisable is
+  // the rhythm, not the tone.
+
+  // A riffle shuffle. Two halves interleaving is a burst of clicks that accelerates as
+  // the halves release, and the ear identifies the shuffle from that acceleration alone.
+  // Three bursts, matching the three motions the table animates: riffle, riffle, cut.
+  cardShuffle() {
+    const ctx = ready(); if (!ctx) return;
+    const out = bus(ctx, 0.9);
+    const t0 = ctx.currentTime;
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 800;
+    hp.connect(out);
+
+    const click = (at, level, bright) => {
+      const n = noise(ctx, 0.014, (i, len) => (1 - i / len) ** 2.4);
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.value = bright; bp.Q.value = 1.2;
+      const g = ctx.createGain(); g.gain.value = level;
+      n.connect(bp).connect(g).connect(hp);
+      n.start(at);
+    };
+    // Gaps shorten across the burst, because the cards speed up as the bridge collapses.
+    const riffle = (start, count, span, level) => {
+      for (let i = 0; i < count; i += 1) {
+        const at = start + span * ((i / count) ** 1.55);
+        click(at, level * (0.55 + Math.random() * 0.55), 2100 + Math.random() * 2700);
+      }
+    };
+    riffle(t0 + 0.02, 22, 0.33, 0.5);
+    riffle(t0 + 0.52, 20, 0.29, 0.44);
+    riffle(t0 + 1.04, 9, 0.15, 0.36);
+
+    // The square-up: the deck knocked flat on the table, which is the only part of a
+    // shuffle with any low end in it.
+    const body = noise(ctx, 0.1, (i, len) => (1 - i / len) ** 3);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 340;
+    const bg = ctx.createGain(); bg.gain.value = 0.55;
+    body.connect(lp).connect(bg).connect(out);
+    body.start(t0 + 1.3);
+    click(t0 + 1.3, 0.4, 1500);
+  },
+
+  // One card leaving the dealer's hand: a short rising hiss, gone before you notice it.
+  // Quiet on purpose, because this fires once per player.
+  cardFlick() {
+    const ctx = ready(); if (!ctx) return;
+    const out = bus(ctx, 0.55);
+    const t = ctx.currentTime;
+    const n = noise(ctx, 0.14, (i, len) => Math.sin((Math.PI * i) / len) ** 2);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.Q.value = 1.5;
+    bp.frequency.setValueAtTime(1300 + Math.random() * 500, t);
+    bp.frequency.exponentialRampToValueAtTime(3100, t + 0.11);
+    const g = ctx.createGain(); g.gain.value = 0.3;
+    n.connect(bp).connect(g).connect(out);
+    n.start(t);
+  },
+
+  // A card landing flat on felt: soft, damped, no ring.
+  cardSlap() {
+    const ctx = ready(); if (!ctx) return;
+    const out = bus(ctx, 0.7);
+    const t = ctx.currentTime;
+    const n = noise(ctx, 0.07, (i, len) => (1 - i / len) ** 2.6);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 900;
+    const g = ctx.createGain(); g.gain.value = 0.42;
+    n.connect(lp).connect(g).connect(out);
+    n.start(t);
+  },
+
+  // Turning a card over. Two events, and the gap between them is what sells it: the
+  // sweep of the card through the air, then the snap as it lands flat again.
+  cardTurn() {
+    const ctx = ready(); if (!ctx) return;
+    const out = bus(ctx, 0.85);
+    const t = ctx.currentTime;
+    const n = noise(ctx, 0.19, (i, len) => Math.sin((Math.PI * i) / len) ** 1.4);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.Q.value = 0.9;
+    bp.frequency.setValueAtTime(650, t);
+    bp.frequency.exponentialRampToValueAtTime(3300, t + 0.15);
+    const g = ctx.createGain(); g.gain.value = 0.4;
+    n.connect(bp).connect(g).connect(out);
+    n.start(t);
+
+    const snap = noise(ctx, 0.028, (i, len) => (1 - i / len) ** 2);
+    const sh = ctx.createBiquadFilter();
+    sh.type = 'highpass'; sh.frequency.value = 1700;
+    const sg = ctx.createGain(); sg.gain.value = 0.34;
+    snap.connect(sh).connect(sg).connect(out);
+    snap.start(t + 0.17);
+  },
+
+  // The room going serious. A low fifth swells in under the silence, the minor third
+  // arrives late over the top, and nothing resolves. Two notes is all it takes.
+  serious() {
+    const ctx = ready(); if (!ctx) return;
+    const out = bus(ctx, 0.75);
+    const t = ctx.currentTime;
+    const swell = (freq, at, dur, peak, type = 'sine') => {
+      const osc = ctx.createOscillator();
+      osc.type = type;
+      osc.frequency.value = freq;
+      // A slow attack is the whole point, so this cannot reuse the shared tone helper.
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, at);
+      g.gain.linearRampToValueAtTime(peak, at + dur * 0.45);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 900;
+      osc.connect(g).connect(lp).connect(out);
+      osc.start(at);
+      osc.stop(at + dur + 0.1);
+    };
+    swell(73.42, t, 2.4, 0.5);                    // D2
+    swell(110.0, t + 0.05, 2.3, 0.26);            // A2
+    swell(174.61, t + 0.7, 1.7, 0.13, 'triangle'); // F3, the minor third, held back
+  },
 };
 
 // Every sound in one list with where it fires and whether a real recording is shipped
@@ -574,7 +546,7 @@ export const MEME_CATALOG = [
   { id: 'sinister', emoji: '😈', name: 'Sinister', where: 'The outsiders take the game' },
   { id: 'levelUp', emoji: '⬆️', name: 'Level up', where: 'Insiders win; a player cracks the pattern' },
   { id: 'yeet', emoji: '🚀', name: 'Yeet', where: 'A new game kicking off' },
-  { id: 'sparkle', emoji: '✨', name: 'Sparkle', where: 'The Island opens with a fresh pattern' },
+  { id: 'sparkle', emoji: '✨', name: 'Sparkle', where: 'Island Rules opens with a fresh pattern' },
   { id: 'coin', emoji: '🪙', name: 'Coin', where: 'An item is allowed aboard; a hint is spent' },
   { id: 'bonk', emoji: '🔨', name: 'Bonk', where: 'An item is turned away' },
   { id: 'buzzer', emoji: '🚫', name: 'Buzzer', where: 'A wrong pattern guess', recorded: true },
@@ -582,6 +554,13 @@ export const MEME_CATALOG = [
   { id: 'recordScratch', emoji: '💿', name: 'Record scratch', where: 'An unrecognised item; an AI error' },
   { id: 'cheer', emoji: '🎉', name: 'Crowd cheer', where: 'The 🔥 reaction', recorded: true },
   { id: 'bruh', emoji: '🫠', name: 'Bruh', where: 'The judge cannot make sense of what you typed' },
+  { id: 'cardShuffle', emoji: '🃏', name: 'Riffle shuffle', where: 'The deck shuffling at the start of any card deal' },
+  { id: 'cardFlick', emoji: '✉️', name: 'Card flick', where: 'Each card leaving the deck during the deal' },
+  { id: 'cardSlap', emoji: '👋', name: 'Card landing', where: 'A card landing on the felt, or being played to the pile' },
+  { id: 'cardTurn', emoji: '🔄', name: 'Card turning over', where: 'Turning your own card face up, and peeking at it again' },
+  { id: 'serious', emoji: '🕯️', name: 'Serious swell', where: 'After the shuffle: the laugh cuts out and the round begins' },
+  { id: 'heartbeat', emoji: '🫀', name: 'Heartbeat', where: 'A card game moment you cannot take back' },
+  { id: 'nightfall', emoji: '🌙', name: 'Nightfall', where: 'Sleepless: the room goes dark for the night' },
 ];
 
 // Which sound each reaction fires. Keep these in step with REACTIONS on the server.
@@ -598,9 +577,13 @@ export const REACTION_SOUNDS = {
 
 // The pool is weighted by repetition (the signature sound appears more than once), so
 // picking uniformly still favours it while leaving room for a surprise.
-export function reactionSound(emoji) {
+// With a seed, every phone at the table resolves the same emoji to the same sound: the
+// server rolls once per reaction and everyone hears one joke, not six different ones.
+export function reactionSound(emoji, seed = null) {
   const pool = REACTION_SOUNDS[emoji];
-  return Array.isArray(pool) ? pool[(Math.random() * pool.length) | 0] : pool || 'pop';
+  if (!Array.isArray(pool)) return pool || 'pop';
+  const i = seed == null ? (Math.random() * pool.length) | 0 : Math.abs(seed) % pool.length;
+  return pool[i];
 }
 
 // ---------------------------------------------------------------------------
@@ -624,18 +607,69 @@ export async function loadSampleIndex() {
       byId.get(f.id).push(f.src);
     }
     sampleIndex = byId;
+    // A frozen copy, sorted, for seeded playback: the lazy loader consumes sampleIndex as
+    // it goes, and a seed can only mean the same file on every phone if the list it
+    // indexes into never changes.
+    fullIndex = new Map([...byId].map(([id, urls]) => [id, [...urls].sort()]));
   } catch {
     sampleIndex = new Map();
+    fullIndex = new Map();
   }
 }
+let fullIndex = new Map();
+const decodedByUrl = new Map();
 
+function fetchDecode(url) {
+  return fetch(url)
+    .then((r) => r.arrayBuffer())
+    .then((buf) => ready()?.decodeAudioData(buf))
+    .then((decoded) => { if (decoded) decodedByUrl.set(url, decoded); return decoded; })
+    .catch(() => null);
+}
+
+// Seeded playback: same seed, same file, on every phone in the room. Returns a stopper.
+export function playMemeSeeded(name, seed) {
+  const urls = fullIndex.get(name);
+  if (!urls?.length) return playMeme(name);
+  const url = urls[Math.abs(seed) % urls.length];
+  const buf = decodedByUrl.get(url);
+  if (buf) return playSample(buf) || (() => {});
+  // Not decoded yet: fall back to the synth this once (identical on every phone too),
+  // and have the file ready for the next time this seed comes up.
+  fetchDecode(url);
+  const fn = memes[name];
+  if (fn) fn();
+  return () => {};
+}
+
+// One reaction at a time: a new reaction cuts the previous one short instead of being
+// swallowed because something else was still playing. The table hears every joke land.
+let reactionStop = null;
+export function playReaction(emoji, seed = null) {
+  reactionStop?.(0.06);
+  const name = reactionSound(emoji, seed);
+  reactionStop = seed == null ? playMeme(name) : playMemeSeeded(name, seed);
+}
+
+// Returns a function that cuts the sound short, because a sample that has already
+// started can only be stopped by whoever still holds its nodes. The card table needs
+// this: the laugh has to stop dead when the shuffle ends.
 function playSample(buffer) {
-  const ctx = ready(); if (!ctx) return false;
+  const ctx = ready(); if (!ctx) return null;
   const src = ctx.createBufferSource();
   src.buffer = buffer;
-  src.connect(bus(ctx, 1));
+  const g = ctx.createGain();
+  src.connect(g).connect(bus(ctx, 1));
   src.start();
-  return true;
+  return (fade = 0.05) => {
+    try {
+      const now = ctx.currentTime;
+      g.gain.cancelScheduledValues(now);
+      g.gain.setValueAtTime(Math.max(g.gain.value, 0.0001), now);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + fade);
+      src.stop(now + fade + 0.02);
+    } catch { /* already ended */ }
+  };
 }
 
 const randomOf = (arr) => arr[(Math.random() * arr.length) | 0];
@@ -654,29 +688,34 @@ function loadVariant(name, url) {
     .catch(() => { /* the synth stays as the fallback */ });
 }
 
+// Returns a stopper so a caller can cut the sound short mid-play. A synthesized sound
+// cannot be stopped, so the stopper is a no-op in that case; callers that care about
+// stopping are all playing recordings.
 export function playMeme(name) {
-  const synth = () => { const fn = memes[name]; if (fn) fn(); };
+  const noop = () => {};
+  const synth = () => { const fn = memes[name]; if (fn) fn(); return noop; };
   const decoded = samples.get(name);
   const pending = sampleIndex?.get(name);
 
   // Reach for a variant that is not loaded yet roughly half the time, so the pool keeps
   // widening instead of settling on whichever one arrived first.
   if (decoded?.length && (!pending?.length || Math.random() > 0.5)) {
-    playSample(randomOf(decoded));
+    const stop = playSample(randomOf(decoded));
     if (pending?.length) {
       const url = randomOf(pending);
       pending.splice(pending.indexOf(url), 1);
       loadVariant(name, url);
     }
-    return;
+    return stop || noop;
   }
 
-  if (!pending?.length) { synth(); return; }
+  if (!pending?.length) return synth();
 
   // Nothing decoded yet: play the synth so the moment is not silent, and fetch a variant
   // for next time.
-  if (!decoded?.length) synth(); else playSample(randomOf(decoded));
+  const stop = decoded?.length ? playSample(randomOf(decoded)) : synth();
   const url = randomOf(pending);
   pending.splice(pending.indexOf(url), 1);
   loadVariant(name, url);
+  return stop || noop;
 }

@@ -18,12 +18,29 @@ export const POINTS = {
     outsiderWin: 5,        // every outsider on the winning side
     blankGuess: 8,         // the Blank naming the insiders' word
   },
+  silentorder: {
+    goodCard: 1,           // a card played with nothing lower still out there
+    levelCleared: 3,       // everyone who survives a level
+    runWon: 8,             // everyone, for clearing the final level
+  },
   island: {
     solveFirst: 6,
     solveSecond: 4,
     solveThird: 3,
     solveOther: 2,
     gamemaster: 2,         // running a round for everyone else is worth something
+  },
+  swaporstay: {
+    roundSurvived: 1,      // still holding a heart when the cards go up
+    gameWon: 6,            // last player standing
+  },
+  sleepless: {
+    villageWinAlive: 4,    // villagers still standing when the Prowler falls
+    villageWinDead: 2,     // villagers who fell along the way
+    medicSave: 2,          // per night the guard was on the right door (paid on a village win)
+    oracleRead: 3,         // reading the Prowler at least once (paid on a village win)
+    prowlerWin: 8,         // the Prowler outlasting the village
+    prowlerSurvivedVote: 1, // per completed vote the Prowler walked away from (paid on a prowler win)
   },
 };
 
@@ -36,6 +53,12 @@ export const SCORING_RULES = {
     ['🎭', `+${POINTS.blendin.outsiderWin}`, 'Winning as an outsider'],
     ['🃏', `+${POINTS.blendin.blankGuess}`, 'The Blank naming the insiders\' word'],
   ],
+  silentorder: [
+    ['🃏', `+${POINTS.silentorder.goodCard}`, 'Playing a card with nothing lower still held'],
+    ['🎚️', `+${POINTS.silentorder.levelCleared}`, 'Everyone, for clearing a level'],
+    ['🏆', `+${POINTS.silentorder.runWon}`, 'Everyone, for clearing the final level'],
+    ['💔', '0', 'Three mistakes ends the run'],
+  ],
   island: [
     ['🥇', `+${POINTS.island.solveFirst}`, 'Cracking the pattern first'],
     ['🥈', `+${POINTS.island.solveSecond}`, 'Second to crack it'],
@@ -44,16 +67,46 @@ export const SCORING_RULES = {
     ['🧑‍⚖️', `+${POINTS.island.gamemaster}`, 'Running a round as the gamemaster'],
     ['❌', '0', 'Three wrong pattern guesses puts you out for the round'],
   ],
+  swaporstay: [
+    ['❤️', `+${POINTS.swaporstay.roundSurvived}`, 'Living to see another deal'],
+    ['👑', `+${POINTS.swaporstay.gameWon}`, 'Being the last player standing'],
+    ['🛡', '0', 'A Sentinel never loses, and blocks swaps'],
+  ],
+  sleepless: [
+    ['🌅', `+${POINTS.sleepless.villageWinAlive}`, 'Seeing the sun rise on a village win'],
+    ['🪦', `+${POINTS.sleepless.villageWinDead}`, 'Falling before a village win'],
+    ['🩺', `+${POINTS.sleepless.medicSave}`, 'Each night the Medic guarded the right door'],
+    ['🔮', `+${POINTS.sleepless.oracleRead}`, 'The Oracle reading the Prowler'],
+    ['🐾', `+${POINTS.sleepless.prowlerWin}`, 'The Prowler outlasting the village'],
+    ['🗳️', `+${POINTS.sleepless.prowlerSurvivedVote}`, 'Each vote the Prowler stared down'],
+  ],
 };
 
 // ---------------------------------------------------------------------------
 // Titles — earned by where the points came from, so they say something true
 // about how someone plays.
 // ---------------------------------------------------------------------------
-export function titleFor({ blendin = 0, island = 0 }) {
-  const total = blendin + island;
+export function titleFor({ blendin = 0, island = 0, silentorder = 0, swaporstay = 0, sleepless = 0 }) {
+  const total = blendin + island + silentorder + swaporstay + sleepless;
   if (total < 10) return { title: 'Newcomer', emoji: '🌱' };
 
+  // Titles come from where the points were earned, so every game needs its own branch
+  // rather than being folded into another's.
+  if (silentorder / Math.max(total, 1) >= 0.7) {
+    if (silentorder >= 60) return { title: 'Perfect Timing', emoji: '⏱️' };
+    if (silentorder >= 30) return { title: 'Mind Reader', emoji: '🃏' };
+    return { title: 'Steady Hand', emoji: '🤝' };
+  }
+  if (swaporstay / Math.max(total, 1) >= 0.7) {
+    if (swaporstay >= 60) return { title: 'Stone Cold', emoji: '🗿' };
+    if (swaporstay >= 30) return { title: 'Card Shark', emoji: '🦈' };
+    return { title: 'Cool Customer', emoji: '🧊' };
+  }
+  if (sleepless / Math.max(total, 1) >= 0.7) {
+    if (sleepless >= 60) return { title: 'Night Watch', emoji: '🌙' };
+    if (sleepless >= 30) return { title: 'Light Sleeper', emoji: '🛏️' };
+    return { title: 'Wide Awake', emoji: '👁️' };
+  }
   const ratio = blendin / Math.max(total, 1);
   if (ratio >= 0.7) {
     if (blendin >= 60) return { title: 'Master of Disguise', emoji: '🕵️' };
@@ -87,6 +140,9 @@ export function award(room, playerId, game, amount, reason = '') {
     avatar: player?.avatar || '🙂',
     blendin: 0,
     island: 0,
+    silentorder: 0,
+    swaporstay: 0,
+    sleepless: 0,
     total: 0,
     log: [],
   };
@@ -111,6 +167,9 @@ export function roomLeaderboard(room) {
       avatar: e.avatar,
       blendin: e.blendin,
       island: e.island,
+      silentorder: e.silentorder,
+      swaporstay: e.swaporstay || 0,
+      sleepless: e.sleepless || 0,
       total: e.total,
       ...titleFor(e),
       here: room.players.has(id),

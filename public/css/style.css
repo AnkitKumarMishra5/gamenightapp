@@ -41,9 +41,20 @@ body {
   color: var(--ink);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  /* This is a game played with your hands, so the cursor is a hand throughout: an open
+     hand over the table, a pointing hand over anything you can press, a closed fist while
+     you are dragging a card. All three are the browser's own, which means they are the
+     hands the player already recognises and they render on every platform. */
+  cursor: grab;
 }
 button, input, textarea, select { font-family: inherit; font-size: inherit; color: inherit; }
 button { cursor: pointer; border: none; background: none; }
+a, [role="button"], label, summary, select { cursor: pointer; }
+/* Typing needs a caret, not a hand. */
+input:not([type="range"]):not([type="checkbox"]):not([type="radio"]), textarea { cursor: text; }
+input[type="range"] { cursor: grab; }
+input[type="range"]:active { cursor: grabbing; }
+button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 ::selection { background: rgba(139, 92, 246, 0.45); }
 
 /* ---------- animated backdrop ---------- */
@@ -147,6 +158,14 @@ button { cursor: pointer; border: none; background: none; }
 .btn-island:hover { transform: translateY(-2px); }
 .btn-bi { background: var(--grad-uc); box-shadow: 0 8px 24px rgba(139, 92, 246, 0.35); }
 .btn-bi:hover { transform: translateY(-2px); }
+/* The three card games share the table's champagne-and-midnight identity, tinted apart:
+   Silent Order candle-gold, Swap or Stay amber-rose, Sleepless moonlit indigo. */
+.btn-so { background: linear-gradient(135deg, #d4af37 0%, #a87f1f 100%); color: #241a02; box-shadow: 0 8px 24px rgba(212, 175, 55, 0.3); }
+.btn-so:hover { transform: translateY(-2px); }
+.btn-ss { background: linear-gradient(135deg, #fbbf24 0%, #f472b6 110%); color: #2b1502; box-shadow: 0 8px 24px rgba(251, 191, 36, 0.3); }
+.btn-ss:hover { transform: translateY(-2px); }
+.btn-sl { background: linear-gradient(135deg, #6366f1 0%, #312e81 100%); box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35); }
+.btn-sl:hover { transform: translateY(-2px); }
 .btn-danger { background: var(--grad-danger); box-shadow: 0 8px 24px rgba(244, 63, 94, 0.3); }
 .btn-ghost { background: var(--glass); border-color: var(--stroke); }
 .btn-ghost:hover { background: var(--glass-2); }
@@ -300,14 +319,21 @@ h2.subtitle { font-size: clamp(19px, 4.6vw, 24px); font-weight: 800; }
 .game-card:hover { transform: translateY(-4px); }
 .game-card.selected-bi { border-color: var(--pink); box-shadow: 0 0 0 1px rgba(244, 114, 182, 0.4), 0 14px 40px rgba(244, 114, 182, 0.18); }
 .game-card.selected-island { border-color: var(--emerald); box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.4), 0 14px 40px rgba(52, 211, 153, 0.18); }
+.game-card.selected-so { border-color: #d4af37; box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.4), 0 14px 40px rgba(212, 175, 55, 0.18); }
+.game-card.selected-ss { border-color: var(--amber); box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.4), 0 14px 40px rgba(251, 191, 36, 0.18); }
+.game-card.selected-sl { border-color: #818cf8; box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.4), 0 14px 40px rgba(129, 140, 248, 0.18); }
 .game-card .gc-emoji { font-size: 38px; }
 .game-card h3 { font-size: 19px; font-weight: 800; margin: 10px 0 4px; }
 .game-card p { font-size: 13.5px; color: var(--ink-dim); line-height: 1.5; }
 .game-card .gc-meta { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
 .game-card .gc-glow { position: absolute; inset: -40%; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
-.game-card:hover .gc-glow, .game-card.selected-bi .gc-glow, .game-card.selected-island .gc-glow { opacity: 0.14; }
+.game-card:hover .gc-glow, .game-card.selected-bi .gc-glow, .game-card.selected-island .gc-glow,
+.game-card.selected-so .gc-glow, .game-card.selected-ss .gc-glow, .game-card.selected-sl .gc-glow { opacity: 0.14; }
 .gc-glow.bi { background: radial-gradient(circle at 70% 20%, var(--pink), transparent 60%); }
 .gc-glow.island { background: radial-gradient(circle at 70% 20%, var(--emerald), transparent 60%); }
+.gc-glow.so { background: radial-gradient(circle at 70% 20%, #d4af37, transparent 60%); }
+.gc-glow.ss { background: radial-gradient(circle at 70% 20%, var(--amber), transparent 60%); }
+.gc-glow.sl { background: radial-gradient(circle at 70% 20%, #818cf8, transparent 60%); }
 
 /* ---------- word card (blendin reveal) ---------- */
 .word-card-wrap { perspective: 1200px; margin: 8px auto; max-width: 340px; }
@@ -1353,3 +1379,679 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 .stalled-card .sc-emoji { font-size: 40px; line-height: 1; }
 .stalled-card .sc-title { font-size: 17px; font-weight: 800; margin-top: 6px; }
 .stalled-card .sc-sub { font-size: 13px; color: var(--ink-dim); margin-top: 3px; }
+
+/* ---------- the card table ---------- */
+/* Drawn from the viewer's chair, not from above. Three things sell it: the felt is tipped
+   away on the X axis so it recedes, each seat is scaled by how far off it sits, and dealt
+   cards arc up over the table rather than sliding flat.
+   Seats use left/top percentages, which resolve against the table. The flight vector has
+   to be a length, because a transform percentage resolves against the card itself. */
+/* ---------------------------------------------------------------------------
+   THE CARD TABLE
+   Three device sizes, decided here and nowhere else. Everything below derives
+   from these four numbers, and the bands they produce cannot overlap: the deck
+   sits on --mid, the far seats ride a ring of radius --ry around the same
+   point, and the viewer's card owns the bottom of the stage. The caption is a
+   row of its own beneath the stage, not a label floating over the felt.
+   --------------------------------------------------------------------------- */
+.card-table {
+  --gold: 212, 175, 55;
+  --cw: 52px;          /* a far-side card */
+  --my: 2.0;           /* how much bigger your card gets once it is up at your eye */
+  --mid: 48%;          /* the middle of the table: deck centre and ring centre */
+  /* The ring has to stay well inside the felt. Wider than this and the cards straddle the
+     rim, which is what made them look airborne rather than lying on a table. */
+  /* Cards sit in from the rim; players sit outside it. The gap between the two rings is
+     what stops a player being drawn on top of their own card. */
+  /* The two rings are near-concentric on purpose: a card sits just inside its owner the
+     whole way round, rather than being flung towards the middle at the far seats. */
+  --rx: 43%;           /* where the cards sit: right in front of their owner */
+  --ry: 30%;
+  --px: 50%;           /* where the players sit: outside the table edge */
+  --py: 43%;
+  display: flex; flex-direction: column; gap: 2px;
+  width: 100%; margin: 2px auto 0;
+  /* The strip under the table where the stock parks. Reserved rather than overlapped, so
+     nothing below the table ever has to share space with it. */
+  padding-bottom: calc(var(--cw) * 2.15);
+}
+@media (min-width: 600px)  { .card-table { --cw: 62px; --my: 2.05; } }
+@media (min-width: 1024px) { .card-table { --cw: 72px; --my: 2.05; } }
+
+.ct-stage {
+  position: relative; width: 100%;
+  /* Deep enough that the far seat is genuinely far away. A flatter table crowds whoever
+     sits at twelve o'clock right up against the middle, which is the one part of the felt
+     the games need kept clear. Never crops: a card held up at the viewer's eye overhangs
+     the felt, and should. */
+  aspect-ratio: 1.58 / 1; max-height: 58vh; overflow: visible;
+  perspective: 900px; perspective-origin: 50% 92%;
+}
+@media (max-width: 560px) { .ct-stage { aspect-ratio: 1.04 / 1; } }
+
+.ct-felt {
+  /* Wider and shallower than the ring, so there is table visible on every side of every
+     card. A card whose edge crosses the rim reads as floating over the table, not on it. */
+  /* The rim has to pass close outside the cards, because that rim is the table edge the
+     players sit at. A much wider ellipse leaves them floating in open space. */
+  position: absolute; inset: -12% 6% 20%;
+  transform: rotateX(30deg); transform-origin: 50% 100%;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 50% 32%, rgba(var(--gold), 0.07) 0%, transparent 58%),
+    radial-gradient(ellipse at 50% 50%, #101634 0%, rgba(11, 14, 26, 0.5) 72%, transparent 100%);
+  border: 1px solid rgba(var(--gold), 0.14);
+  box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.6), 0 20px 55px rgba(0, 0, 0, 0.5);
+}
+
+/* ---- cards: midnight backs with a champagne rule, ivory faces ---- */
+.ct-card { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border-radius: 7px; }
+.ct-face {
+  position: absolute; inset: 0; border-radius: 7px; overflow: hidden;
+  display: grid; place-items: center;
+  font-weight: 800; font-size: 46cqi; line-height: 1; text-align: center;
+  letter-spacing: -0.02em;
+  /* Tight and close. The big soft shadow that used to be here is what a card hovering
+     well above a surface casts, and that is exactly how the table looked. */
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.14) inset,
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 3px 6px rgba(0, 0, 0, 0.3);
+}
+.ct-face.back {
+  background:
+    /* fine lattice, barely there */
+    repeating-linear-gradient(45deg, rgba(var(--gold), 0.10) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(-45deg, rgba(var(--gold), 0.10) 0 1px, transparent 1px 7px),
+    linear-gradient(158deg, #232a52 0%, #141a3a 46%, #1c2247 100%);
+  border: 1px solid rgba(var(--gold), 0.34);
+}
+/* An inset rule and a small centre mark, the way a real deck is finished. */
+.ct-face.back::before {
+  content: ''; position: absolute; inset: 4px; border-radius: 4px;
+  border: 1px solid rgba(var(--gold), 0.22);
+}
+.ct-face.back::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 28%; aspect-ratio: 1;
+  transform: translate(-50%, -50%) rotate(45deg);
+  border: 1px solid rgba(var(--gold), 0.4);
+  background: rgba(var(--gold), 0.07);
+}
+.ct-face.front {
+  background: linear-gradient(170deg, #fbf9f4 0%, #f0ece1 55%, #e4dfd2 100%);
+  color: #141a33; border: 1px solid rgba(var(--gold), 0.5);
+  opacity: 0;                       /* revealed by the turn */
+  /* The front is stored already turned over, which is where a real card's face is: on the
+     other side. Once the card has rotated its 180 degrees the two rotations cancel and the
+     face reads the right way round.
+     It has to be rotateY and not scaleX(-1). They look equivalent, and they are, but only
+     while the card is being flattened to a 2-D matrix. When it genuinely renders in 3-D,
+     scaleX(-1) is a second mirror on top of the rotation instead of a cancellation, and
+     the number comes out backwards. rotateY is correct in both cases. */
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
+}
+.ct-face.back { backface-visibility: hidden; }
+/* The faces are two sides of one card, so the card has to keep them in the same 3-D
+   space rather than flattening them into itself. */
+.ct-card { transform-style: preserve-3d; }
+.ct-face.front::before {
+  content: ''; position: absolute; inset: 4px; border-radius: 4px;
+  border: 1px solid rgba(var(--gold), 0.35);
+}
+
+/* ---- the deck, on the middle of the table ---- */
+.ct-deck {
+  position: absolute; left: 50%; top: var(--mid);
+  width: var(--cw); aspect-ratio: 5 / 7;
+  /* Held large while shuffling so the motion is the thing you notice, then settling to
+     table size as the deal begins. The percentages resolve against the deck itself,
+     which is exactly what centring on --mid needs. */
+  transform: translate(-50%, -50%) rotateX(24deg) scale(1.45);
+  transform-origin: 50% 50%;
+  transition: transform 0.6s cubic-bezier(0.3, 0.9, 0.3, 1), opacity 0.45s ease;
+  z-index: 12;
+  filter: drop-shadow(0 16px 22px rgba(0, 0, 0, 0.6));
+}
+.card-table.dealt .ct-deck { transform: translate(-50%, -50%) rotateX(24deg) scale(1); }
+/* Once the round is out the deck is set down out of the way, the way a dealer parks the
+   stock beside them, rather than being left in the middle of the table where the play is
+   or vanishing into thin air. */
+.card-table.spent .ct-deck {
+  /* Below the whole table, in the strip reserved for it. Off the felt entirely, so it is
+     in the same place on a phone as on a desktop, it can stay a readable size, and it can
+     never crowd a seat or be crowded by one. Left of centre because the near seat and the
+     card it lifts own the middle of that strip. */
+  top: calc(100% + var(--cw) * 0.92); left: 15%;
+  transform: translate(-50%, -50%) rotateX(16deg) rotate(-5deg) scale(0.9);
+  opacity: 0.95;
+  transition: top 0.8s cubic-bezier(0.3, 0.8, 0.25, 1),
+              left 0.8s cubic-bezier(0.3, 0.8, 0.25, 1),
+              transform 0.8s cubic-bezier(0.3, 0.8, 0.25, 1),
+              opacity 0.4s ease;
+}
+
+/* The label under the parked stock. It only appears once the deck has a corner of its own
+   to sit in; while it is being shuffled the deck is the middle of the table and needs no
+   name. */
+.ct-stock {
+  /* Directly under the stock it names, centred on it. */
+  position: absolute; left: 15%; top: calc(100% + var(--cw) * 1.72);
+  transform: translateX(-50%);
+  font-size: 12.5px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase;
+  color: rgba(var(--gold), 0.8); white-space: nowrap;
+  opacity: 0; transition: opacity 0.5s ease 0.3s;
+  pointer-events: none; z-index: 12;
+}
+.card-table.spent .ct-stock { opacity: 1; }
+
+/* When a game lets you draw from the stock, the deck says so the same way your own card
+   does: the same slow gold pulse, and a hand cursor over it. Off by default, because a
+   deck nobody may touch should not be inviting a press. */
+.ct-deck { pointer-events: none; }
+.ct-deck.pickable {
+  pointer-events: auto; cursor: grab;
+  animation: ct-yours 2.8s ease-in-out infinite;
+}
+.ct-deck.pickable:active { cursor: grabbing; }
+
+/* Each card in the stack sits a fraction above the one below, which is the whole reason
+   a deck reads as a deck and not as one card. */
+.ct-card.in-deck { animation: ct-shuffle 2.3s cubic-bezier(0.4, 0, 0.35, 1) both; }
+.ct-card.in-deck { animation-delay: calc(var(--i) * 18ms); }
+/* The top card is the brightest and the ones underneath fall away into the stack, so the
+   deck has depth rather than looking like one flat sheet. The floor matters as much as the
+   falloff: any steeper and the fanned-out cards read as a shadow instead of as cards. */
+.ct-card.in-deck .ct-face.back {
+  filter: brightness(calc(0.76 + var(--i) * 0.019));
+}
+
+/* --cut is 1 for the top half and 0 for the bottom, set per card in JS, because the cut
+   phase needs a branch and calc() has no conditionals.
+   Three motions, in the order a person does them: riffle, riffle, cut, square up. */
+@keyframes ct-shuffle {
+  0%   { transform: translate3d(0, calc(var(--i) * -1.1px), 0) rotate(0deg); }
+  /* riffle one: the halves fan apart, then interleave back together */
+  12%  { transform: translate3d(calc((var(--i) - 6.5) * 5.4px), calc(var(--i) * -1.1px - 9px), 0) rotate(calc((var(--i) - 6.5) * 2.1deg)); }
+  24%  { transform: translate3d(calc((var(--i) - 6.5) * -3.2px), calc(var(--i) * -1.1px - 2px), 0) rotate(calc((var(--i) - 6.5) * -1.1deg)); }
+  34%  { transform: translate3d(0, calc(var(--i) * -1.1px), 0) rotate(0deg); }
+  /* riffle two: shorter, faster, the way a second pass actually goes */
+  44%  { transform: translate3d(calc((var(--i) - 6.5) * 3.4px), calc(var(--i) * -1.1px - 5px), 0) rotate(calc((var(--i) - 6.5) * 1.4deg)); }
+  54%  { transform: translate3d(0, calc(var(--i) * -1.1px), 0) rotate(0deg); }
+  /* the cut: the top half lifts clear, swings across and drops underneath */
+  66%  { transform: translate3d(calc(var(--cut) * 30px), calc(var(--i) * -1.1px - var(--cut) * 16px), 0) rotate(calc(var(--cut) * 7deg)); }
+  78%  { transform: translate3d(calc(var(--cut) * 34px), calc(var(--i) * -1.1px + var(--cut) * 13px), 0) rotate(calc(var(--cut) * 4deg)); }
+  88%  { transform: translate3d(calc(var(--cut) * 6px), calc(var(--i) * -1.1px + var(--cut) * 3px), 0) rotate(calc(var(--cut) * 1deg)); }
+  /* square up: knocked flat on the table */
+  94%  { transform: translate3d(0, calc(var(--i) * -1.1px + 3px), 0) rotate(0deg); }
+  100% { transform: translate3d(0, calc(var(--i) * -1.1px), 0) rotate(0deg); }
+}
+
+
+
+/* ---------------------------------------------------------------------------
+   HANDS
+   Two working the deck through the shuffle; the right one then carries every
+   card out to its seat, keyframed in JS because each leg goes somewhere
+   different and a keyframe rule cannot take an argument.
+   --------------------------------------------------------------------------- */
+.ct-hand {
+  position: absolute; left: 50%; top: var(--mid);
+  width: calc(var(--cw) * 0.92);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  /* Hidden by default and shown only by the phase that puts something in it. A hand
+     hovering over an empty table holding nothing is worse than no hand at all. */
+  opacity: 0; transition: opacity 0.35s ease;
+  filter: drop-shadow(0 5px 9px rgba(0, 0, 0, 0.6));
+}
+.ct-hand img { display: block; width: 100%; height: auto; }
+/* One hand behind the deck and one in front, which is how a deck is actually held.
+   Both in front and they cover the cards they are supposed to be shuffling. */
+.ct-hand.h-left { z-index: 11; }
+.ct-hand.h-right { z-index: 40; }
+.card-table.shuffling .ct-hand { opacity: 0.97; }
+/* While dealing, the left hand keeps hold of the deck and the right one carries the
+   cards. Both are named here rather than left to the JS animation, so that when the
+   phase ends the stylesheet is what decides they are gone. */
+.card-table.dealing .ct-hand.h-left,
+.card-table.dealing .ct-hand.h-right { opacity: 0.97; }
+
+/* Working the deck: the left hand holds it and the right one riffles. The two keyframe
+   sets are deliberately out of step, because two hands doing the same thing at the same
+   moment read as one mirrored hand rather than as a pair. */
+.ct-hand.h-left  { animation: ct-hold 2.3s cubic-bezier(0.4, 0, 0.35, 1) both; }
+.ct-hand.h-right { animation: ct-riffle 2.3s cubic-bezier(0.4, 0, 0.35, 1) both; }
+@keyframes ct-hold {
+  0%, 100% { opacity: 0.97; transform: translate(-50%, -50%) translate(-72%, 34%) rotate(52deg) scale(0.95); }
+  14%  { transform: translate(-50%, -50%) translate(-78%, 30%) rotate(47deg) scale(0.95); }
+  36%  { transform: translate(-50%, -50%) translate(-72%, 34%) rotate(52deg) scale(0.95); }
+  66%  { transform: translate(-50%, -50%) translate(-68%, 38%) rotate(56deg) scale(0.95); }
+  88%  { transform: translate(-50%, -50%) translate(-72%, 32%) rotate(52deg) scale(0.95); }
+}
+@keyframes ct-riffle {
+  0%   { opacity: 0.97; transform: translate(-50%, -50%) translate(70%, 36%) rotate(-50deg) scale(0.95); }
+  12%  { transform: translate(-50%, -50%) translate(80%, 26%) rotate(-60deg) scale(0.95); }
+  24%  { transform: translate(-50%, -50%) translate(66%, 38%) rotate(-46deg) scale(0.95); }
+  44%  { transform: translate(-50%, -50%) translate(76%, 29%) rotate(-56deg) scale(0.95); }
+  54%  { transform: translate(-50%, -50%) translate(68%, 37%) rotate(-48deg) scale(0.95); }
+  /* the cut: it lifts the top half clear and brings it back down */
+  70%  { transform: translate(-50%, -50%) translate(94%, 12%) rotate(-68deg) scale(0.97); }
+  84%  { transform: translate(-50%, -50%) translate(74%, 40%) rotate(-50deg) scale(0.95); }
+  100% { opacity: 0.97; transform: translate(-50%, -50%) translate(70%, 36%) rotate(-50deg) scale(0.95); }
+}
+/* Dealing: the riffle keyframes stop, the left hand simply holds the deck where it is. */
+.card-table.dealt .ct-hand { animation: none; }
+.card-table.dealt .ct-hand.h-left {
+  transform: translate(-50%, -50%) translate(-72%, 34%) rotate(52deg) scale(0.95);
+}
+
+/* ---------------------------------------------------------------------------
+   THE GRIP
+   Four fingers laid across the back of your card — drawn inside the card element
+   itself, which is the whole trick. The card's own turn carries the hand round
+   with it, so fingers that were lying on the back end up behind the face, and
+   backface-visibility drops them from view at exactly the halfway point where
+   the card is edge-on and the change cannot be seen happening. One drawing, one
+   animation, and nothing that can drift out of register with the card.
+   --------------------------------------------------------------------------- */
+.ct-grip {
+  position: absolute; right: -20%; bottom: -14%;
+  width: 78%; z-index: 4;
+  opacity: 0; pointer-events: none;
+  transform: rotate(-12deg) scale(1.02);
+  transform-origin: 60% 80%;
+  backface-visibility: hidden;
+  transition: opacity 0.18s ease;
+  filter: drop-shadow(-3px 4px 7px rgba(0, 0, 0, 0.55));
+}
+.ct-grip img { display: block; width: 100%; height: auto; }
+.ct-seat.mine.showing .ct-grip,
+.ct-seat.mine.dragging .ct-grip { opacity: 1; }
+
+/* ---- seats on the far arc ---- */
+.ct-ring { position: absolute; inset: 0; }
+.ct-seat {
+  position: absolute;
+  left: calc(50% + var(--xf, 0) * var(--rx));
+  top: calc(var(--mid) + var(--yf, 0) * var(--ry));
+  transform: translate(-50%, -50%);
+  z-index: var(--z, 1);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+/* The contact shadow: a flat smear on the felt directly under the card, squashed the way
+   a shadow is when the thing casting it is touching the surface. This is what says "on the
+   table" more than any amount of card detail does. */
+.ct-slot::after {
+  content: ''; position: absolute; z-index: 0;
+  left: 4%; right: 4%; bottom: -3%; height: 16%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 72%);
+  filter: blur(2px);
+  /* Nothing is casting it yet. A shadow sitting on the felt with no card above it is a
+     smudge, and there was one at every empty seat all through the shuffle. */
+  opacity: 0;
+}
+/* It arrives on the same beat as the card that casts it: --d is the seat's deal delay. */
+.card-table.dealt .ct-slot::after {
+  animation: ct-shadow-in 0.28s ease var(--d, 0ms) both;
+}
+@keyframes ct-shadow-in { 0% { opacity: 0; } 100% { opacity: 1; } }
+.ct-slot > .ct-card { z-index: 1; }
+.ct-slot {
+  position: relative; width: var(--cw); aspect-ratio: 5 / 7;
+  /* --rot squares the card to the player it belongs to. It comes after rotateX so the
+     turn happens in the plane of the table rather than in the plane of the screen. */
+  transform: scale(var(--s, 1)) rotateX(18deg) rotate(var(--rot, 0deg));
+  /* The card is the container, so the number on its face scales with it and reads the
+     same on a phone as on a desktop without a single media query. */
+  container-type: inline-size;
+  /* Perspective has to live here: the slot's own transform flattens anything above it,
+     so this is the only place a child rotateY can be given real depth. */
+  perspective: 620px;
+}
+/* The players sit on their own ring, wider than the one the cards are dealt to, so each
+   one is at the table edge with their card in front of them rather than drifting near it.
+   They only arrive with the cards, so the table is empty while the deck is being shuffled
+   rather than showing a ring of players around nothing. Everyone shrinks with the same
+   depth scale the cards use, so the far side of the table is genuinely further away. */
+.ct-who {
+  position: absolute;
+  left: calc(50% + var(--xf, 0) * var(--px));
+  top: calc(var(--mid) + var(--yf, 0) * var(--py));
+  /* The chair itself is not scaled. Depth is applied to the figure only, because a name
+     scaled to a third of its size is a name nobody can read — perspective is worth having
+     on a silhouette and worth nothing on a label. */
+  transform: translate(-50%, -50%);
+  z-index: var(--z, 1);
+  opacity: 0; transition: opacity 0.4s ease 0.1s;
+}
+/* You are on the near edge looking in, so your chair is below your card — and further out
+   than anyone else's, because the near edge of a table is the closest thing to the viewer.
+   Below the seat in the stack, so a card lifted up to your eye passes in front of you
+   rather than being drawn behind your own shoulders. */
+.ct-who.mine {
+  left: 50%; top: calc(var(--mid) + var(--py) * 1.05);
+  z-index: 29;
+}
+.card-table.dealt .ct-who { opacity: 1; }
+
+/* The deal. --fx / --fy are the deck's offset from this seat, measured in JS the moment
+   the deal begins, so the card genuinely leaves the deck. --lean is which way it swings,
+   so cards going left and right do not both lean the same way.
+   The last 20% is the settle: it overshoots its resting place slightly and drops back,
+   which is what a card does when it stops sliding on cloth. */
+.ct-card.dealt { opacity: 0; }
+.card-table.dealt .ct-card.dealt {
+  animation: ct-deal 0.3s cubic-bezier(0.34, 0.02, 0.28, 1) var(--d, 0ms) both;
+}
+/* Once the round is down, the animation is retired and the resting pose is plain CSS.
+   An animation with fill:both never stops asserting its last keyframe, and an animation
+   beats every static declaration, so leaving it in place would freeze each card where the
+   deal left it and no later rule could ever move it. */
+.card-table.laid .ct-card.dealt { animation: none; opacity: 1; transform: none; }
+/* A thrown card carries an inline transform that must not be overridden by the rule above. */
+.ct-seat.played .ct-card.dealt { transform: none; }
+@keyframes ct-deal {
+  0%   {
+    opacity: 0;
+    transform: translate(var(--fx, 0px), var(--fy, 0px)) scale(0.82)
+      rotate(calc(var(--lean, 1) * -10deg));
+  }
+  16%  { opacity: 1; }
+  /* Barely off the felt: it is being carried, not thrown. */
+  62%  {
+    transform: translate(calc(var(--fx, 0px) * 0.3), calc(var(--fy, 0px) * 0.3 - 5px))
+      scale(0.95) rotate(calc(var(--lean, 1) * -4deg));
+  }
+  100% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+}
+
+/* ---- the viewer's own seat: six o'clock, on the felt, largest ---- */
+/* Placed on the same ring as everyone else rather than pinned to the bottom of the stage.
+   Pinning put it below the felt entirely, so the one card the player owns was the one card
+   not on the table. */
+.ct-seat.mine {
+  left: 50%; right: auto; bottom: auto;
+  top: calc(var(--mid) + var(--ry) * 0.88);
+  transform: translate(-50%, -50%); z-index: 30;
+  /* The seat's own transform flattens anything above it, so the card's approach towards
+     the viewer has to be given its depth here or translateZ does nothing at all. */
+  perspective: 760px;
+}
+/* At rest your card lies on the felt on the same plane as everyone else's. Picking it up
+   is what brings it upright: the difference between lying down and being held is the
+   animation, so the resting pose has to be honestly flat. */
+/* At rest your card is one of the cards on the table: same width, same tilt, and the same
+   near-side scale the closest seats get, because it is sitting where the closest seat sits.
+   The size difference is earned by picking it up, not granted for being yours. */
+.ct-seat.mine { --s: 0.95; }
+.ct-seat.mine .ct-slot {
+  width: var(--cw);
+  transform: rotateX(18deg) scale(var(--s));
+  perspective: 900px;
+  transition: transform 0.5s cubic-bezier(0.24, 0.86, 0.28, 1), filter 0.4s ease;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.6));
+}
+/* But it is the one card you may touch, so it is lit. The slow pulse is the invitation.
+   A played card gets neither: .played has no glow and no cursor, because the invitation
+   should stop the moment the card can no longer be picked up. */
+.ct-seat.mine.live .ct-slot { animation: ct-yours 2.8s ease-in-out infinite; }
+/* A played card lies face up in the middle: that is the whole point of playing it, and
+   the pile has to be readable by everyone. */
+.ct-seat.mine.played { cursor: default; }
+.ct-seat.mine.played .ct-face.back { opacity: 0; }
+.ct-seat.mine.played .ct-face.front { opacity: 1; }
+/* Anyone's played card, once it has passed edge-on. */
+.ct-seat.face-up .ct-face.back { opacity: 0; }
+.ct-seat.face-up .ct-face.front { opacity: 1; }
+/* A card in the middle belongs to the pile, not to the seat it came from, so it is lifted
+   clear of every seat's stacking order and lands on top of whatever is already there. */
+.ct-seat.played { z-index: 25; }
+.ct-seat.played .ct-slot::after { opacity: 0; }
+.ct-seat.mine.played .ct-slot {
+  animation: none;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.6));
+}
+@keyframes ct-yours {
+  0%, 100% { filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 6px rgba(var(--gold), 0.42)); }
+  50%      { filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 13px rgba(var(--gold), 0.78)); }
+}
+/* Picked up: off the table, square to your eye, and lit. Fires for the dealt reveal and
+   for every hold afterwards, so looking at your card is one gesture with one look. */
+/* Picked up: it leaves the table, comes up square to your eye and gets a lot bigger,
+   because it is now a hand's length from your face rather than lying at arm's reach. The
+   growth is the distance; without it the turn reads as a card spinning on the felt. */
+.card-table.flipped .ct-seat.mine .ct-slot,
+.ct-seat.mine.showing .ct-slot {
+  animation: none;
+  /* Forwards and down, not up: the card is coming towards the viewer, and towards is down
+     the screen as well as bigger. */
+  transform: rotateX(0deg) translateY(20px) translateZ(90px) scale(calc(var(--s) * var(--my)));
+  filter: drop-shadow(0 28px 36px rgba(0, 0, 0, 0.72)) drop-shadow(0 0 26px rgba(var(--gold), 0.34));
+}
+.ct-seat.mine .ct-card.dealt { --tilt: 0deg; --d: 0ms; }
+
+/* ---- your card, once it is yours to handle -------------------------------
+   The scripted reveal is a keyframe animation; from here on the same poses are
+   expressed as transitions, so the handover mid-air does not move the card.
+   Hold it and it comes up face towards you; let go and it lies back down. */
+.ct-seat.mine.live { cursor: grab; outline: none; touch-action: none; }
+.ct-seat.mine.live .ct-slot { cursor: inherit; }
+.ct-seat.mine.live:active,
+.ct-seat.mine.dragging { cursor: grabbing; }
+.ct-seat.mine.live .ct-card.dealt {
+  /* Carries .dealt so it outranks the .card-table.laid freeze above: this card is the one
+     thing on the table that still has to be able to move. */
+  animation: none; opacity: 1;
+  transition: transform 0.44s cubic-bezier(0.36, 0.06, 0.22, 1);
+  transform: rotateY(0deg);
+}
+.ct-seat.mine.live.showing .ct-card.dealt { transform: rotateY(180deg); }
+/* The faces swap at the midpoint of the turn, where the card is edge-on. */
+.ct-seat.mine.live .ct-face.back { opacity: 1; transition: opacity 0s linear 0.22s; }
+.ct-seat.mine.live .ct-face.front { opacity: 0; transition: opacity 0s linear 0.22s; }
+.ct-seat.mine.live.showing .ct-face.back { opacity: 0; }
+.ct-seat.mine.live.showing .ct-face.front { opacity: 1; }
+/* A card being dragged must track the pointer exactly, so nothing may ease it. */
+.ct-seat.mine.dragging .ct-card.dealt { transition: none; }
+.ct-seat.mine.dragging .ct-slot { transition: none; }
+/* Far enough to count as a throw: the card lights up so the player knows letting go
+   now will play it, rather than finding out afterwards. */
+.ct-seat.mine.armed .ct-slot {
+  filter: drop-shadow(0 24px 30px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 26px rgba(var(--gold), 0.65));
+}
+.ct-seat.mine.live:focus-visible .ct-slot {
+  filter: drop-shadow(0 16px 22px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 0 3px rgba(var(--gold), 0.9));
+}
+
+/* The reveal: an honest turn through edge-on. The card rotates the full 180 degrees and
+   the two faces are swapped at the halfway point, where the card is side-on and neither
+   is legible anyway. Swapping by opacity rather than relying on backface-visibility is
+   deliberate: a backface flip renders the wrong side the moment any ancestor flattens
+   the 3D context, and several of these ancestors do. */
+.card-table.flipped .ct-seat.mine .ct-card {
+  animation: ct-turn3d 0.78s cubic-bezier(0.36, 0.06, 0.22, 1) both;
+}
+.card-table.flipped .ct-seat.mine .ct-face.back { animation: ct-hide 0.78s steps(1, end) both; }
+.card-table.flipped .ct-seat.mine .ct-face.front { animation: ct-show 0.78s steps(1, end) both; }
+/* Every frame restates opacity. This animation replaces ct-deal on the same element, so
+   without it the card falls back to the .ct-card.dealt base of opacity 0 and disappears
+   at the exact moment it is meant to be revealed. */
+/* Turned to the right, which is the way a hand actually turns a card over: the right edge
+   goes back and the left comes forward, rather than the other way about. */
+@keyframes ct-turn3d {
+  0%   { opacity: 1; transform: rotateY(0deg) translateZ(0) translateY(0) rotateZ(0deg); }
+  20%  { opacity: 1; transform: rotateY(18deg) translateZ(26px) translateY(-17px) rotateZ(3.5deg); }
+  50%  { opacity: 1; transform: rotateY(90deg) translateZ(36px) translateY(-23px) rotateZ(0deg); }
+  80%  { opacity: 1; transform: rotateY(162deg) translateZ(26px) translateY(-15px) rotateZ(-3.5deg); }
+  100% { opacity: 1; transform: rotateY(180deg) translateZ(0) translateY(0) rotateZ(0deg); }
+}
+@keyframes ct-hide { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes ct-show { 0%, 49% { opacity: 0; } 50%, 100% { opacity: 1; } }
+
+/* ---- the people ----------------------------------------------------------
+   A head over a pair of shoulders. Two CSS shapes, not a drawing: at this size a
+   silhouette only has to read as a person, and a circle sitting on a rounded slab
+   does that at every scale the table asks for. */
+/* Ring seats read outward: name, then player, then their card nearer the middle. Your own
+   seat is the other way up, because you are on the near edge looking in. */
+.ct-who {
+  display: flex; flex-direction: column-reverse; align-items: center; gap: 3px;
+  font-size: 13px; white-space: nowrap;
+}
+.ct-who.mine { flex-direction: column; font-size: 15px; }
+.ct-body {
+  position: relative;
+  width: calc(var(--cw) * 0.9 * var(--s, 1)); height: calc(var(--cw) * 0.34 * var(--s, 1));
+  margin-top: calc(var(--cw) * 0.42 * var(--s, 1));
+  border-radius: 999px 999px calc(var(--cw) * 0.1) calc(var(--cw) * 0.1);
+  background: linear-gradient(168deg, #2b3363 0%, #1b2148 62%, #161b3c 100%);
+  border: 1px solid rgba(var(--gold), 0.26);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+}
+.ct-head {
+  position: absolute; left: 50%; bottom: 58%;
+  transform: translateX(-50%);
+  width: calc(var(--cw) * 0.52 * var(--s, 1)); height: calc(var(--cw) * 0.52 * var(--s, 1));
+  border-radius: 50%;
+  background: linear-gradient(160deg, #333c72 0%, #1e2550 100%);
+  border: 1px solid rgba(var(--gold), 0.34);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+/* Name and avatar together, always upright and always on the outside of the table, where
+   they can be read whichever way the player is turned. */
+.ct-who b {
+  display: flex; align-items: center; gap: 3px;
+  font-weight: 700; color: var(--ink-dim); letter-spacing: 0.2px;
+  max-width: calc(var(--cw) * 2.4); overflow: hidden; text-overflow: ellipsis;
+}
+.ct-emoji { font-size: 1.15em; line-height: 1; }
+
+/* Whose turn it is. The arrow sits outside the chair pointing in at the player, so it never
+   lands on a card; and the player it belongs to sees it over themselves, which is how
+   everyone at the table ends up looking at the same person. */
+.ct-arrow {
+  position: absolute; left: 50%; bottom: calc(100% + 5px);
+  width: 0; height: 0;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-top: 15px solid rgb(var(--gold));
+  transform: translateX(-50%);
+  opacity: 0; transition: opacity 0.25s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.7));
+}
+/* Your own chair is the other way up, so the arrow points up at you from below. */
+.ct-who.mine .ct-arrow {
+  bottom: auto; top: calc(100% + 5px);
+  border-top: none; border-bottom: 15px solid rgb(var(--gold));
+}
+.ct-who.turn .ct-arrow { opacity: 1; animation: ct-nudge 1.15s ease-in-out infinite; }
+@keyframes ct-nudge {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(3px); }
+}
+.ct-who.mine.turn .ct-arrow { animation-name: ct-nudge-up; }
+@keyframes ct-nudge-up {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(-3px); }
+}
+.ct-who.turn .ct-head {
+  border-color: rgb(var(--gold));
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55), 0 0 12px rgba(var(--gold), 0.6);
+}
+.ct-who.turn .ct-body { border-color: rgba(var(--gold), 0.6); }
+.ct-who.turn b { color: rgb(var(--gold)); }
+.ct-who.mine { transition: opacity 0.25s ease; }
+/* Your card fills this space once it is up, so the label gets out of its way. */
+
+.ct-who.mine b { color: rgb(var(--gold)); letter-spacing: 1px; }
+/* You are the nearest chair, so your own figure is the largest at the table. */
+.ct-who.mine .ct-head { border-color: rgba(var(--gold), 0.55); }
+
+/* Its own row under the stage, so it can never sit on top of a card. */
+.ct-caption {
+  text-align: center; min-height: 1.3em;
+  font-size: 13.5px; color: var(--ink-dim); font-weight: 700; letter-spacing: 0.3px;
+}
+
+/* ---------------------------------------------------------------------------
+   HOLD TO LOOK
+   A card you shield with your hand: it lifts and turns over while pressed and
+   goes face down the moment you let go, so a card is only ever readable while
+   a finger is on it.
+   --------------------------------------------------------------------------- */
+.peek-card {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  background: none; border: 0; padding: 6px 0 0; cursor: pointer;
+  --cw: 78px; --gold: 212, 175, 55;
+  touch-action: none;                /* holding the card must not scroll the page */
+  -webkit-user-select: none; user-select: none;
+}
+@media (min-width: 600px) { .peek-card { --cw: 96px; } }
+.peek-card .ct-slot {
+  width: calc(var(--cw) * 1.4); transform: rotateX(-6deg);
+  perspective: 800px;
+  transition: transform 0.3s cubic-bezier(0.3, 0.9, 0.3, 1);
+  filter: drop-shadow(0 14px 20px rgba(0, 0, 0, 0.55));
+}
+.peek-card .ct-card {
+  transition: transform 0.44s cubic-bezier(0.36, 0.06, 0.22, 1);
+  transform: rotateY(0deg);
+}
+.peek-card .ct-face.back { opacity: 1; transition: opacity 0s linear 0.22s; }
+.peek-card .ct-face.front { transition: opacity 0s linear 0.22s; }
+.peek-card .pk-mark { font-size: 52cqi; color: rgba(var(--gold), 0.5); }
+.peek-card.showing .ct-slot { transform: rotateX(-6deg) scale(1.06); }
+.peek-card.showing .ct-card { transform: rotateY(180deg) translateY(-8px); }
+.peek-card.showing .ct-face.back { opacity: 0; }
+.peek-card.showing .ct-face.front { opacity: 1; }
+.pk-hint {
+  font-size: 12.5px; font-weight: 800; letter-spacing: 0.6px;
+  color: var(--ink-dim); text-transform: uppercase;
+}
+.peek-card.showing .pk-hint { color: rgb(var(--gold)); text-transform: none; font-size: 14px; }
+
+/* Reduced motion: everything is simply already dealt and turned over, and the hold-to-look
+   card still works, it just does not animate on the way. */
+@media (prefers-reduced-motion: reduce) {
+  .card-table .ct-deck .ct-card,
+  .card-table.dealt .ct-card.dealt,
+  .card-table.flipped .ct-seat.mine .ct-card,
+  .card-table.flipped .ct-seat.mine .ct-face { animation: none; }
+  .card-table.dealt .ct-card.dealt { opacity: 1; }
+  .card-table.dealt .ct-who,
+  .card-table.still .ct-who { opacity: 1; }
+  .card-table.flipped .ct-seat.mine .ct-face.back { opacity: 0; }
+  .card-table.flipped .ct-seat.mine .ct-face.front { opacity: 1; transform: none; }
+  .ct-seat.mine .ct-slot, .ct-seat.mine .ct-card { transition: none; }
+  .ct-seat.mine.live .ct-slot { animation: none; }
+  .ct-who.turn .ct-arrow { animation: none; }
+  .ct-seat.mine.live.showing .ct-card.dealt { transform: none; }
+  .peek-card .ct-slot, .peek-card .ct-card { transition: none; }
+  .peek-card.showing .ct-card { transform: none; }
+  .peek-card .ct-face.front,
+  .ct-seat.mine.live.showing .ct-face.front { transform: none; }
+}
+
+/* ---------- Island Rules: the boat's self-audit ---------- */
+.audit-box { margin-top: 4px; }
+.audit-note { border: 1px solid rgba(52, 211, 153, 0.35); font-size: 14px; }
+.audit-note.warn { border-color: rgba(251, 191, 36, 0.5); }
+
+/* A reaction floats up out of whoever sent it, so the table sees the joke's author. */
+.react-float {
+  position: absolute; left: 50%; top: -4px;
+  font-size: 26px; line-height: 1; pointer-events: none; z-index: 40;
+  transform: translateX(-50%);
+  animation: react-float 2.5s cubic-bezier(0.2, 0.6, 0.3, 1) forwards;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+@keyframes react-float {
+  0%   { opacity: 0; transform: translate(-50%, 6px) scale(0.6); }
+  12%  { opacity: 1; transform: translate(-50%, -6px) scale(1.15); }
+  70%  { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(-46%, -46px) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) { .react-float { animation: react-fade 2.5s forwards; } }
+@keyframes react-fade { 0% { opacity: 1; } 100% { opacity: 0; } }

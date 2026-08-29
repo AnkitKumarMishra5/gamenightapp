@@ -1,4 +1,4 @@
-// Easy-to-read rules for The Island, rendered inside the rules modal.
+// Easy-to-read rules for Island Rules, rendered inside the rules modal.
 import { h } from '../../core/ui.js';
 
 export function rulesNode() {

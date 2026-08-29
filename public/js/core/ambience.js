@@ -194,6 +194,21 @@ export function setMusicVolume(v) {
   return volume;
 }
 
+// A hard cut in the soundtrack, then a slow fade back up. Used when a card table wants
+// the room to go quiet: the laugh stops, nothing plays, and the dealing lands in silence.
+// Deliberately not setMusicVolume, because this must never touch the saved preference.
+export function duckMusic(ms = 1600) {
+  if (!graph) return;
+  const { ctx, master, theme } = graph;
+  const now = ctx.currentTime;
+  const back = Math.max(theme.level * volume, 0.0001);
+  master.gain.cancelScheduledValues(now);
+  master.gain.setValueAtTime(Math.max(master.gain.value, 0.0001), now);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+  master.gain.setValueAtTime(0.0001, now + ms / 1000);
+  master.gain.exponentialRampToValueAtTime(back, now + ms / 1000 + 1.1);
+}
+
 export function setTheme(id) {
   if (!THEMES.some((t) => t.id === id)) return themeId;
   themeId = id;

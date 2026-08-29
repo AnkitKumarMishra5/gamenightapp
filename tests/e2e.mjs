@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { io } from 'socket.io-client';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -329,9 +329,10 @@ async function testTieRunoff() {
 
   // Tie again in the runoff → nobody goes home
   await castTie();
-  await until(host, (s) => s.blendin.phase === 'roundResult', 'second tie → roundResult');
-  check('no elimination on double tie', host.bi.lastResult?.type === 'none', JSON.stringify(host.bi.lastResult));
-  check('everyone still alive after double tie', host.bi.alive.length === 6);
+  // A table that ties twice has been played: the outsiders take the game on the spot.
+  await until(host, (s) => s.blendin.phase === 'gameOver', 'second tie → gameOver');
+  check('a double tie hands the game to the outsiders', host.bi.winner === 'outsiders', host.bi.winner);
+  check('and says why', /tie/i.test(host.bi.winReason || ''), host.bi.winReason);
   await cleanup(players);
 }
 
@@ -931,40 +932,47 @@ async function testGameSwitching() {
 }
 
 async function testIslandHints() {
-  console.log('\n▶ Island: hints unlock one lap at a time');
+  console.log('\n▶ Island: the one hint, host-spent, earned by laps');
   const { players, host } = await makeRoom(3);
   await host.emit('is:start', { mode: 'ai' });
   await until(host, (s) => s.island?.phase === 'setup', 'setup');
   await host.emit('is:setupAI');
   await until(host, (s) => s.island.phase === 'playing', 'playing');
 
+  // Three players: the hint waits for TWO full laps.
   check('no hint before anyone has played', host.is.hintsAvailable === 0);
-  check('the wait is spelled out', host.is.turnsToNextHint === players.length,
+  check('the wait is spelled out', host.is.turnsToNextHint === players.length * 2,
     String(host.is.turnsToNextHint));
   const early = await host.emit('is:hint');
   check('asking too early is refused', !early.ok);
   check('and says how long to wait', /more turn/.test(early.error || ''), early.error);
 
-  // One full lap: every player takes a turn.
-  for (let i = 0; i < players.length; i++) {
+  // Two full laps: every player takes two turns.
+  for (let i = 0; i < players.length * 2; i++) {
     const cur = players.find((p) => p.snap.you.id === host.is.currentTurn);
     if (!cur) break;
+    // The judge has a short per-player cooldown; humans never hit it, a test loop does.
+    if (i >= players.length) await sleep(1300);
     await cur.emit('is:item', { text: `thing${i}` });
-    // In AI mode the turn parks on pendingJudge first, so wait for the verdict as well.
     await until(host, (s) => !s.island.pendingJudge && s.island.currentTurn !== cur.snap.you.id,
       `turn ${i} judged and passed`);
   }
-  await untilAll(players, (s) => s.island.hintsAvailable >= 1, 'a hint is earned');
-  check('a completed lap earns a hint', host.is.hintsAvailable === 1);
+  await untilAll(players, (s) => s.island.hintsAvailable >= 1, 'the hint unlocks');
+  check('two laps at three players unlock the hint', host.is.hintsAvailable === 1);
+
+  // Only the room owner may spend it, after asking the table out loud.
+  const other = players.find((p) => p !== host);
+  const byGuest = await other.emit('is:hint');
+  check('a guest cannot spend the hint', !byGuest.ok, byGuest.error);
+  check('the refusal names the owner', /owner/.test(byGuest.error || ''), byGuest.error);
 
   const before = host.is.hints.length;
   const res = await host.emit('is:hint');
-  check('the hint is granted', res.ok, res.error);
+  check('the owner can', res.ok, res.error);
   check('it hands over two items', res.items?.length === 2, JSON.stringify(res.items));
   await untilAll(players, (s) => s.island.hints.length === before + 1, 'hint reaches everyone');
   check('the hint is on the packing list for everyone',
     players.every((p) => p.is.hints[0]?.items.length === 2));
-  check('spending it uses up the credit', host.is.hintsAvailable === 0);
 
   const items = host.is.hints[0].items.map((t) => t.toLowerCase());
   const already = [...host.is.starters, ...host.is.attempts.map((a) => a.text)]
@@ -973,23 +981,8 @@ async function testIslandHints() {
     items.every((t) => !already.includes(t)), JSON.stringify(items));
 
   const second = await host.emit('is:hint');
-  check('a second hint needs a second lap', !second.ok, second.error);
-
-  // Anyone can spend one, not only the player whose turn it is.
-  const other = players.find((p) => p !== host);
-  for (let i = 0; i < players.length; i++) {
-    const cur = players.find((p) => p.snap.you.id === host.is.currentTurn);
-    if (!cur) break;
-    // The judge has a short per-player cooldown; humans never hit it, a test loop does.
-    await sleep(1300);
-    const r = await cur.emit('is:item', { text: `later${i}` });
-    if (!r.ok) check(`lap 2 item ${i} accepted`, false, r.error);
-    await until(host, (s) => !s.island.pendingJudge && s.island.currentTurn !== cur.snap.you.id,
-      `lap 2 turn ${i} judged and passed`);
-  }
-  await untilAll(players, (s) => s.island.hintsAvailable >= 1, 'second hint earned');
-  const byGuest = await other.emit('is:hint');
-  check('any player can spend the hint, not just whoever is up', byGuest.ok, byGuest.error);
+  check('there is no second hint, ever', !second.ok, second.error);
+  check('the snapshot agrees it is spent', host.is.hintSpent === true);
 
   await cleanup(players);
 }
@@ -1347,6 +1340,24 @@ async function main() {
     } catch (err) {
       failures.push(`${t.name} threw: ${err.message}`);
       console.log(`  ✗ ${t.name} threw: ${err.message}`);
+    }
+  }
+
+  // The card games keep their suites in their own files, one per game, so a game can be
+  // built and tested without three people editing this file. Each module exports
+  // suites(harness) -> [{ name, fn }].
+  for (const id of ['silentorder', 'swaporstay', 'sleepless']) {
+    const suitePath = path.join(ROOT, 'tests', 'games', `${id}.test.mjs`);
+    if (!fs.existsSync(suitePath)) continue;
+    const mod = await import(pathToFileURL(suitePath).href);
+    for (const { name, fn } of mod.suites({ Player, check, sleep, URL })) {
+      console.log(`\n${name}`);
+      try {
+        await fn();
+      } catch (err) {
+        failures.push(`${name} threw: ${err.message}`);
+        console.log(`  ✗ ${name} threw: ${err.message}`);
+      }
     }
   }
 

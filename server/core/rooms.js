@@ -3,6 +3,9 @@ import { aiAvailable } from '../lib/openai.js';
 import * as blendin from '../games/blendin/engine.js';
 import { DIFFICULTIES } from '../games/blendin/ai.js';
 import * as island from '../games/island/engine.js';
+import * as silentorder from '../games/silentorder/engine.js';
+import * as swaporstay from '../games/swaporstay/engine.js';
+import * as sleepless from '../games/sleepless/engine.js';
 import { GameError, cleanText, roomCode } from '../lib/util.js';
 import { roomLeaderboard, SCORING_RULES } from './scores.js';
 
@@ -151,6 +154,9 @@ export function gameIsStalled(room) {
   if (!room?.game || !room.state) return false;
   if (room.game === 'blendin') return blendin.isStalled(room);
   if (room.game === 'island') return island.isStalled(room);
+  if (room.game === 'silentorder') return silentorder.isStalled(room);
+  if (room.game === 'swaporstay') return swaporstay.isStalled(room);
+  if (room.game === 'sleepless') return sleepless.isStalled(room);
   return false;
 }
 
@@ -183,7 +189,14 @@ export function snapshot(room, forPlayerId) {
     aiAvailable: aiAvailable(),
     // Lets the client offer a way out of a game nobody present can finish.
     stalled: gameIsStalled(room),
-    limits: { biMin: blendin.BI_MIN_PLAYERS, biMax: blendin.BI_MAX_PLAYERS, islandMin: island.ISLAND_MIN_PLAYERS, roomMax: MAX_PLAYERS },
+    limits: {
+      biMin: blendin.BI_MIN_PLAYERS, biMax: blendin.BI_MAX_PLAYERS,
+      islandMin: island.ISLAND_MIN_PLAYERS,
+      soMin: silentorder.SO_MIN_PLAYERS, soMax: silentorder.SO_MAX_PLAYERS,
+      ssMin: swaporstay.SS_MIN_PLAYERS, ssMax: swaporstay.SS_MAX_PLAYERS,
+      slMin: sleepless.SL_MIN_PLAYERS, slMax: sleepless.SL_MAX_PLAYERS,
+      roomMax: MAX_PLAYERS,
+    },
     // Sent to the client so the difficulty picker is generated from one list rather than
     // duplicated in the UI.
     difficulties: DIFFICULTIES,
@@ -191,5 +204,8 @@ export function snapshot(room, forPlayerId) {
     scoringRules: SCORING_RULES,
     blendin: room.game === 'blendin' ? blendin.snapshot(room, forPlayerId) : null,
     island: room.game === 'island' ? island.snapshot(room, forPlayerId) : null,
+    silentorder: room.game === 'silentorder' ? silentorder.snapshot(room, forPlayerId) : null,
+    swaporstay: room.game === 'swaporstay' ? swaporstay.snapshot(room, forPlayerId) : null,
+    sleepless: room.game === 'sleepless' ? sleepless.snapshot(room, forPlayerId) : null,
   };
 }

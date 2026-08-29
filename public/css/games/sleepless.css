@@ -1,0 +1,256 @@
+/* ============================================================
+   Sleepless — night-and-day deduction
+   Midnight and champagne gold, matching the card table. Every
+   selector is sl- prefixed; shared chrome (cards, player tiles,
+   buttons) comes from style.css untouched.
+   ============================================================ */
+
+.sl-wrap { position: relative; }
+
+/* ---------- the accent button ----------
+   Gold on midnight, the same champagne the card table deals in, so "this is the
+   Sleepless move" reads the same on every screen of the game. */
+.sl-btn {
+  background: linear-gradient(135deg, #e6c765 0%, #c9a227 100%);
+  color: #141a33;
+  font-weight: 800;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  border-radius: var(--r-md);
+  padding: 12px 20px;
+  box-shadow: 0 6px 22px rgba(212, 175, 55, 0.22);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.sl-btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); }
+.sl-btn:active:not(:disabled) { transform: translateY(0); }
+.sl-btn:disabled { opacity: 0.55; box-shadow: none; }
+
+/* ---------- HUD ---------- */
+.sl-hud { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.sl-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--stroke);
+  color: var(--ink-dim);
+  font-size: 13px; font-weight: 700;
+}
+.sl-rolechip { border-color: rgba(212, 175, 55, 0.4); color: var(--ink); }
+.sl-rolechip:hover { background: rgba(212, 175, 55, 0.1); }
+.sl-dead-pill { border-color: rgba(248, 113, 113, 0.4); color: var(--red); }
+
+/* ---------- night ----------
+   The dark arrives as a fixed veil behind the page content (z-index −1 keeps it above
+   the app backdrop and below every card), so the whole room dims rather than one panel. */
+.sl-nightfx {
+  position: fixed; inset: 0; z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% 110%, rgba(4, 6, 18, 0.92) 0%, rgba(7, 10, 26, 0.72) 45%, rgba(8, 11, 30, 0.45) 100%);
+}
+.sl-sky { position: absolute; inset: 0; overflow: hidden; }
+.sl-star {
+  position: absolute;
+  width: 3px; height: 3px; border-radius: 50%;
+  background: rgba(238, 240, 255, 0.85);
+  box-shadow: 0 0 6px rgba(238, 240, 255, 0.55);
+  animation: sl-twinkle 3.4s ease-in-out infinite alternate, sl-drift 40s linear infinite alternate;
+}
+@keyframes sl-twinkle { from { opacity: 0.25; } to { opacity: 0.95; } }
+@keyframes sl-drift { from { transform: translateX(0); } to { transform: translateX(14px); } }
+
+/* A thin crescent: a transparent disc whose only paint is an offset inner shadow. */
+.sl-moon {
+  position: absolute; top: 14%; right: 12%;
+  width: 54px; height: 54px; border-radius: 50%;
+  box-shadow: inset -12px 7px 0 0 #efe7c8, 0 0 34px rgba(239, 231, 200, 0.25);
+}
+.sl-moonrise .sl-moon { animation: sl-moonrise 2s cubic-bezier(0.25, 0.8, 0.35, 1) both; }
+@keyframes sl-moonrise {
+  from { transform: translateY(90px) rotate(-14deg); opacity: 0; }
+  to { transform: translateY(0) rotate(0); opacity: 1; }
+}
+
+.sl-is-night .card { background: rgba(10, 13, 30, 0.72); border-color: rgba(120, 130, 200, 0.16); }
+.sl-night-card { text-align: center; }
+
+/* Gentle "the table is asleep" pulse. */
+.sl-dots { display: flex; gap: 8px; justify-content: center; margin-top: 14px; }
+.sl-dots i {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: rgba(212, 175, 55, 0.75);
+  animation: sl-breathe 1.8s ease-in-out infinite;
+}
+.sl-dots i:nth-child(2) { animation-delay: 0.3s; }
+.sl-dots i:nth-child(3) { animation-delay: 0.6s; }
+@keyframes sl-breathe {
+  0%, 100% { opacity: 0.25; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* ---------- dawn ----------
+   Warm light sweeps up from the horizon once per morning, then gets out of the way:
+   the resting state is fully transparent so re-renders never re-stage the sunrise. */
+.sl-dawnfx {
+  position: fixed; inset: 0; z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(to top, rgba(251, 191, 36, 0.34) 0%, rgba(244, 114, 182, 0.16) 34%, transparent 62%);
+}
+.sl-dawnfx.sl-sweep { animation: sl-sweep 3.2s ease-out both; }
+@keyframes sl-sweep {
+  0% { opacity: 0; transform: translateY(30%); }
+  22% { opacity: 1; transform: translateY(0); }
+  70% { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+
+.sl-dawn-card { text-align: center; }
+.sl-dawn-head {
+  font-family: var(--display);
+  font-weight: 800; font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--amber);
+}
+.sl-dawn-line { margin-top: 10px; font-size: 16px; }
+.sl-saved-mark { font-size: 44px; margin-top: 10px; }
+
+/* Rise-in for the morning's news. */
+.sl-rise { animation: sl-rise 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+@keyframes sl-rise {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---------- the role flip ----------
+   The victim's avatar turns over into their role card. The resting pose is already
+   turned (back face up), so a mid-flight re-render lands on the answer, never back on
+   the question. */
+.sl-flip {
+  position: relative;
+  width: 88px; height: 88px;
+  margin: 12px auto 2px;
+  transform-style: preserve-3d;
+  transform: rotateY(180deg);
+}
+.sl-flip.sl-flipping { animation: sl-flip 0.9s cubic-bezier(0.35, 0, 0.25, 1) 0.5s both; }
+@keyframes sl-flip { from { transform: rotateY(0deg); } to { transform: rotateY(180deg); } }
+.sl-flip-face {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 42px;
+  border-radius: 14px;
+  backface-visibility: hidden;
+  background: linear-gradient(160deg, #1b2142, #10142e);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+}
+.sl-flip-back { transform: rotateY(180deg); border-color: rgba(212, 175, 55, 0.6); background: linear-gradient(160deg, #262b52, #141838); }
+
+/* ---------- the Oracle's reading ----------
+   Violet like the Oracle's role tag, and quiet: a small card under the dawn news that
+   only ever exists on the Oracle's own screen. */
+.sl-oracle-note { text-align: center; border-color: rgba(139, 92, 246, 0.35); }
+.sl-oracle-head { color: var(--violet); }
+
+/* The same reading, filed away inside the hold-to-peek role modal for later. */
+.sl-oracle-memo {
+  margin: 10px auto 0;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  font-size: 14px;
+}
+
+/* ---------- voting ---------- */
+.sl-skip-tile .pt-avatar { filter: grayscale(0.4); }
+
+.sl-confirm {
+  margin-top: 14px; padding: 14px;
+  border-radius: var(--r-md);
+  background: rgba(212, 175, 55, 0.07);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  text-align: center;
+}
+.sl-confirm-ask { font-size: 16px; }
+.sl-confirm-warn { font-size: 13px; color: var(--ink-dim); margin-top: 4px; }
+.sl-confirm-actions { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
+
+.sl-progress {
+  margin-top: 14px; height: 8px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--stroke);
+  overflow: hidden;
+}
+.sl-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c9a227, #e6c765);
+  border-radius: 999px;
+  transition: width 0.45s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+
+/* ---------- verdict ---------- */
+.sl-verdict-hero { text-align: center; margin-top: 8px; }
+.sl-vote-reveal { display: grid; gap: 6px; margin-top: 16px; }
+.sl-vote-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  background: var(--glass);
+  border: 1px solid var(--stroke);
+  font-size: 14px;
+}
+.sl-vr-who { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sl-vr-arrow { color: rgba(212, 175, 55, 0.85); font-weight: 800; }
+.sl-vr-target { flex: 1; min-width: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- game over ---------- */
+.sl-role-tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px; font-weight: 700;
+  border: 1px solid var(--stroke);
+  background: var(--glass);
+}
+.sl-role-prowler { color: var(--red); border-color: rgba(248, 113, 113, 0.45); }
+.sl-role-medic { color: var(--emerald); border-color: rgba(52, 211, 153, 0.45); }
+.sl-role-oracle { color: var(--violet); border-color: rgba(139, 92, 246, 0.5); }
+.sl-role-sleeper { color: var(--ink-dim); }
+
+/* The Prowler's win settles over the whole screen as a slow red edge, and stays. */
+.sl-redveil {
+  position: fixed; inset: 0; z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(90% 80% at 50% 45%, transparent 40%, rgba(148, 22, 34, 0.4) 100%);
+}
+.sl-redveil.sl-veil-in { animation: sl-veil 3s ease-out both; }
+@keyframes sl-veil { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- dealing ---------- */
+.sl-deal-card { text-align: center; }
+.sl-deal-note { margin-bottom: 12px; }
+/* The role face is a single emoji, so let it own the card. */
+.sl-deal .ct-seat.mine .ct-face.front { font-size: 34px; }
+
+/* ---------- role modal ---------- */
+.sl-role-modal { text-align: center; }
+.sl-role-modal .peek-card { margin: 12px auto 4px; }
+.sl-role-word {
+  font-family: var(--display);
+  font-weight: 800; font-size: 18px;
+  margin-top: 8px;
+  color: var(--ink);
+}
+
+/* ---------- reduced motion ----------
+   The dark stays; the drifting doesn't. style.css already collapses animation durations
+   globally, but the loops are cut explicitly so nothing flickers at 0.001s. */
+@media (prefers-reduced-motion: reduce) {
+  .sl-star, .sl-dots i { animation: none; opacity: 0.7; }
+  .sl-moonrise .sl-moon, .sl-dawnfx.sl-sweep, .sl-redveil.sl-veil-in,
+  .sl-flip.sl-flipping, .sl-rise, .sl-vote-row { animation: none; }
+  .sl-dawnfx { opacity: 0; }
+  .sl-redveil { opacity: 1; }
+  .sl-progress-fill { transition: none; }
+}

@@ -223,6 +223,19 @@ function remotePush(event) {
     });
 }
 
+// Start over: the local log and the remote mirror both emptied. Used to clear test data
+// before real traffic, from the dashboard's own button.
+export async function purgeAll() {
+  try { fs.writeFileSync(LOG_FILE, ''); } catch { /* nothing to clear */ }
+  events.length = 0;
+  if (REDIS_URL && REDIS_TOKEN) {
+    await fetch(`${REDIS_URL}/del/${encodeURIComponent(REDIS_KEY)}`, {
+      headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
+    }).catch(() => {});
+  }
+  return true;
+}
+
 export function track(type, data = {}) {
   if (SILENT) return null;
   const event = { id: eventId(nextSeq), t: new Date().toISOString(), type, ...data };
@@ -573,7 +586,12 @@ function productMetrics(list, folk) {
 
   // Peak hours in the viewer's own clock, which is the one they schedule around.
   const hours = Array.from({ length: 24 }, () => 0);
-  for (const e of list) if (e.type === 'visit') hours[new Date(e.t).getHours()] += 1;
+  for (const e of list) {
+    if (e.type !== 'visit') continue;
+    // Bucketed in IST: the person reading the chart plans their evenings in it.
+    const h = Number(new Date(e.t).toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit' }));
+    hours[h % 24] += 1;
+  }
 
   const dau = activeSince(day);
   const mau = activeSince(30 * day);

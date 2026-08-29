@@ -127,6 +127,7 @@ function playersStrip(bi, ctx, { selectable = null, selected = null, onSelect = 
     const elim = bi.eliminated.find((e) => e.playerId === id);
     const canSelect = selectable && selectable.includes(id);
     const tile = h('div', {
+      'data-pid': id,
       class: [
         'player-tile',
         animOnce(`bi-tile:${id}`),
@@ -350,6 +351,8 @@ function votePhase(bi, ctx) {
   return h('div', { class: 'card' },
     h('h2', { class: 'subtitle', style: 'text-align:center' },
       isRunoff ? '⚖️ Tie-breaker! Vote between the tied players' : '🗳️ Who is the impostor?'),
+    isRunoff && h('p', { class: 'hint', style: 'text-align:center; color:var(--amber); margin:4px 0 8px' },
+      '⚠️ Last chance: if this vote ties again, the outsiders win on the spot.'),
     h('p', { class: 'hint', style: 'text-align:center; margin:6px 0 14px' },
       bi.you?.alive
         ? (bi.youVoted ? `Vote locked in ✅ (${bi.votesCast}/${bi.votersNeeded})`

@@ -1,7 +1,7 @@
 // Game Night service worker: precache the app shell, network-first for navigation
 // (so updates land immediately), cache-first for static assets. Socket.IO traffic
 // is never intercepted.
-const VERSION = 'gamenight-v4';
+const VERSION = 'gamenight-v7';
 const SHELL = [
   '/',
   '/index.html',
@@ -18,6 +18,19 @@ const SHELL = [
   '/js/games/blendin/rules.js',
   '/js/games/island/index.js',
   '/js/games/island/rules.js',
+  '/js/games/silentorder/index.js',
+  '/js/games/silentorder/rules.js',
+  '/js/games/swaporstay/index.js',
+  '/js/games/swaporstay/rules.js',
+  '/js/games/sleepless/index.js',
+  '/js/games/sleepless/rules.js',
+  '/js/core/cards.js',
+  '/js/landing.js',
+  '/css/landing.css',
+  '/css/games/silentorder.css',
+  '/css/games/swaporstay.css',
+  '/css/games/sleepless.css',
+  '/media/art/hand.svg',
   '/manifest.webmanifest',
   '/icons/logo.svg',
   '/icons/favicon-32.png',

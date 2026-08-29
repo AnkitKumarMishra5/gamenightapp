@@ -202,7 +202,11 @@ export function submitClue(room, playerId, payload) {
 
   state.clues.push({ round: state.round, playerId, text, skipped: false, id: `c${state.clues.length}`, reactions: {} });
   advanceTurn(state);
-  return { fx: [{ kind: 'clue', playerId }] };
+  const fx = [{ kind: 'clue', playerId }];
+  // The last clue starts the vote by itself, after a short countdown the socket layer
+  // runs. Waiting on the owner to press a button was the round's dead air.
+  if (state.phase === 'discussion') fx.push({ kind: 'bi-autovote', seconds: 3 });
+  return { fx, roundDescribed: state.phase === 'discussion' };
 }
 
 export function skipTurn(room, playerId) {
@@ -224,7 +228,8 @@ function advanceTurn(state) {
 // their clues out loud and only use the app to vote.
 export function startVote(room, playerId, payload) {
   const state = st(room);
-  requireHost(room, playerId);
+  // playerId null means the automatic countdown fired; a human caller must be the owner.
+  if (playerId !== null) requireHost(room, playerId);
   requirePhase(state, 'discussion', 'describing');
   if (state.phase === 'describing' && state.queuePos < state.queue.length && !payload?.force) {
     throw new GameError('Wait for everyone to give their clue first.');
@@ -259,7 +264,9 @@ export function reactToClue(room, playerId, payload) {
   const mine = clue.reactions[playerId];
   if (mine === emoji) delete clue.reactions[playerId];
   else clue.reactions[playerId] = emoji;
-  return { fx: [{ kind: 'reaction', emoji, clueId: clue.id, playerId, added: mine !== emoji }] };
+  // The seed makes every phone resolve this reaction to the same sound file: one roll
+  // here, one shared laugh out there.
+  return { fx: [{ kind: 'reaction', emoji, clueId: clue.id, playerId, added: mine !== emoji, seed: Math.floor(Math.random() * 1e6) }] };
 }
 
 export function castVote(room, playerId, payload) {
@@ -313,10 +320,10 @@ function finishVote(room, state) {
       state.runoff = { candidates: top, votes: {} };
       return { fx: [{ kind: 'vote-tie', quip: pickQuip('voteTie') }] };
     }
-    // Second tie: nobody goes home this round.
-    state.lastResult = { type: 'none', tally: counts, quip: pickQuip('voteTie') };
-    state.phase = 'roundResult';
-    return { fx: [{ kind: 'no-elimination' }] };
+    // Second tie: the room was warned. A table that cannot agree twice has been played,
+    // and the outsiders take the game on the spot.
+    return endGame(room, state, 'outsiders',
+      'Two tied votes in a row. A table that cannot agree has already been fooled!');
   }
   return eliminate(room, state, top[0], counts);
 }

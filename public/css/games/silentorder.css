@@ -1,0 +1,255 @@
+/* ============================================================
+   Silent Order — midnight felt, champagne gold, held breath
+   Every selector is so- prefixed; the shared card faces (.ct-face)
+   are only ever styled here inside a so- container.
+   ============================================================ */
+
+.so-screen { position: relative; }
+
+/* ---------- top bar: lives and level ---------- */
+.so-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 2px 4px;
+}
+.so-level-pill {
+  font-size: 13px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase;
+  color: rgba(212, 175, 55, 0.9);
+  background: var(--glass); border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 99px; padding: 6px 14px; white-space: nowrap;
+}
+.so-quip { text-align: center; color: var(--ink-dim); font-weight: 700; }
+
+/* ---------- candles: one per life ----------
+   Drawn, not emoji, so the flame can flicker while it lives and gutter when it dies. */
+.so-lives { display: flex; gap: 14px; align-items: flex-end; padding: 2px 4px; }
+.so-candle { position: relative; width: 14px; height: 34px; }
+.so-wax {
+  position: absolute; left: 2px; right: 2px; bottom: 0; top: 12px;
+  border-radius: 4px 4px 3px 3px;
+  background: linear-gradient(180deg, #efe6cf 0%, #cdbf9e 70%, #b3a381 100%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.so-flame {
+  position: absolute; left: 50%; top: 0; width: 9px; height: 13px;
+  transform: translateX(-50%);
+  border-radius: 50% 50% 45% 45%;
+  background: radial-gradient(circle at 50% 75%, #fff7d6 0%, #ffd35e 45%, #f59e0b 75%, transparent 100%);
+  box-shadow: 0 0 10px 3px rgba(251, 191, 36, 0.45);
+  animation: so-flicker 1.6s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+.so-candle.cold .so-flame { animation: none; opacity: 0; }
+.so-candle.cold .so-wax { filter: grayscale(0.9) brightness(0.55); }
+/* The dying candle gets one last struggle before it goes dark. */
+.so-candle.guttering .so-flame { opacity: 1; animation: so-gutter 1.3s ease-in forwards; }
+@keyframes so-flicker {
+  0%, 100% { transform: translateX(-50%) scale(1) rotate(0deg); }
+  30% { transform: translateX(-52%) scale(1.08, 0.94) rotate(-3deg); }
+  60% { transform: translateX(-48%) scale(0.94, 1.06) rotate(3deg); }
+}
+@keyframes so-gutter {
+  0% { transform: translateX(-50%) scale(1); opacity: 1; }
+  35% { transform: translateX(-46%) scale(1.35, 0.7) rotate(8deg); opacity: 1; }
+  60% { transform: translateX(-54%) scale(0.7, 1.25) rotate(-10deg); opacity: 0.8; }
+  100% { transform: translateX(-50%) scale(0.2, 1.6); opacity: 0; }
+}
+
+/* ---------- the mistake banner ---------- */
+.so-banner {
+  text-align: center; font-weight: 800; font-size: 15px;
+  border-radius: var(--r-md); padding: 10px 14px;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.so-banner.so-bad {
+  color: #ffd7d7; background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  animation: so-banner-in 0.35s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+@keyframes so-banner-in {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* ---------- the pile ---------- */
+.so-centre { display: grid; justify-items: center; gap: 8px; padding: 8px 0 4px; }
+.so-pile {
+  position: relative; width: 118px; aspect-ratio: 5 / 7;
+  /* The felt under the pile: the same midnight-and-gold pool the card table sits in. */
+  filter: drop-shadow(0 14px 26px rgba(0, 0, 0, 0.55));
+}
+.so-card-box { position: absolute; inset: 0; z-index: 2; }
+/* .ct-face sizes its number with container units on the table; here it gets a plain size. */
+.so-pile .ct-face.front,
+.so-flyer .ct-face.front,
+.so-mini .ct-face.front { opacity: 1; transform: none; font-size: 42px; }
+.so-top-face { transition: none; }
+.so-top-face.so-empty {
+  color: rgba(20, 26, 51, 0.35);
+  background: linear-gradient(170deg, rgba(251, 249, 244, 0.16) 0%, rgba(228, 223, 210, 0.1) 100%);
+  border: 1px dashed rgba(212, 175, 55, 0.45);
+  box-shadow: none;
+}
+/* The plays underneath, peeking out so the pile reads as a pile and not one card. */
+.so-stack { position: absolute; inset: 0; z-index: 1; }
+.so-ghost {
+  position: absolute; inset: 0; border-radius: 7px;
+  background: linear-gradient(170deg, #d9d4c6 0%, #c4bfae 100%);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  transform: translate(calc(var(--gi) * -2.5px - 3px), calc(var(--gi) * 2px + 2px))
+    rotate(calc(var(--gi) * -2.4deg - 2deg));
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+}
+.so-pile-label { font-size: 12.5px; color: var(--ink-faint); font-weight: 700; letter-spacing: 0.4px; }
+
+/* Five clean plays in a row: a light passes over the pile, and that is all. */
+.so-pile.so-glint::after {
+  content: ''; position: absolute; inset: -6px; border-radius: 10px; z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 246, 215, 0.55) 50%, transparent 70%);
+  background-size: 250% 100%;
+  animation: so-glint 0.9s ease-out forwards;
+}
+@keyframes so-glint {
+  from { background-position: 120% 0; opacity: 1; }
+  to { background-position: -60% 0; opacity: 0; }
+}
+
+/* The overlay that carries cards mid-flight, so a re-render can never delete one in the air. */
+.so-flights { position: absolute; inset: 0; overflow: visible; pointer-events: none; z-index: 4; }
+.so-flyer { position: absolute; }
+.so-flyer .ct-face.front { font-size: 30px; }
+
+/* ---------- the burned row ---------- */
+.so-discard {
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  background: rgba(248, 113, 113, 0.05);
+  border-radius: var(--r-md); padding: 8px 12px 10px;
+}
+.so-discard-label {
+  font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+  color: rgba(248, 113, 113, 0.85); margin-bottom: 6px;
+}
+.so-discard-row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ---------- mini cards (hand, fan, burned) ---------- */
+.so-mini {
+  position: relative; width: 46px; aspect-ratio: 5 / 7; flex: none;
+  border-radius: 7px;
+}
+.so-mini .ct-face.front { font-size: 19px; }
+.so-mini.burned .ct-face.front {
+  filter: grayscale(0.5) brightness(0.75);
+  border-color: rgba(248, 113, 113, 0.5);
+}
+
+/* ---------- the fan: your hand ---------- */
+/* A big hand outgrows a phone. The fan scrolls sideways instead of spilling under
+   body's overflow-x:hidden — and it must scroll from the LEFT edge, because the leftmost
+   card is the only playable one. The auto margins centre a hand that fits; once it
+   overflows they collapse to zero and the live card sits at scroll position 0. */
+.so-fan {
+  display: flex; justify-content: flex-start; align-items: flex-end;
+  gap: 6px; padding: 10px 8px 28px; min-height: 84px;
+  overflow-x: auto; overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.so-fan > :first-child { margin-left: auto; }
+.so-fan > :last-child { margin-right: auto; }
+/* Each card leans into its place in the arc; --fi is its signed offset from the middle.
+   The droop is capped so a twelve-card arc stays inside the scroll box's clip. */
+.so-fan .so-mini {
+  width: 58px;
+  transform: rotate(calc(var(--fi, 0) * 4deg)) translateY(min(var(--fi, 0) * var(--fi, 0) * 1.4px, 16px));
+  transition: transform 0.25s ease, filter 0.25s ease;
+}
+.so-fan .so-mini .ct-face.front { font-size: 24px; }
+/* Everything but your lowest sits back and waits its turn. */
+.so-fan .so-mini.held .ct-face.front { filter: brightness(0.62) saturate(0.8); }
+/* The live card: the same slow gold pulse the table uses for "you may touch this". */
+.so-mini.so-live { cursor: grab; z-index: 2; }
+.so-mini.so-live .ct-face.front {
+  border-color: rgba(212, 175, 55, 0.9);
+  animation: so-live-pulse 2.8s ease-in-out infinite;
+}
+.so-mini.so-live:hover { transform: rotate(calc(var(--fi, 0) * 4deg)) translateY(-6px); }
+.so-mini.so-live:active { cursor: grabbing; }
+.so-mini.so-live:focus-visible { outline: 2px solid rgba(212, 175, 55, 0.9); outline-offset: 3px; }
+@keyframes so-live-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.0), 0 3px 6px rgba(0, 0, 0, 0.3); }
+  50% { box-shadow: 0 0 16px 4px rgba(212, 175, 55, 0.4), 0 3px 6px rgba(0, 0, 0, 0.3); }
+}
+/* A card already thrown: keep its space for a beat, show nothing. */
+.so-mini.so-gone { visibility: hidden; }
+.so-hand-empty { color: var(--ink-dim); font-weight: 700; text-align: center; padding: 14px 0; }
+
+.so-hand { text-align: center; }
+.so-status {
+  font-size: 13.5px; color: var(--ink-dim); text-align: center;
+  min-height: 1.4em; margin-top: 2px;
+}
+
+/* ---------- dealt-hand fan under the table ---------- */
+.so-deal-hand {
+  text-align: center;
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.so-deal-hand-label { font-size: 13px; color: var(--ink-dim); font-weight: 700; }
+.so-deal-hand.so-hidden { display: block; opacity: 0; transform: translateY(10px); pointer-events: none; }
+
+/* ---------- ready row ---------- */
+.so-ready-row { display: grid; justify-items: center; gap: 10px; }
+.so-ready-pill {
+  font-size: 13px; font-weight: 800; letter-spacing: 0.5px;
+  color: var(--ink-dim); background: var(--glass);
+  border: 1px solid var(--stroke); border-radius: 99px; padding: 6px 16px;
+}
+.so-ready-btn { min-width: 240px; }
+
+/* ---------- player chips ---------- */
+.so-players {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+}
+.so-chip {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--glass); border: 1px solid var(--stroke);
+  border-radius: 99px; padding: 5px 12px 5px 8px;
+  font-size: 13px; font-weight: 700;
+}
+.so-chip.you { border-color: rgba(212, 175, 55, 0.5); }
+.so-chip.off { opacity: 0.5; }
+.so-chip-avatar { font-size: 16px; }
+.so-chip-name { color: var(--ink-dim); max-width: 88px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.so-chip-cards { display: flex; align-items: center; gap: 2px; }
+/* One tiny card back per card still held — the only thing a hand shows the table. */
+.so-mini-back {
+  display: inline-block; width: 9px; height: 13px; border-radius: 2px;
+  background: linear-gradient(158deg, #232a52 0%, #141a3a 46%, #1c2247 100%);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+}
+.so-chip-more { color: rgba(212, 175, 55, 0.9); font-size: 11px; margin-left: 2px; }
+.so-chip-done { color: var(--emerald); font-style: normal; font-weight: 900; }
+.so-chip-off { font-size: 11px; }
+
+/* ---------- over screen ---------- */
+.so-over .so-lives { justify-content: center; margin-bottom: 6px; }
+/* style.css animates every .lb-row on sight, but this screen is rebuilt per snapshot —
+   only rows animOnce has stamped with .anim-slide get the entrance cascade. */
+.so-over .lb-row { animation: none; }
+.so-over .lb-row.anim-slide { animation: slide-in-left 0.3s ease backwards; }
+
+/* ---------- utility ---------- */
+/* The fan keeps its layout box while hidden (it fades up into place); everything else
+   using so-hidden simply is not there yet. The compound selector above outranks this. */
+.so-hidden { display: none; }
+
+/* ---------- reduced motion: everything still readable, nothing moves ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .so-flame,
+  .so-mini.so-live .ct-face.front,
+  .so-banner.so-bad { animation: none; }
+  /* No last struggle for the dying candle: it goes straight to dark, not lit-then-blink. */
+  .so-candle.guttering .so-flame { animation: none; opacity: 0; }
+  .so-pile.so-glint::after { animation: none; opacity: 0; }
+  .so-fan .so-mini, .so-deal-hand, .so-banner { transition: none; }
+}

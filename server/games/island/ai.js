@@ -239,7 +239,47 @@ export async function judgeItem(pattern, item, mockHints = null) {
   const out = await chatJSON({ system: JUDGE_ITEM_SYSTEM, user, temperature: 0.3, maxTokens: 120 });
   if (typeof out?.fits !== 'boolean') throw new Error('AI returned an invalid item verdict');
   if (out.valid === false) return { valid: false, fits: false, remark: '' };
+
+  // Second opinion before the verdict reaches the table: a fresh call, zero temperature,
+  // asked only to confirm or flip. Two independent readings rarely share a hallucination.
+  try {
+    const check = await chatJSON({
+      system: VERIFY_ITEM_SYSTEM,
+      user: `Rule: ${pattern.description}\nItem: "${item}"\nFirst verdict: ${out.fits ? 'FITS' : 'DOES NOT FIT'}\nConfirm or flip.`,
+      temperature: 0, maxTokens: 60,
+    });
+    if (typeof check?.fits === 'boolean' && check.fits !== out.fits) {
+      return { valid: true, fits: check.fits, remark: safeRemark(check.remark || out.remark, pattern) };
+    }
+  } catch { /* the first verdict stands if the checker is unavailable */ }
   return { valid: true, fits: out.fits, remark: safeRemark(out.remark, pattern) };
+}
+
+const VERIFY_ITEM_SYSTEM = `You verify a party-game ruling. Given the secret rule, an item, and a first verdict, decide independently whether the item satisfies the rule, exactly as written. Reply as JSON: {"fits": true|false, "remark": "short player-facing line only if you flip"}. Be strict about the rule's letter and spirit; do not invent extra conditions.`;
+
+// The whole round, re-read in one pass: every accepted and rejected item checked against
+// the rule again. Used by the table's "smells fishy" appeal and the gamemaster re-check.
+export async function auditRound(pattern, judged) {
+  if (MOCK || !process.env.OPENAI_API_KEY) return { corrections: [], note: 'Every call checks out.' };
+  const rule = mechanicalRule(pattern);
+  if (rule) {
+    const corrections = judged
+      .filter((j) => rule.test(j.text) !== j.fits)
+      .map((j) => ({ text: j.text, fits: rule.test(j.text) }));
+    return { corrections, note: corrections.length ? '' : 'Every call checks out.' };
+  }
+  const lines = judged.map((j) => `- "${j.text}" was ruled ${j.fits ? 'FITS' : 'DOES NOT FIT'}`).join('\n');
+  const out = await chatJSON({
+    system: `You re-audit a party-game round. Given the secret rule and every past ruling, list ONLY the rulings that are wrong, with the correct verdict and one honest sentence about what was misread. Reply as JSON: {"corrections":[{"text":"item","fits":true|false,"why":"..."}]}. If everything is right, return {"corrections":[]}. Never invent items not in the list; be strict about the rule exactly as written.`,
+    user: `Rule: ${pattern.description}\nOpening items that fit: ${pattern.starters.join(', ')}\n\nPast rulings:\n${lines}`,
+    temperature: 0, maxTokens: 400,
+  });
+  const corrections = Array.isArray(out?.corrections)
+    ? out.corrections
+        .filter((c) => typeof c?.fits === 'boolean' && judged.some((j) => normalize(j.text) === normalize(String(c.text || ''))))
+        .map((c) => ({ text: String(c.text), fits: c.fits, why: String(c.why || '').slice(0, 140) }))
+    : [];
+  return { corrections, note: corrections.length ? '' : 'Every call checks out.' };
 }
 
 const JUDGE_GUESS_SYSTEM = `You are the fair judge of the party game "The Island". You know the secret pattern. A player attempts to state the pattern in their own words.
