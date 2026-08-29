@@ -258,14 +258,9 @@ export async function judgeItem(pattern, item, mockHints = null) {
 
 const VERIFY_ITEM_SYSTEM = `You verify a party-game ruling. Given the secret rule, an item, and a first verdict, decide independently whether the item satisfies the rule, exactly as written. Reply as JSON: {"fits": true|false, "remark": "short player-facing line only if you flip"}. Be strict about the rule's letter and spirit; do not invent extra conditions.`;
 
-// The whole round re-read, then argued over until the model stops changing its mind.
-//
-// One pass is a first impression, and a first impression is what produced the wrong call
-// in the first place. So the round is judged from scratch, repeatedly, each round given
-// the full context — the rule, its known-good examples, every item, and what the previous
-// pass concluded — and a verdict is only trusted once two consecutive passes agree on it
-// item by item. Items the passes keep flip-flopping on are left exactly as the table
-// found them: an unstable answer is not an answer.
+// The round judged from scratch, repeatedly, until two consecutive passes agree item for
+// item. A single pass is a first impression, and a first impression is what produced the
+// wrong call in the first place. If it never settles, the table keeps its own rulings.
 const AUDIT_ROUNDS = 4;              // hard ceiling, so a stubborn round cannot loop forever
 const AUDIT_STABLE = 2;              // consecutive identical passes needed to settle
 
@@ -301,15 +296,15 @@ async function judgeAll(pattern, judged, previous) {
 }
 
 export async function auditRound(pattern, judged) {
-  if (MOCK || !process.env.OPENAI_API_KEY) return { corrections: [], note: '' };
+  if (MOCK || !process.env.OPENAI_API_KEY) return { corrections: [] };
   const rule = mechanicalRule(pattern);
   if (rule) {
     const corrections = judged
       .filter((j) => rule.test(j.text) !== j.fits)
       .map((j) => ({ text: j.text, fits: rule.test(j.text) }));
-    return { corrections, note: '' };
+    return { corrections };
   }
-  if (!judged.length) return { corrections: [], note: '' };
+  if (!judged.length) return { corrections: [] };
 
   let settled = null;
   let previous = null;
@@ -326,12 +321,12 @@ export async function auditRound(pattern, judged) {
     previous = pass;
   }
   // Never settled means the model kept arguing with itself; the table keeps its rulings.
-  if (!settled) return { corrections: [], note: '' };
+  if (!settled) return { corrections: [] };
 
   const corrections = judged
     .filter((j) => settled.get(normalize(j.text)) !== j.fits)
     .map((j) => ({ text: j.text, fits: settled.get(normalize(j.text)) }));
-  return { corrections, note: '' };
+  return { corrections };
 }
 
 const JUDGE_GUESS_SYSTEM = `You are the fair judge of the party game "The Island". You know the secret pattern. A player attempts to state the pattern in their own words.

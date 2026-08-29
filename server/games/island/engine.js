@@ -356,8 +356,7 @@ export function requestAudit(room, playerId) {
   const state = st(room);
   if (state.phase !== 'playing') throw new GameError('Nothing to re-check right now.');
   if (state.auditing) throw new GameError('The boat is already re-reading the round.');
-  // One appeal, made on behalf of the table: the re-check freezes the round for
-  // everybody and costs several judging passes, so it is the room owner's to call.
+  // The re-check freezes the round for everybody, so it is the owner's to call.
   if (room.hostId !== playerId) throw new GameError('Only the room owner can ask the boat to re-check, once the table agrees.');
   if (state.mode !== 'ai') throw new GameError('A human judged this round. Argue with them directly!');
   if (state.pendingJudge) throw new GameError('Wait for the current call to be judged first.');
@@ -366,8 +365,8 @@ export function requestAudit(room, playerId) {
   return { state, judged: judged.map((a) => ({ text: a.text, fits: a.verdict === 'yes' })) };
 }
 
-// The boat owning its mistakes. Three passes agreed before any of this reached the table,
-// so the apology is for a call that really was wrong.
+// The boat owning its mistakes. Nothing reaches the table until the judging has settled,
+// so an apology only ever follows a call that really was wrong.
 const AUDIT_SORRY = [
   'Sorry — I am an AI and I do hallucinate. I judged the whole round again, over and over, until I stopped changing my mind, and past me was wrong.',
   'My apologies. I re-judged every item from scratch until two passes agreed, and this is where they landed.',
@@ -386,18 +385,16 @@ const AUDIT_CLEAN = [
 // Corrections flip the original rulings in place, so the packing list, the story and the
 // hints everyone reasons from all update together. Solved ranks already awarded are left
 // alone: a past win is history, not something an audit can claw back.
-export function applyAudit(room, playerId, corrections, note) {
+export function applyAudit(room, playerId, corrections) {
   const state = st(room);
   const fixed = [];
   for (const c of corrections || []) {
     const attempt = state.attempts.find((a) => a.type === 'item'
       && a.verdict !== 'pending' && normalize(a.text) === normalize(c.text));
     if (!attempt || (attempt.verdict === 'yes') === c.fits) continue;
-    // The verdict is what the packing list and the story both read, so flipping it is
-    // what actually moves an item between the two piles.
+    // The verdict is what both the packing list and the story read.
     attempt.verdict = c.fits ? 'yes' : 'no';
-    // Never the model's reasoning: a sentence explaining WHY an item fits is the rule,
-    // written out. The corrected call speaks for itself.
+    // Never the model's reasoning: explaining WHY an item fits is the rule, written out.
     attempt.remark = c.fits ? 'On second reading, this fits after all.' : 'On second reading, this never fit.';
     fixed.push({ text: attempt.text, fits: c.fits });
   }
@@ -405,7 +402,7 @@ export function applyAudit(room, playerId, corrections, note) {
     id: (state.lastAudit?.id || 0) + 1,
     byId: playerId,
     fixed,
-    note: fixed.length ? pick(AUDIT_SORRY) : (note || pick(AUDIT_CLEAN)),
+    note: pick(fixed.length ? AUDIT_SORRY : AUDIT_CLEAN),
     at: Date.now(),
   };
   return { fx: [{ kind: 'island-audit', byId: playerId, fixed: fixed.length }] };

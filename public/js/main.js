@@ -563,9 +563,8 @@ async function shareInvite(code) {
   }
 }
 
-// Two different exits, and they are easy to confuse: ending the round puts the whole
-// table back in the lobby with the room intact, while leaving takes you out of the room
-// altogether. Both are offered wherever a game is running.
+// Two exits, easy to confuse: one puts the table back in the lobby with the room
+// intact, the other takes you out of the room altogether.
 function leaveRoom() {
   const isHost = store.snap?.you?.isHost;
   const s = store.snap;
@@ -583,8 +582,7 @@ function leaveRoom() {
 
   openModal(h('div', { style: 'text-align:center' },
     h('div', { class: 'modal-title', style: 'justify-content:center' }, 'Leaving?'),
-    // Only the owner needs the warning about handing the room on; for everyone else it
-    // describes something that will not happen to them.
+    // Only the owner hands the room on, so only the owner needs the warning.
     isHost && h('p', { class: 'hint' },
       'Leaving the room hands it to another player, and it closes once the last player leaves.'),
     h('div', { style: 'display:grid; gap:10px; margin-top:16px' },

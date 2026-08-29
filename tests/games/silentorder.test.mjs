@@ -178,6 +178,9 @@ export function suites({ Player, check, sleep }) {
           check('burned cards land in the public discards',
             expectBurn.every((c) => so(host).discards.includes(c)));
         }
+        // The mistake is followed straight away by a fresh deal of the same level, so
+        // the fx can still be in flight when the snapshot has already caught up.
+        for (let i = 0; i < 20 && !host.fx.some((f) => f.kind === 'so-mistake'); i++) await sleep(100);
         check('so-mistake fx delivered', host.fx.some((f) => f.kind === 'so-mistake'));
         livesBefore -= 1;
       } else {

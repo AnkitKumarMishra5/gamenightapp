@@ -512,8 +512,7 @@ function syncHearts(api, ss) {
     if (!el) {
       el = h('span', { class: 'ss-lives', 'aria-hidden': 'true' });
       for (let k = 0; k < (ss.startLives || 3); k++) el.append(h('i', { class: 'ss-pip on' }, '♥'));
-      // Beside the name tag rather than inside it: the name is allowed to ellipsis, the
-      // hearts never are.
+      // Beside the name tag, not inside it: the name may ellipsis, the hearts may not.
       chair.append(el);
     }
     [...el.children].forEach((pip, k) => {

@@ -306,8 +306,7 @@ function auditPanel(is, ctx) {
             })())
         : null,
     ),
-    // The appeal freezes the round for everybody and costs several judging passes, so
-    // it belongs to the room owner, called once the table agrees.
+    // The appeal freezes the round for everybody, so it is the owner's to call.
     ctx.isHost
       ? h('button', {
           class: 'btn btn-ghost btn-sm btn-block',
