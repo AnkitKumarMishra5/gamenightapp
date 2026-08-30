@@ -15,23 +15,19 @@ five-letter code, and you play on your own phones. No download, no account, no t
 ## A look at it
 
 <p align="center">
-  <img src="docs/screens/shot1.png" width="900" alt="Game Night">
+  <img src="docs/screens/shot-1.jpg" width="900" alt="Game Night">
 </p>
 
 <p align="center">
-  <img src="docs/screens/shot2.png" width="900" alt="Game Night">
+  <img src="docs/screens/shot-2.jpg" width="900" alt="Game Night">
 </p>
 
 <p align="center">
-  <img src="docs/screens/shot3.png" width="900" alt="Game Night">
+  <img src="docs/screens/shot-3.jpg" width="900" alt="Game Night">
 </p>
 
 <p align="center">
-  <img src="docs/screens/shot4.png" width="900" alt="Game Night">
-</p>
-
-<p align="center">
-  <img src="docs/screens/shot5.png" width="900" alt="Game Night">
+  <img src="docs/screens/shot-4.jpg" width="900" alt="Game Night">
 </p>
 
 ---
