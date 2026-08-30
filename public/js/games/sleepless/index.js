@@ -491,7 +491,8 @@ function verdictPhase(sl, ctx) {
   const role = v?.role ? ROLES[v.role] : null;
 
   const headline = out
-    ? h('div', { class: `sl-verdict-hero ${animOnce(`sl-verdict:${roundKey(sl)}`, 'sl-rise')}` },
+    ? h('div', { class: `sl-verdict-hero has-art ${animOnce(`sl-verdict:${roundKey(sl)}`, 'sl-rise')}` },
+        sceneArt('reveal', 'band'),
         h('div', { class: `sl-flip ${animOnce(`sl-verdictflip:${roundKey(sl)}`, 'sl-flipping')}` },
           h('div', { class: 'sl-flip-face sl-flip-front' }, out.avatar),
           h('div', { class: 'sl-flip-face sl-flip-back' }, role.emoji),
@@ -499,7 +500,8 @@ function verdictPhase(sl, ctx) {
         h('p', { class: 'sl-dawn-line' },
           h('b', {}, out.name), ` was sent to bed early — they were the ${role.word} ${role.emoji}`),
       )
-    : h('div', { class: `sl-verdict-hero ${animOnce(`sl-verdict:${roundKey(sl)}`, 'sl-rise')}` },
+    : h('div', { class: `sl-verdict-hero has-art ${animOnce(`sl-verdict:${roundKey(sl)}`, 'sl-rise')}` },
+        sceneArt('tie', 'band'),
         h('div', { class: 'sl-saved-mark' }, '🤝'),
         h('p', { class: 'sl-dawn-line' }, 'The village couldn\'t agree. Nobody was sent home.'),
       );

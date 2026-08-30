@@ -2165,3 +2165,11 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 .art-faint .scene-art::after {
   background: linear-gradient(94deg, var(--bg) 0%, rgba(11, 14, 26, 0.92) 46%, rgba(11, 14, 26, 0.72) 74%, rgba(11, 14, 26, 0.5) 100%);
 }
+
+/* The waiting note carries its own art: it is the single most-seen idle state in the
+   app, shown to every guest in every game while the owner decides something. */
+.waiting-wrap { position: relative; overflow: hidden; border-radius: var(--r-md); padding: 14px 12px; }
+.waiting-wrap .waiting-note { margin: 0; }
+
+/* Reveal and verdict heroes need room for the art band behind them. */
+.reveal-pop.has-art, .sl-verdict-hero.has-art { position: relative; overflow: hidden; border-radius: var(--r-md); padding: 16px 14px; }

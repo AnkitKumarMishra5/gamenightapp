@@ -437,14 +437,16 @@ function roundResult(bi, ctx) {
   const r = bi.lastResult;
   let content;
   if (!r || r.type === 'none') {
-    content = h('div', { class: 'reveal-pop' },
+    content = h('div', { class: 'reveal-pop has-art' },
+      sceneArt('tie', 'band'),
       h('span', { class: 'rp-avatar' }, '🤷'),
       h('h2', { class: 'subtitle', style: 'margin-top:8px' }, 'Nobody was eliminated!'),
       h('p', { class: 'rp-quip' }, r?.quip || 'The vote tied twice, suspicion carries to the next round.'),
     );
   } else {
     const p = ctx.player(r.playerId);
-    content = h('div', { class: 'reveal-pop' },
+    content = h('div', { class: 'reveal-pop has-art' },
+      sceneArt('reveal', 'band'),
       h('span', { class: 'rp-avatar' }, p.avatar),
       h('div', { style: 'font-weight:800; font-size:19px; margin-top:6px' }, `${p.name} ${r.quip || 'is out!'}`),
       h('div', {}, h('span', { class: `rp-role ${r.role}` }, `${ROLE_EMOJI[r.role]} ${ROLE_LABEL[r.role]}`)),

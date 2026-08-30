@@ -43,6 +43,11 @@ const ART = {
   'pattern-cracked': 'cracked',
   shuffling: 'shuffling',
   'sentinel-block': 'sentinel',
+  'room-fills-up': 'joined',
+  'thinking-waiting': 'waiting',
+  tie: 'tie',
+  'caught-reveal': 'reveal',
+  'last-two': 'lasttwo',
 };
 
 const kb = (p) => `${(fs.statSync(p).size / 1024).toFixed(0)} KB`;

@@ -99,11 +99,25 @@ export function shake(el) {
   el.classList.add('shake');
 }
 
+// ---------- scene art ----------
+// The key art is shot on pure black, so a screen blend composites it with no cutout:
+// black adds nothing and the lit subject keeps its soft edge. `place` picks how the
+// copy is kept clear of it — a side scrim, or a band across the bottom.
+export function sceneArt(name, place = 'side') {
+  return h('picture', { class: `scene-art scene-${place}`, 'aria-hidden': 'true' },
+    h('source', { srcset: `/media/games/${name}.webp`, type: 'image/webp' }),
+    h('img', { src: `/media/games/${name}.jpg`, alt: '', loading: 'lazy', decoding: 'async' }),
+  );
+}
+
 // Shown to everyone who is not the room owner, in place of a control only the owner has.
 // Without it a guest sits on a screen with nothing on it, waiting for something they
 // cannot see is coming.
 export function waitingFor(hostName, what) {
-  return h('p', { class: 'waiting-note' }, `⏳ ${hostName || 'The room owner'} ${what}`);
+  return h('div', { class: 'waiting-wrap has-art art-faint' },
+    sceneArt('waiting'),
+    h('p', { class: 'waiting-note' }, `⏳ ${hostName || 'The room owner'} ${what}`),
+  );
 }
 
 // A visible "the machine is working" state, used wherever the app is waiting on the AI.
@@ -127,13 +141,3 @@ export function aiThinking(title, sub, emoji = '🤖') {
   );
 }
 
-// ---------- scene art ----------
-// The key art is shot on pure black, so a screen blend composites it with no cutout:
-// black adds nothing and the lit subject keeps its soft edge. `place` picks how the
-// copy is kept clear of it — a side scrim, or a band across the bottom.
-export function sceneArt(name, place = 'side') {
-  return h('picture', { class: `scene-art scene-${place}`, 'aria-hidden': 'true' },
-    h('source', { srcset: `/media/games/${name}.webp`, type: 'image/webp' }),
-    h('img', { src: `/media/games/${name}.jpg`, alt: '', loading: 'lazy', decoding: 'async' }),
-  );
-}
