@@ -35,7 +35,6 @@ const ART = {
   'night-falls': 'night',
   'vote-out': 'vote',
   eliminated: 'eliminated',
-  'landing-hero': 'hero',
   'room-code-invite': 'invite',
   'clue-given': 'clue',
   'pattern-cracked': 'cracked',
