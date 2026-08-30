@@ -32,7 +32,6 @@ const ART = {
   'empty-lobby': 'lobby',
   'village-wins': 'win-together',
   'hidden-player-wins': 'win-alone',
-  'card-table': 'cardtable',
   'night-falls': 'night',
   'vote-out': 'vote',
   eliminated: 'eliminated',
@@ -64,11 +63,6 @@ const ART = {
   // The rest.
   'pattern-written': 'pattern-written',
   'swap-or-stay-reveal': 'ss-reveal',
-  'the-finale': 'finale',
-  'the-honest-part': 'honest',
-  // Landing sections.
-  'the-ensemble': 'ensemble',
-  'phone-on-table': 'phone',
   // Island's core loop, and the rest.
   'island-item-accepted': 'item-yes',
   'island-item-rejected': 'item-no',

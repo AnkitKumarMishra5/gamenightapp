@@ -154,9 +154,6 @@ export function renderLanding(deps) {
 
   // ---------- the shelf: every registered game ----------
   const shelf = h('section', { class: 'lp-sec lp-games', id: 'lp-games', 'aria-label': 'The games' },
-    h('picture', { class: 'lp-sec-art lp-sec-wide', 'aria-hidden': 'true' },
-      h('source', { srcset: '/media/games/ensemble.webp', type: 'image/webp' }),
-      h('img', { src: '/media/games/ensemble.jpg', alt: '', loading: 'lazy', decoding: 'async' })),
     sectionHead(h, "Tonight's lineup",
       `${capital(numWord(deps.GAMES.length))} games, one room.`,
       "Tap a card to see how it plays. One room runs them all, and the night's points follow you between games."),
@@ -195,12 +192,6 @@ export function renderLanding(deps) {
     : 'Silent Order, Swap or Stay and Sleepless';
 
   const table = h('section', { class: 'lp-sec lp-table', id: 'lp-table', 'aria-label': 'The card table' },
-    // Hands only, no faces: the section is about the cards, and the five game cards
-    // above it are already all people.
-    h('picture', { class: 'lp-table-art', 'aria-hidden': 'true' },
-      h('source', { srcset: '/media/games/cardtable.webp', type: 'image/webp' }),
-      h('img', { src: '/media/games/cardtable.jpg', alt: '', loading: 'lazy', decoding: 'async' }),
-    ),
     sectionHead(h, 'The card table', 'Cards with real weight.',
       `${tableNames.length || 3} card games, one real table between you. Cards are shuffled, dealt and held like the night you are missing.`),
     tableau(h, cardBack),
@@ -209,9 +200,6 @@ export function renderLanding(deps) {
 
   // ---------- the honest part ----------
   const trust = h('section', { class: 'lp-sec lp-trust', id: 'lp-trust', 'aria-label': 'What it costs' },
-    h('picture', { class: 'lp-sec-art', 'aria-hidden': 'true' },
-      h('source', { srcset: '/media/games/honest.webp', type: 'image/webp' }),
-      h('img', { src: '/media/games/honest.jpg', alt: '', loading: 'lazy', decoding: 'async' })),
     sectionHead(h, 'The honest part', 'What it costs: nothing.', null),
     h('div', { class: 'lp-trust-grid' },
       trustItem(h, 0, svgTicket(), 'Free, with no ads', 'And no purchases hiding anywhere either.'),
@@ -228,9 +216,6 @@ export function renderLanding(deps) {
   // open behind an oversized headline, and the button hands the player back
   // to the hero console with the name field focused.
   const finale = h('section', { class: 'lp-sec lp-cta', id: 'lp-cta', 'aria-label': 'Start a room now' },
-    h('picture', { class: 'lp-sec-art', 'aria-hidden': 'true' },
-      h('source', { srcset: '/media/games/finale.webp', type: 'image/webp' }),
-      h('img', { src: '/media/games/finale.jpg', alt: '', loading: 'lazy', decoding: 'async' })),
     h('div', { class: 'lp-cta-inner lp-reveal' },
       h('div', { class: 'lp-xfan', 'aria-hidden': 'true' },
         Array.from({ length: 5 }, (_, i) => h('span', {
@@ -834,9 +819,6 @@ function buildWatch(deps, rm, cardBack) {
   onCleanup(() => { io.disconnect(); if (timer) { clearTimeout(timer); timer = 0; } running = false; });
 
   return h('section', { class: 'lp-sec lp-watch', id: 'lp-watch', 'aria-label': 'Watch a round' },
-    h('picture', { class: 'lp-sec-art', 'aria-hidden': 'true' },
-      h('source', { srcset: '/media/games/phone.webp', type: 'image/webp' }),
-      h('img', { src: '/media/games/phone.jpg', alt: '', loading: 'lazy', decoding: 'async' })),
     sectionHead(h, 'Watch a round', 'See a round play itself.',
       'These are the real game screens with a real crew — clues, reactions and verdicts exactly as they land on your phones.'),
     frame,

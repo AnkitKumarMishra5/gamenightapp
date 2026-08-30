@@ -1719,23 +1719,6 @@
   .lp-gcard:hover .lp-gcard-art img { transform: none; }
 }
 
-/* The card-table section leads with hands over a table, screen-blended like the
-   game cards and faded out well before the copy starts. */
-.lp-table { position: relative; }
-.lp-table-art {
-  position: absolute; left: 0; right: 0; top: 0;
-  height: min(58%, 460px);
-  display: block; overflow: hidden; pointer-events: none; z-index: 0;
-}
-.lp-table-art img {
-  width: 100%; height: 100%; object-fit: cover; object-position: center 30%;
-  mix-blend-mode: screen; opacity: 0.55;
-}
-.lp-table-art::after {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(0deg, #0b0e1a 0%, rgba(11, 14, 26, 0.7) 45%, rgba(11, 14, 26, 0.35) 100%);
-}
-.lp-table > :not(.lp-table-art) { position: relative; z-index: 1; }
 
 /* The hero's portrait art: phones only, where the landscape backdrops crop to a
    sliver. Screen-blended and faded upward so the headline keeps its dark ground. */
@@ -1757,30 +1740,8 @@
   .lp-hero-inner, .lp-fan, .lp-cue { position: relative; z-index: 1; }
 }
 
-/* A section-wide wash of art behind a heading, faded out well before the copy. */
-.lp-sec-art {
-  position: absolute; left: 0; right: 0; top: 0; height: min(52%, 420px);
-  display: block; overflow: hidden; pointer-events: none; z-index: 0;
-}
-.lp-sec-art img {
-  width: 100%; height: 100%; object-fit: cover; object-position: center 34%;
-  mix-blend-mode: screen; opacity: 0.5;
-}
-.lp-sec-art::after {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(0deg, #0b0e1a 0%, rgba(11, 14, 26, 0.72) 48%, rgba(11, 14, 26, 0.32) 100%);
-}
-.lp-trust, .lp-cta { position: relative; }
-.lp-trust > :not(.lp-sec-art), .lp-cta > :not(.lp-sec-art) { position: relative; z-index: 1; }
 
 
-/* The shelf's ensemble sits wider and higher than a normal section wash. */
-.lp-games { position: relative; }
-.lp-games > :not(.lp-sec-art) { position: relative; z-index: 1; }
-.lp-sec-wide { height: min(46%, 380px); }
-.lp-sec-wide img { object-position: center 18%; opacity: 0.34; }
-.lp-watch { position: relative; }
-.lp-watch > :not(.lp-sec-art) { position: relative; z-index: 1; }
 
 
 
