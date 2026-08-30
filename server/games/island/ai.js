@@ -304,12 +304,13 @@ export async function judgeItem(pattern, item, mockHints = null) {
 
 const VERIFY_ITEM_SYSTEM = `You verify a party-game ruling. Given the secret rule, an item, and a first verdict, decide independently whether the item satisfies the rule, exactly as written. Reply as JSON: {"fits": true|false, "remark": "short player-facing line only if you flip"}. Be strict about the rule's letter and spirit; do not invent extra conditions.`;
 
-// The round judged from scratch, repeatedly, until two consecutive passes agree item for
-// item. A single pass is a first impression, and a first impression is what produced the
-// wrong call in the first place. If it never settles, the table keeps its own rulings.
-const AUDIT_ROUNDS = 4;              // hard ceiling, so a stubborn round cannot loop forever
-const AUDIT_STABLE = 2;              // consecutive identical passes needed to settle
-
+// The round re-judged, then every proposed CHANGE defended before it reaches the table.
+//
+// Same generate-evaluate-repair shape as the pattern and the hints, with one difference
+// that matters: the evaluator does not re-read the whole round, it interrogates only the
+// flips. Leaving a right call alone costs nothing; overturning a right call is how the
+// boat ends up apologising for work it got correct the first time. So scrutiny goes where
+// the damage is.
 const AUDIT_SYSTEM = `You are the judge of a party game. You are re-checking your own past rulings, and you are known to make mistakes, so check carefully and independently.
 
 Given the secret rule, examples that are known to fit, and every item the table has asked about, decide for EACH item whether it satisfies the rule exactly as written. Judge every item from scratch. Do not assume a past ruling was right, and do not assume it was wrong.
@@ -317,18 +318,16 @@ Given the secret rule, examples that are known to fit, and every item the table 
 Reply as JSON: {"verdicts":[{"text":"<item exactly as given>","fits":true|false}]}
 Include every item you were given, once each. Never invent items. Never explain your reasoning: the players are still working the rule out.`;
 
-function verdictKey(map) {
-  return [...map.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([k, v]) => `${k}:${v}`).join('|');
-}
+const DEFEND_SYSTEM = `You judge items against a secret rule for a party game. For each item decide, from scratch, whether it satisfies the rule exactly as written. You are not told what anyone else concluded. Reply as JSON: {"items":[{"text":"item","fits":true|false}]}. Judge only the items given. Do not explain anything.`;
 
-async function judgeAll(pattern, judged, previous) {
+async function judgeAll(pattern, judged, feedback) {
   const items = judged.map((j) => `- "${j.text}"`).join('\n');
-  const priorLine = previous
-    ? `\n\nYour previous pass concluded:\n${judged.map((j) => `- "${j.text}": ${previous.get(normalize(j.text)) ? 'FITS' : 'DOES NOT FIT'}`).join('\n')}\n\nCheck each of those again. Keep what is right, change what is wrong.`
-    : `\n\nThe table's current rulings are:\n${judged.map((j) => `- "${j.text}": ${j.fits ? 'FITS' : 'DOES NOT FIT'}`).join('\n')}`;
+  const current = judged.map((j) => `- "${j.text}": ${j.fits ? 'FITS' : 'DOES NOT FIT'}`).join('\n');
   const out = await chatJSON({
     system: AUDIT_SYSTEM,
-    user: `Rule: ${pattern.description}\nItems known to fit: ${pattern.starters.join(', ')}\n\nItems to judge:\n${items}${priorLine}`,
+    user: `Rule: ${pattern.description}\nItems known to fit: ${pattern.starters.join(', ')}\n\n`
+      + `Items to judge:\n${items}\n\nThe table's current rulings are:\n${current}`
+      + (feedback ? `\n\nA previous attempt of yours was rejected: ${feedback}. Judge those items especially carefully this time.` : ''),
     temperature: 0, maxTokens: 700,
   }).catch(() => null);
   const map = new Map();
@@ -339,6 +338,21 @@ async function judgeAll(pattern, judged, previous) {
   }
   // A pass that could not judge the whole round is not a pass.
   return map.size === judged.length ? map : null;
+}
+
+// Re-judge a short list of items cold, knowing nothing about why they are being asked.
+async function defend(pattern, texts) {
+  const out = await chatJSON({
+    system: DEFEND_SYSTEM,
+    user: `Rule: ${pattern.description}\nItems known to fit: ${pattern.starters.join(', ')}\n\n`
+      + `Items to judge:\n${texts.map((t) => `- "${t}"`).join('\n')}`,
+    temperature: 0, maxTokens: 300,
+  });
+  const map = new Map();
+  for (const row of Array.isArray(out?.items) ? out.items : []) {
+    if (typeof row?.fits === 'boolean') map.set(normalize(String(row.text || '')), row.fits);
+  }
+  return map;
 }
 
 export async function auditRound(pattern, judged) {
@@ -352,21 +366,25 @@ export async function auditRound(pattern, judged) {
   }
   if (!judged.length) return { corrections: [] };
 
-  let settled = null;
-  let previous = null;
-  let sameFor = 1;
-  for (let i = 0; i < AUDIT_ROUNDS; i++) {
-    const pass = await judgeAll(pattern, judged, previous);
-    if (!pass) break;
-    if (previous && verdictKey(pass) === verdictKey(previous)) {
-      sameFor += 1;
-      if (sameFor >= AUDIT_STABLE) { settled = pass; break; }
-    } else {
-      sameFor = 1;
-    }
-    previous = pass;
-  }
-  // Never settled means the model kept arguing with itself; the table keeps its rulings.
+  const settled = await refine({
+    label: 'audit',
+    make: (feedback) => judgeAll(pattern, judged, feedback),
+    check: async (verdicts) => {
+      const flips = judged.filter((j) => verdicts.get(normalize(j.text)) !== j.fits);
+      // Nothing overturned: there is nothing to defend, and the table keeps its calls.
+      if (!flips.length) return { ok: true };
+      const second = await defend(pattern, flips.map((f) => f.text));
+      const unproven = flips.filter((f) => second.get(normalize(f.text)) !== verdicts.get(normalize(f.text)));
+      if (!unproven.length) return { ok: true };
+      return {
+        ok: false,
+        why: `you overturned ${unproven.map((u) => `"${u.text}"`).join(' and ')}, but judged cold they came out the way the table already had them`,
+      };
+    },
+  });
+
+  // Never settled means the model could not defend its own changes; the table keeps its
+  // rulings rather than being handed a correction nobody could stand behind.
   if (!settled) return { corrections: [] };
 
   const corrections = judged
