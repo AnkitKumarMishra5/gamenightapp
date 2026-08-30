@@ -64,15 +64,11 @@ const ART = {
   // The rest.
   'pattern-written': 'pattern-written',
   'swap-or-stay-reveal': 'ss-reveal',
-  'section-divider': 'divider',
   'the-finale': 'finale',
   'the-honest-part': 'honest',
-  // The landing's night, in order: arrival, the full table, the phone, the small hours.
-  arrival: 'arrival',
+  // Landing sections.
   'the-ensemble': 'ensemble',
   'phone-on-table': 'phone',
-  'small-hours': 'smallhours',
-  'hero-foreground': 'foreground',
   // Island's core loop, and the rest.
   'island-item-accepted': 'item-yes',
   'island-item-rejected': 'item-no',

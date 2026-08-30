@@ -14,21 +14,25 @@ five-letter code, and you play on your own phones. No download, no account, no t
 
 ## A look at it
 
-![The landing page hero](docs/screens/landing-hero.jpg)
+<p align="center">
+  <img src="docs/screens/shot1.png" width="900" alt="Game Night">
+</p>
 
-Five games behind one room code. The page passes through a single night as you scroll —
-people arriving, the table filling, the candles burning down.
+<p align="center">
+  <img src="docs/screens/shot2.png" width="900" alt="Game Night">
+</p>
 
-![The game shelf](docs/screens/landing-games.jpg)
+<p align="center">
+  <img src="docs/screens/shot3.png" width="900" alt="Game Night">
+</p>
 
-Every game screen carries its own key art, composited with a screen blend so the black it
-was shot on drops out and the lit figures rise straight off the card.
+<p align="center">
+  <img src="docs/screens/shot4.png" width="900" alt="Game Night">
+</p>
 
-![A round of Sleepless](docs/screens/in-game.jpg)
-
-Each outcome gets its own image: a candle gone out with the smoke still rising when
-somebody was taken in the night, and one lifted clean out of the row — never lit, black
-wax — when the table finally catches the Prowler.
+<p align="center">
+  <img src="docs/screens/shot5.png" width="900" alt="Game Night">
+</p>
 
 ---
 

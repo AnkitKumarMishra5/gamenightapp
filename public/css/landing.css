@@ -1773,16 +1773,6 @@
 .lp-trust, .lp-cta { position: relative; }
 .lp-trust > :not(.lp-sec-art), .lp-cta > :not(.lp-sec-art) { position: relative; z-index: 1; }
 
-/* The breath between sections: a long candlelit table, edge to edge. */
-.lp-divider { position: relative; height: clamp(90px, 16vw, 190px); overflow: hidden; }
-.lp-divider img {
-  width: 100%; height: 100%; object-fit: cover; object-position: center;
-  mix-blend-mode: screen; opacity: 0.62;
-}
-.lp-divider::after {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(0deg, #0b0e1a 2%, transparent 40%, transparent 60%, #0b0e1a 98%);
-}
 
 /* The shelf's ensemble sits wider and higher than a normal section wash. */
 .lp-games { position: relative; }
@@ -1792,13 +1782,5 @@
 .lp-watch { position: relative; }
 .lp-watch > :not(.lp-sec-art) { position: relative; z-index: 1; }
 
-/* Time-of-night bands. Dusk is warmer and taller; the small hours are darker. */
-.lp-band-dusk img { opacity: 0.5; }
-.lp-band-late { height: clamp(80px, 13vw, 150px); }
-.lp-band-late img { opacity: 0.5; }
 
 
-
-/* An abstract breath: out-of-focus candlelight, low and wide, between two sections. */
-.lp-band-glow { height: clamp(60px, 9vw, 110px); }
-.lp-band-glow img { opacity: 0.4; }

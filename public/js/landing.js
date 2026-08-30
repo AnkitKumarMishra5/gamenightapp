@@ -223,14 +223,6 @@ export function renderLanding(deps) {
     ),
   );
 
-  // The page passes through one night as you scroll: people arrive, the table fills,
-  // the candles burn down. These bands are the clock.
-  const band = (name, cls = '') => h('div', { class: `lp-divider ${cls}`, 'aria-hidden': 'true' },
-    h('picture', {},
-      h('source', { srcset: `/media/games/${name}.webp`, type: 'image/webp' }),
-      h('img', { src: `/media/games/${name}.jpg`, alt: '', loading: 'lazy', decoding: 'async' })),
-  );
-
   // ---------- finale: the opening deal, reprised at full weight ----------
   // The page closes on the beat it opened with: a fan of card backs blooms
   // open behind an oversized headline, and the button hands the player back
@@ -317,9 +309,7 @@ export function renderLanding(deps) {
   );
 
   const root = h('div', { class: `lp-root ${state.entered ? '' : 'lp-enter'}` },
-    hero, nav, band('arrival', 'lp-band-dusk'), shelf, band('divider'), watch,
-    how, band('foreground', 'lp-band-glow'), table, trust,
-    band('smallhours', 'lp-band-late'), finale, footer,
+    hero, nav, shelf, watch, how, table, trust, finale, footer,
   );
   state.entered = true;
 
