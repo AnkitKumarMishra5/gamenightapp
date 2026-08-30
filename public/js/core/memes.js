@@ -250,6 +250,8 @@ export const memes = {
     n.start(t);
   },
 
+
+  // Chiptune reward.
   recordScratch() {
     const ctx = ready(); if (!ctx) return;
     const out = bus(ctx, 0.7);
@@ -265,8 +267,15 @@ export const memes = {
     n.connect(bp).connect(g).connect(out);
     n.start(t);
   },
-
-  // Chiptune reward.
+  sparkle() {
+    const ctx = ready(); if (!ctx) return;
+    const out = bus(ctx, 0.5);
+    const t = ctx.currentTime;
+    for (let i = 0; i < 7; i++) {
+      const f = 1400 + Math.random() * 2600;
+      tone(ctx, out, { type: 'sine', from: f, to: f * 1.4, at: t + i * 0.045, dur: 0.22, gain: 0.13 });
+    }
+  },
   coin() {
     const ctx = ready(); if (!ctx) return;
     const out = bus(ctx, 0.55);
@@ -301,15 +310,6 @@ export const memes = {
     tone(ctx, out, { type: 'sine', from: 220, to: 1400, at: t, dur: 0.42, gain: 0.14 });
   },
 
-  sparkle() {
-    const ctx = ready(); if (!ctx) return;
-    const out = bus(ctx, 0.5);
-    const t = ctx.currentTime;
-    for (let i = 0; i < 7; i++) {
-      const f = 1400 + Math.random() * 2600;
-      tone(ctx, out, { type: 'sine', from: f, to: f * 1.4, at: t + i * 0.045, dur: 0.22, gain: 0.13 });
-    }
-  },
 
   // Wrong-answer buzzer.
   buzzer() {
@@ -532,28 +532,36 @@ export const memes = {
 // source the README's sound table is written from. Keep it in step with the call sites in
 // main.js and with the files in public/media/sfx/.
 export const MEME_CATALOG = [
-  { id: 'boom', emoji: '💥', name: 'Bass boom', where: 'A player is eliminated; the 💀 reaction', recorded: true },
-  { id: 'gasp', emoji: '😱', name: 'Crowd gasp', where: 'The moment an elimination is revealed; the 😱 reaction', recorded: true },
-  { id: 'boo', emoji: '👎', name: 'Boo', where: 'The room votes out an innocent insider', recorded: true },
-  { id: 'airhorn', emoji: '📣', name: 'Airhorn', where: 'The Blank guesses right; the outsiders win; the 🔥 reaction', recorded: true },
-  { id: 'laughTrack', emoji: '😂', name: 'Crowd laugh', where: 'The 😂 reaction', recorded: true },
-  { id: 'crickets', emoji: '🦗', name: 'Crickets', where: 'A tied vote; nobody eliminated; the 🤔 reaction', recorded: true },
+  // The emoji reactions. One pack each; the server seeds the pick so the whole room
+  // hears the same clip at the same moment.
+  { id: 'rxLaugh', emoji: '😂', name: 'Laugh pack', where: 'The 😂 reaction (10 clips)', recorded: true },
+  { id: 'rxShock', emoji: '😱', name: 'Shock pack', where: 'The 😱 reaction (6 clips)', recorded: true },
+  { id: 'rxFire', emoji: '🔥', name: 'Fire pack', where: 'The 🔥 reaction (3 clips)', recorded: true },
+  { id: 'rxDoubt', emoji: '🧐', name: 'Doubt pack', where: 'The 🧐 reaction (3 clips)', recorded: true },
+  { id: 'rxDead', emoji: '💀', name: 'Dead pack', where: 'The 💀 reaction (3 clips)', recorded: true },
+  { id: 'rxThink', emoji: '🤔', name: 'Thinking pack', where: 'The 🤔 reaction (2 clips)', recorded: true },
   { id: 'rimshot', emoji: '🥁', name: 'Rimshot', where: 'Lands the quip after a tied vote', recorded: true },
-  { id: 'suspense', emoji: '🧐', name: 'Suspense sting', where: 'Voting opens; the 🧐 reaction', recorded: true },
+  { id: 'bruh', emoji: '🫠', name: 'Bruh', where: 'The judge cannot make sense of what you typed' },
+  { id: 'recordScratch', emoji: '💿', name: 'Record scratch', where: 'An unrecognised item; an AI error' },
+  { id: 'airhorn', emoji: '📣', name: 'Airhorn', where: 'The Blank guesses right; the outsiders win; the 🔥 reaction', recorded: true },
+  { id: 'sparkle', emoji: '✨', name: 'Sparkle', where: 'Island Rules opens with a fresh pattern' },
+  { id: 'boom', emoji: '💥', name: 'Bass boom', where: 'A player is eliminated', recorded: true },
+  { id: 'gasp', emoji: '😱', name: 'Crowd gasp', where: 'The moment an elimination is revealed', recorded: true },
+  { id: 'boo', emoji: '👎', name: 'Boo', where: 'The room votes out an innocent insider', recorded: true },
+  { id: 'laughTrack', emoji: '😂', name: 'Crowd laugh', where: 'A round won on a bluff', recorded: true },
+  { id: 'crickets', emoji: '🦗', name: 'Crickets', where: 'A tied vote; nobody eliminated', recorded: true },
+  { id: 'suspense', emoji: '🧐', name: 'Suspense sting', where: 'Voting opens', recorded: true },
   { id: 'drumroll', emoji: '🥁', name: 'Drum roll', where: 'A game starting; the run-up to an elimination', recorded: true },
   { id: 'applause', emoji: '👏', name: 'Applause', where: 'Insiders win; a pattern is cracked; the round ends', recorded: true },
   { id: 'sadTrombone', emoji: '🎺', name: 'Sad trombone', where: "the Blank's guess misses" },
   { id: 'sinister', emoji: '😈', name: 'Sinister', where: 'The outsiders take the game' },
   { id: 'levelUp', emoji: '⬆️', name: 'Level up', where: 'Insiders win; a player cracks the pattern' },
   { id: 'yeet', emoji: '🚀', name: 'Yeet', where: 'A new game kicking off' },
-  { id: 'sparkle', emoji: '✨', name: 'Sparkle', where: 'Island Rules opens with a fresh pattern' },
   { id: 'coin', emoji: '🪙', name: 'Coin', where: 'An item is allowed aboard; a hint is spent' },
   { id: 'bonk', emoji: '🔨', name: 'Bonk', where: 'An item is turned away' },
   { id: 'buzzer', emoji: '🚫', name: 'Buzzer', where: 'A wrong pattern guess', recorded: true },
   { id: 'emotionalDamage', emoji: '🩹', name: 'Emotional damage', where: 'Three wrong guesses and you are out' },
-  { id: 'recordScratch', emoji: '💿', name: 'Record scratch', where: 'An unrecognised item; an AI error' },
   { id: 'cheer', emoji: '🎉', name: 'Crowd cheer', where: 'The 🔥 reaction', recorded: true },
-  { id: 'bruh', emoji: '🫠', name: 'Bruh', where: 'The judge cannot make sense of what you typed' },
   { id: 'cardShuffle', emoji: '🃏', name: 'Riffle shuffle', where: 'The deck shuffling at the start of any card deal' },
   { id: 'cardFlick', emoji: '✉️', name: 'Card flick', where: 'Each card leaving the deck during the deal' },
   { id: 'cardSlap', emoji: '👋', name: 'Card landing', where: 'A card landing on the felt, or being played to the pile' },
@@ -564,14 +572,12 @@ export const MEME_CATALOG = [
   { id: 'winInsiders', emoji: '🏆', name: 'Insiders win', where: 'Blend In: the insiders take the game', recorded: true },
   { id: 'winOutsiders', emoji: '🎭', name: 'Outsiders win', where: 'Blend In: the outsiders take the game', recorded: true },
   { id: 'dhol', emoji: '🪘', name: 'Dhol', where: 'Big wins and the 🔥 reaction (indian pack)', recorded: true },
-  { id: 'tabla', emoji: '🎶', name: 'Tabla sting', where: 'The 🤔 and 🧐 pools (indian pack)', recorded: true },
   { id: 'wow', emoji: '😮', name: 'Crowd wow', where: 'Island solves; the 😮-adjacent pools', recorded: true },
   { id: 'fail', emoji: '🪈', name: 'Slide-whistle fail', where: 'Knocked out of Island Rules; 💀 pool', recorded: true },
   { id: 'dun', emoji: '🎻', name: 'Dun dun dunnn', where: 'Sentinel blocks; suspicion pools', recorded: true },
   { id: 'evilLaugh', emoji: '😈', name: 'Evil laugh', where: 'Prowler win; 🧐 and 💀 pools', recorded: true },
   { id: 'ding', emoji: '🔔', name: 'Correct ding', where: 'Island: an item fits; 🔥 pool', recorded: true },
   { id: 'aww', emoji: '🥺', name: 'Crowd aww', where: 'Sleepless: a night everyone survives', recorded: true },
-  { id: 'huh', emoji: '🤨', name: 'Confused huh', where: 'The 🤔 and 🧐 pools', recorded: true },
   { id: 'kaching', emoji: '💰', name: 'Ka-ching', where: 'Points landing; the 🔥 pool', recorded: true },
   { id: 'clang', emoji: '🛡', name: 'Shield clang', where: 'Swap or Stay: a Sentinel blocks a swap', recorded: true },
   { id: 'bellToll', emoji: '🔔', name: 'Bell toll', where: 'Sleepless: someone did not wake up', recorded: true },
@@ -583,28 +589,28 @@ export const MEME_CATALOG = [
 // recorded variants, so the same emoji rarely sounds the same twice.
 // Ids whose recordings live in media/sfx/indian/ — the desi flavour pack. Kept as one
 // list so it can be extended or swapped for a global pack without touching game code.
-export const INDIAN_SFX = ['dhol', 'tabla'];
+export const INDIAN_SFX = ['dhol'];
 
 // Recording-only ids fall back to the nearest synth until their file has decoded.
 const SYNTH_FALLBACK = {
-  dhol: 'drumroll', tabla: 'drumroll',
+  dhol: 'drumroll',
   winInsiders: 'levelUp', winOutsiders: 'sinister',
   wow: 'gasp', fail: 'buzzer', dun: 'suspense', evilLaugh: 'sinister',
-  ding: 'levelUp', aww: 'crickets', huh: 'bonk', kaching: 'coin',
+  ding: 'levelUp', aww: 'crickets', kaching: 'coin',
   clang: 'buzzer', bellToll: 'boo', rooster: 'levelUp',
   // Ids that ship as recordings only: without these they would be silent whenever the
   // clip has not been fetched yet.
-  laughTrack: 'cheer', rimshot: 'bonk', bruh: 'bonk', sadTrombone: 'boo',
-  boom: 'emotionalDamage', airhorn: 'cheer',
+  laughTrack: 'cheer', sadTrombone: 'boo',
+  boom: 'emotionalDamage',
 };
 
 export const REACTION_SOUNDS = {
-  '😂': ['laughTrack', 'laughTrack', 'laughTrack', 'laughTrack', 'rimshot', 'rimshot', 'bruh', 'evilLaugh', 'applause', 'bonk'],
-  '🤔': ['huh', 'huh', 'huh', 'crickets', 'crickets', 'suspense', 'dun', 'bruh', 'recordScratch', 'sadTrombone'],
-  '😱': ['gasp', 'gasp', 'gasp', 'gasp', 'boom', 'boom', 'dun', 'emotionalDamage', 'recordScratch', 'buzzer'],
-  '🧐': ['suspense', 'suspense', 'suspense', 'dun', 'dun', 'drumroll', 'crickets', 'sinister', 'huh', 'tabla'],
-  '🔥': ['airhorn', 'airhorn', 'airhorn', 'cheer', 'cheer', 'applause', 'dhol', 'levelUp', 'kaching', 'sparkle'],
-  '💀': ['boom', 'boom', 'boom', 'emotionalDamage', 'emotionalDamage', 'fail', 'sadTrombone', 'sinister', 'boo', 'bellToll'],
+  '😂': ['rxLaugh'],
+  '🤔': ['rxThink'],
+  '😱': ['rxShock'],
+  '🧐': ['rxDoubt'],
+  '🔥': ['rxFire'],
+  '💀': ['rxDead'],
 };
 
 // The pool is weighted by repetition (the signature sound appears more than once), so
@@ -623,7 +629,7 @@ export function reactionSound(emoji, seed = null) {
 // ---------------------------------------------------------------------------
 // Every sound above is synthesized, which keeps the app free of licensing problems and
 // adds nothing to the download. Drop an audio file named after a sound into
-// public/media/sfx/ (boom.mp3, airhorn.mp3, laughTrack.mp3 …) and it is used instead.
+// public/media/sfx/ (boom.mp3, laughTrack.mp3, rxLaugh-3.mp3 …) and it is used instead.
 // Files are fetched once, decoded, then cached; if anything fails the synth still plays,
 // so a missing or broken file never leaves a silent gap in a game.
 const samples = new Map();      // id -> [AudioBuffer, ...] decoded variants
@@ -666,28 +672,40 @@ export function playMemeSeeded(name, seed) {
   const url = urls[Math.abs(seed) % urls.length];
   const buf = decodedByUrl.get(url);
   if (buf) return playSample(buf) || (() => {});
-  // Not decoded yet: fall back to the synth this once (identical on every phone too),
-  // and have the file ready for the next time this seed comes up.
-  fetchDecode(url);
+  // Not decoded yet: fetch it and play the moment it lands, so the room still hears the
+  // same clip rather than a silent first reaction. A stop asked for meanwhile is honoured.
+  let stop = null;
+  let cancelled = false;
+  fetchDecode(url).then((decoded) => {
+    if (cancelled || !decoded) return;
+    stop = playSample(decoded);
+  });
   const fn = memes[name];
   if (fn) fn();
-  return () => {};
+  return (fade) => { cancelled = true; stop?.(fade); };
 }
 
 // One reaction at a time: a new reaction cuts the previous one short instead of being
 // swallowed because something else was still playing. The table hears every joke land.
 let reactionStop = null;
+let reactionTimer = 0;
+// Long enough for a proper laugh, short enough that a stray thirty-second clip does not
+// hold the table hostage.
+const REACTION_MAX_MS = 6000;
 export function playReaction(emoji, seed = null) {
   reactionStop?.(0.06);
+  clearTimeout(reactionTimer);
   const name = reactionSound(emoji, seed);
-  reactionStop = seed == null ? playMeme(name) : playMemeSeeded(name, seed);
+  const stop = seed == null ? playMeme(name) : playMemeSeeded(name, seed);
+  reactionStop = stop;
+  reactionTimer = setTimeout(() => { if (reactionStop === stop) stop?.(0.25); }, REACTION_MAX_MS);
 }
 
 // Returns a function that cuts the sound short, because a sample that has already
 // started can only be stopped by whoever still holds its nodes. The card table needs
 // this: the laugh has to stop dead when the shuffle ends.
 // Recordings arrive at wildly different levels. Measuring the loudest moment once and
-// scaling to a common target keeps a laugh track and an airhorn at the same distance
+// scaling to a common target keeps a laugh track and a braam at the same distance
 // from the listener, and stops quiet clips from vanishing under the room.
 const PEAK_TARGET = 0.72;
 const gains = new WeakMap();

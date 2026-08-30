@@ -1,7 +1,7 @@
 // Game Night service worker: precache the app shell, network-first for navigation
 // (so updates land immediately), cache-first for static assets. Socket.IO traffic
 // is never intercepted.
-const VERSION = 'gamenight-v20';
+const VERSION = 'gamenight-v21';
 const SHELL = [
   '/',
   '/index.html',

@@ -267,14 +267,14 @@ socket.on('fx', (fx) => {
     }
     case 'vote-tie': {
       memes.crickets();
-      if (fx.quip) { setTimeout(() => memes.rimshot(), 700); toast(fx.quip); }
+      if (fx.quip) { setTimeout(() => playMeme('rimshot'), 700); toast(fx.quip); }
       break;
     }
     case 'no-elimination': memes.crickets(); break;
     case 'elimination': {
       memes.drumroll();
       setTimeout(() => {
-        memes.boom();
+        playMeme('boom');
         // An innocent going out deserves a groan; catching an impostor deserves a gasp.
         if (fx.role === 'insider') { memes.gasp(); setTimeout(() => memes.boo(), 420); }
         else memes.gasp();
@@ -282,8 +282,8 @@ socket.on('fx', (fx) => {
       break;
     }
     case 'white-guess': {
-      if (fx.correct) { memes.airhorn(); setTimeout(() => memes.applause(), 500); }
-      else memes.sadTrombone();
+      if (fx.correct) { playMeme('airhorn'); setTimeout(() => playMeme('applause'), 500); }
+      else playMeme('sadTrombone');
       break;
     }
     case 'game-over': {
@@ -291,7 +291,7 @@ socket.on('fx', (fx) => {
       // triumphant fanfare with a dhol under it for the insiders, a sly villain theme for
       // the outsiders who fooled the whole table.
       if (fx.winner === 'insiders') { playMeme('winInsiders'); setTimeout(() => playMeme('dhol'), 500); }
-      else { playMeme('winOutsiders'); setTimeout(() => memes.airhorn(), 1400); }
+      else { playMeme('winOutsiders'); setTimeout(() => playMeme('airhorn'), 1400); }
       confettiRain(2400);
       break;
     }
@@ -339,7 +339,7 @@ socket.on('fx', (fx) => {
     case 'ai-error': memes.recordScratch(); if (fx.message) toast(fx.message, 'error'); break;
     case 'item-invalid': {
       memes.recordScratch();
-      setTimeout(() => memes.bruh(), 380);
+      setTimeout(() => playMeme('bruh'), 380);
       if (fx.message) toast(fx.message, 'error', 4000);
       break;
     }
