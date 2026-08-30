@@ -1141,6 +1141,9 @@ function renderLobby() {
           sound.tap();
         },
       },
+        g.art && h('picture', { class: 'gc-art', 'aria-hidden': 'true' },
+          h('source', { srcset: `${g.art}.webp`, type: 'image/webp' }),
+          h('img', { src: `${g.art}.jpg`, alt: '', loading: 'lazy', decoding: 'async' })),
         h('div', { class: `gc-glow ${g.accent}` }),
         !isHost && picked && h('span', { class: 'gc-picked' }, '👑 picked'),
         h('div', { class: 'gc-emoji' }, g.emoji),

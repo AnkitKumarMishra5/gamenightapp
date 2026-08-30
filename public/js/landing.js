@@ -894,6 +894,12 @@ function gameCard(deps, g, i) {
     style: `--a:${accent}`,
     onClick: () => { deps.sound.tap(); deps.showRules(g.id); },
   },
+    // The key art sits behind the copy, screen-blended so the black it was shot on
+    // drops out and the lit figures rise straight off the card.
+    g.art && h('picture', { class: 'lp-gcard-art', 'aria-hidden': 'true' },
+      h('source', { srcset: `${g.art}.webp`, type: 'image/webp' }),
+      h('img', { src: `${g.art}.jpg`, alt: '', loading: 'lazy', decoding: 'async' }),
+    ),
     h('span', { class: 'lp-gcard-glare', 'aria-hidden': 'true' }),
     h('span', { class: 'lp-gcard-sweep', 'aria-hidden': 'true' }),
     h('span', { class: 'lp-gcard-pip lp-tl', 'aria-hidden': 'true' }, g.emoji),

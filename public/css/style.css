@@ -2090,3 +2090,48 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 }
 @keyframes audit-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .audit-spinner { animation-duration: 2.4s; } }
+
+/* ---------- game key art ----------
+   Shot on pure black, composited with a screen blend: black contributes nothing, so
+   the lit figures rise off the card with no cutout and no rectangular seam. */
+.gc-art {
+  position: absolute; inset: 0; display: block;
+  overflow: hidden; border-radius: inherit; pointer-events: none; z-index: 0;
+}
+.gc-art img {
+  position: absolute; right: -6%; bottom: 0; width: 86%; height: 100%;
+  object-fit: cover; object-position: right center;
+  mix-blend-mode: screen; opacity: 0.85;
+  transition: opacity 0.3s ease, transform 0.45s cubic-bezier(0.22, 0.8, 0.26, 1);
+}
+.game-card:hover .gc-art img { opacity: 1; transform: scale(1.04); }
+/* The copy gets its own ground so a word never lands on a face. */
+.gc-art::after {
+  content: ''; position: absolute; inset: 0;
+  background:
+    linear-gradient(94deg, var(--bg) 0%, var(--bg) 40%, rgba(11, 14, 26, 0.84) 58%, rgba(11, 14, 26, 0.28) 82%, transparent 100%),
+    linear-gradient(0deg, rgba(11, 14, 26, 0.7) 0%, transparent 45%);
+}
+.game-card > :not(.gc-art) { position: relative; z-index: 1; }
+
+/* The rules sheet leads with the same art as a wide banner. */
+.rules-art {
+  position: relative; margin: 12px 0 4px;
+  height: clamp(110px, 22vw, 172px);
+  border-radius: var(--r-md); overflow: hidden;
+  border: 1px solid var(--stroke);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.05), transparent 60%), var(--bg);
+}
+.rules-art:empty { display: none; }
+.rules-art img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: right 38%;
+  mix-blend-mode: screen; opacity: 0.9;
+}
+.rules-art::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(0deg, rgba(11, 14, 26, 0.85) 0%, transparent 55%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-card:hover .gc-art img { transform: none; }
+}

@@ -11,7 +11,8 @@
     "brand": "node tools/gen-brand.mjs",
     "test:ai": "node tests/ai-smoke.mjs",
     "backdrop": "node tools/backdrop.mjs",
-    "og:check": "node tools/og-check.mjs"
+    "og:check": "node tools/og-check.mjs",
+    "gameart": "node tools/gameart.mjs"
   },
   "keywords": [],
   "author": "Ankit Kumar Mishra <akmishra5514@gmail.com> (https://www.linkedin.com/in/ankitkumarmishra/)",

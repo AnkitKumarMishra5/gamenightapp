@@ -1685,3 +1685,36 @@
   opacity: 1; color: var(--ink-dim); background: rgba(255, 255, 255, 0.04);
 }
 .lp-devcard { scroll-margin-top: 90px; }
+
+/* ---------- game key art ----------
+   Shot on pure black, so a screen blend does the cutout for free: black contributes
+   nothing and the rim-lit figures keep their soft edges. Anchored right, because the
+   art leaves its left side empty for exactly this text. */
+.lp-gcard-art {
+  position: absolute; inset: 0;
+  display: block; overflow: hidden; border-radius: inherit;
+  pointer-events: none; z-index: 0;
+}
+.lp-gcard-art img {
+  position: absolute; right: -6%; bottom: 0;
+  width: 86%; height: 100%;
+  object-fit: cover; object-position: right center;
+  mix-blend-mode: screen;
+  opacity: 0.9;
+  transition: opacity 0.35s ease, transform 0.5s cubic-bezier(0.22, 0.8, 0.26, 1);
+}
+.lp-gcard:hover .lp-gcard-art img,
+.lp-gcard:focus-visible .lp-gcard-art img { opacity: 1; transform: scale(1.04); }
+/* The copy needs its own ground: a gradient from the card colour on the left into
+   nothing on the right, so the words never sit on a face. */
+.lp-gcard-art::after {
+  content: ''; position: absolute; inset: 0;
+  background:
+    linear-gradient(94deg, #0b0e1a 0%, #0b0e1a 42%, rgba(11, 14, 26, 0.86) 58%, rgba(11, 14, 26, 0.3) 82%, transparent 100%),
+    linear-gradient(0deg, rgba(11, 14, 26, 0.75) 0%, transparent 42%);
+}
+.lp-gcard > :not(.lp-gcard-art) { position: relative; z-index: 1; }
+.lp-gc-dim .lp-gcard-art img { opacity: 0.28; }
+@media (prefers-reduced-motion: reduce) {
+  .lp-gcard:hover .lp-gcard-art img { transform: none; }
+}
