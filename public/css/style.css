@@ -2158,3 +2158,10 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 }
 .has-art { position: relative; overflow: hidden; }
 .has-art > :not(.scene-art) { position: relative; z-index: 1; }
+
+/* A live screen keeps its art well back: the cards and the grid are the thing being
+   read, and a photograph behind them competes for the same eyes. */
+.art-faint .scene-art img { opacity: 0.42; }
+.art-faint .scene-art::after {
+  background: linear-gradient(94deg, var(--bg) 0%, rgba(11, 14, 26, 0.92) 46%, rgba(11, 14, 26, 0.72) 74%, rgba(11, 14, 26, 0.5) 100%);
+}

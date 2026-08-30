@@ -363,7 +363,8 @@ function nightPhase(sl, ctx) {
     else { shake(btn || answerBox); ctx.sound.tap(); ctx.toast(res.error); }
   };
 
-  return h('div', { class: 'card sl-night-card' },
+  return h('div', { class: 'card sl-night-card has-art art-faint' },
+    sceneArt('night'),
     h('h2', { class: 'subtitle', style: 'text-align:center' }, `🌙 ${role.prompt}`),
     allies.length > 0 && h('p', { class: 'hint sl-allies', style: 'text-align:center; margin:2px 0 0; color:var(--amber)' },
       `🐾 Hunting with ${allies.map((id) => ctx.player(id).name).join(' and ')}. The most-named door falls.`),
@@ -401,7 +402,8 @@ function dawnBanner(sl, ctx) {
   if (d.kind === 'death') {
     const p = ctx.player(d.victimId);
     const r = ROLES[d.role];
-    return h('div', { class: `card sl-dawn-card ${animOnce(`sl-dawncard:${sl.dealId}:${d.seq}`, 'sl-rise')}` },
+    return h('div', { class: `card sl-dawn-card has-art ${animOnce(`sl-dawncard:${sl.dealId}:${d.seq}`, 'sl-rise')}` },
+      sceneArt('dawn', 'band'),
       h('div', { class: 'sl-dawn-head' }, '🌅 Dawn'),
       h('div', { class: `sl-flip ${animOnce(`sl-dawnflip:${sl.dealId}:${d.seq}`, 'sl-flipping')}` },
         h('div', { class: 'sl-flip-face sl-flip-front' }, p.avatar),
@@ -433,7 +435,8 @@ function voteBoard(sl, ctx) {
   const target = pendingVote && pendingVote !== 'skip' ? ctx.player(pendingVote) : null;
   const pct = sl.votersTotal ? Math.round((sl.voteCount / sl.votersTotal) * 100) : 0;
 
-  return h('div', { class: 'card' },
+  return h('div', { class: 'card has-art art-faint' },
+    sceneArt('vote'),
     h('h2', { class: 'subtitle', style: 'text-align:center' }, '🗳️ Who doesn\'t sleep at night?'),
     h('p', { class: 'hint', style: 'text-align:center; margin:6px 0 14px' },
       !alive ? 'You\'re spectating this vote.'

@@ -21,7 +21,9 @@ const WIDTH = 1920;
 
 const IMAGE_RE = /\.(png|jpe?g|webp)$/i;
 const VIDEO_RE = /\.(mp4|webm|mov)$/i;
-const SKIP_RE = /^ankitkumarmishra/i;          // the author photo, handled by `npm run brand`
+// Only the friend photos are backdrops. Everything else in source-assets/ is game and
+// scene art, handled by `npm run gameart`, and must never end up behind the landing page.
+const BACKDROP_RE = /^friends-/i;
 
 const kb = (p) => `${(fs.statSync(p).size / 1024).toFixed(0)} KB`;
 
@@ -32,12 +34,12 @@ async function main() {
   // Sorted by name so the rotation order is predictable and you can control it by
   // renaming (friends-1, friends-2, …).
   const files = fs.readdirSync(SOURCE)
-    .filter((f) => !SKIP_RE.test(f))
+    .filter((f) => BACKDROP_RE.test(f))
     .filter((f) => IMAGE_RE.test(f) || VIDEO_RE.test(f))
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
   if (!files.length) {
-    console.error('No images or videos in source-assets/. Add some and run this again.');
+    console.error('No friends-*.{png,jpg,mp4} in source-assets/. Add some and run this again.');
     process.exit(1);
   }
 

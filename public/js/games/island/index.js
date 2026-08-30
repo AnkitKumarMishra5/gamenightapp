@@ -382,6 +382,7 @@ function actionBar(is, ctx) {
     parts.push(h('p', { class: 'hint', style: 'text-align:center; margin:0' }, 'You joined mid-round. You\'ll board the boat next round! ⛵'));
   } else if (is.youKnockedOut) {
     parts.push(
+      sceneArt('eliminated', 'band'),
       h('div', { class: 'turn-banner', style: 'margin:0' }, '💀 You used all three pattern guesses, out for this round'),
       h('p', { class: 'hint', style: 'text-align:center; margin-top:8px' }, 'Watch the rest unfold; you\'re back in next round.'),
     );
@@ -432,7 +433,8 @@ function actionBar(is, ctx) {
   } else {
     parts.push(waitingFor(ctx.player(ctx.hostId)?.name, 'can end the round and reveal the pattern.'));
   }
-  return h('div', { class: 'action-bar' }, h('div', { class: 'card' }, parts));
+  return h('div', { class: 'action-bar' },
+    h('div', { class: `card ${is.youKnockedOut ? 'has-art' : ''}` }, parts));
 }
 
 // The boat gives away two more items each time the table completes a full lap. Anyone can

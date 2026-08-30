@@ -351,7 +351,8 @@ function votePhase(bi, ctx) {
 
   const target = pendingVote ? ctx.player(pendingVote) : null;
 
-  return h('div', { class: 'card' },
+  return h('div', { class: 'card has-art art-faint' },
+    sceneArt('vote'),
     h('h2', { class: 'subtitle', style: 'text-align:center' },
       isRunoff ? '⚖️ Tie-breaker! Vote between the tied players' : '🗳️ Who is the impostor?'),
     isRunoff && h('p', { class: 'hint', style: 'text-align:center; color:var(--amber); margin:4px 0 8px' },

@@ -1736,3 +1736,23 @@
   background: linear-gradient(0deg, #0b0e1a 0%, rgba(11, 14, 26, 0.7) 45%, rgba(11, 14, 26, 0.35) 100%);
 }
 .lp-table > :not(.lp-table-art) { position: relative; z-index: 1; }
+
+/* The hero's portrait art: phones only, where the landscape backdrops crop to a
+   sliver. Screen-blended and faded upward so the headline keeps its dark ground. */
+.lp-hero-art { display: none; }
+@media (max-width: 700px) {
+  .lp-hero-art {
+    display: block; position: absolute; inset: 0;
+    overflow: hidden; pointer-events: none; z-index: 0;
+  }
+  .lp-hero-art img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; object-position: center bottom;
+    mix-blend-mode: screen; opacity: 0.6;
+  }
+  .lp-hero-art::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(0deg, #0b0e1a 2%, rgba(11, 14, 26, 0.55) 34%, rgba(11, 14, 26, 0.8) 68%, #0b0e1a 100%);
+  }
+  .lp-hero-inner, .lp-fan, .lp-cue { position: relative; z-index: 1; }
+}

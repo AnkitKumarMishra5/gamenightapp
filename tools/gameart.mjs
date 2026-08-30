@@ -33,6 +33,11 @@ const ART = {
   'village-wins': 'win-together',
   'hidden-player-wins': 'win-alone',
   'card-table': 'cardtable',
+  'night-falls': 'night',
+  'dawn-breaks': 'dawn',
+  'vote-out': 'vote',
+  eliminated: 'eliminated',
+  'landing-hero': 'hero',
 };
 
 const kb = (p) => `${(fs.statSync(p).size / 1024).toFixed(0)} KB`;

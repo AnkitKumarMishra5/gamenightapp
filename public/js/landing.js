@@ -118,6 +118,12 @@ export function renderLanding(deps) {
 
   const hero = h('section', { class: 'lp-hero', id: 'lp-hero', 'aria-label': 'Start playing' },
     canvas,
+    // Portrait key art, phones only: the landscape backdrops crop badly on a tall
+    // screen, and this one is composed for it.
+    h('picture', { class: 'lp-hero-art', 'aria-hidden': 'true' },
+      h('source', { srcset: '/media/games/hero.webp', type: 'image/webp' }),
+      h('img', { src: '/media/games/hero.jpg', alt: '', decoding: 'async' }),
+    ),
     h('div', { class: 'lp-hero-glow', 'aria-hidden': 'true' }),
     h('div', { class: 'lp-hero-inner' },
       h('p', { class: 'lp-eyebrow' }, 'Free party games, in your browser'),
