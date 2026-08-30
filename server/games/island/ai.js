@@ -51,7 +51,14 @@ Respond with JSON: {"name": "<plain-English pattern name>", "description": "<one
 // — goes through here, because a single unchecked generation is how a round becomes
 // unwinnable. Returns null when nothing passed, and every caller has a non-AI fallback
 // for that case.
-const REFINE_ROUNDS = 3;
+//
+// On the round limit. Refinement pays off in the first repair and flattens after; past
+// that a loop mostly re-rolls at full price, and a model asked to reconsider too often
+// starts talking itself out of correct answers. So the limit is not one number: it is set
+// per loop by how good the alternative is. Where the fallback is hand-written and known
+// good, one repair then fall back beats a third paid attempt. Where there is no real
+// fallback, the extra round is worth buying. Each caller passes its own.
+const REFINE_ROUNDS = 2;
 
 async function refine({ make, check, rounds = REFINE_ROUNDS, label = 'candidate' }) {
   let feedback = null;
@@ -135,6 +142,9 @@ export async function generatePattern(avoidNames = []) {
   const rejected = [];
   const pattern = await refine({
     label: 'pattern',
+    // One repair, then the bank: 60 hand-written patterns are a better use of the next
+    // 5 calls than a third generation, and every one of them is known to be playable.
+    rounds: 2,
     make: (feedback) => generateOnce([...avoidNames, ...rejected], feedback),
     check: async (p) => {
       const weak = patternIsWeak(p);
@@ -368,6 +378,10 @@ export async function auditRound(pattern, judged) {
 
   const settled = await refine({
     label: 'audit',
+    // Failing here means "change nothing", which is exactly what the table already has,
+    // so there is little to buy with a third round — and each extra pass is another
+    // chance to talk itself into overturning a call that was right.
+    rounds: 2,
     make: (feedback) => judgeAll(pattern, judged, feedback),
     check: async (verdicts) => {
       const flips = judged.filter((j) => verdicts.get(normalize(j.text)) !== j.fits);
@@ -514,6 +528,10 @@ export async function suggestItems(pattern, known = [], bankEntry = null, count 
   // failed item is named back to the model so the retry fixes that specific mistake.
   const items = await refine({
     label: 'hint',
+    // The only loop with a weak fallback: a pattern the model invented has no bank
+    // examples behind it, so failing here means the table gets no hint at all. Worth
+    // two repairs rather than one.
+    rounds: 3,
     make: async (feedback) => {
       const result = await chatJSON({
         system: HINT_SYSTEM,

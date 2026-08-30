@@ -806,7 +806,7 @@ io.on('connection', (socket) => {
       // Phase stays 'setup' while a pattern is being written, so without this a host
       // could stack overlapping generations, each costing a handful of model calls.
       if (room.state.generating) throw new GameError('The gamemaster is already thinking.');
-      spendAiBudget(room, 15);        // the worst case for a full generate-and-check
+      spendAiBudget(room, 10);        // 2 rounds x (1 generation + 4 calls judging both starters)
       room.state.generating = true;
     } catch (err) {
       return cb?.({ ok: false, error: err instanceof GameError ? err.message : 'Setup failed.' });
@@ -909,7 +909,7 @@ io.on('connection', (socket) => {
       if (!room || !playerId) throw new GameError('You are not in a room.');
       if (room.game !== 'island') throw new GameError('No island round in progress.');
       if (Date.now() < (room.auditCooldownUntil || 0)) throw new GameError('The boat just re-checked. Give it a minute.');
-      spendAiBudget(room, 6);         // worst case: three judge-and-defend rounds
+      spendAiBudget(room, 4);         // worst case: two judge-and-defend rounds
       gate = island.requestAudit(room, playerId);
       room.auditCooldownUntil = Date.now() + 60_000;
     } catch (err) {
