@@ -43,6 +43,42 @@ REQUIREMENTS
 
 Respond with JSON: {"name": "<plain-English pattern name>", "description": "<one-sentence judging rule>", "starters": ["<item1>", "<item2>"]}`;
 
+// ---------- reflection ----------
+//
+// Generate, evaluate, and feed the evaluation back in as a repair instruction, until a
+// candidate passes or the attempts run out. Every AI call in this file that PRODUCES
+// something players then treat as ground truth — the pattern, the opening items, a hint
+// — goes through here, because a single unchecked generation is how a round becomes
+// unwinnable. Returns null when nothing passed, and every caller has a non-AI fallback
+// for that case.
+const REFINE_ROUNDS = 3;
+
+async function refine({ make, check, rounds = REFINE_ROUNDS, label = 'candidate' }) {
+  let feedback = null;
+  for (let attempt = 0; attempt < rounds; attempt++) {
+    let candidate;
+    try {
+      candidate = await make(feedback, attempt);
+    } catch (err) {
+      console.warn(`[island ai] ${label} generation failed: ${err.message}`);
+      return null;
+    }
+    if (!candidate) return null;
+    let verdict;
+    try {
+      verdict = await check(candidate);
+    } catch (err) {
+      // The evaluator is a safeguard, not a gate: if it cannot run, take the candidate.
+      console.warn(`[island ai] ${label} check unavailable: ${err.message}`);
+      return candidate;
+    }
+    if (verdict?.ok) return candidate;
+    feedback = verdict?.why || 'That did not satisfy the rule.';
+    console.warn(`[island ai] retrying ${label}: ${feedback}`);
+  }
+  return null;
+}
+
 function bankPattern(avoidNames = []) {
   const avoid = new Set(avoidNames.map(normalize));
   const options = ISLAND_PATTERNS.filter((p) => !avoid.has(normalize(p.name)));
@@ -68,9 +104,10 @@ function patternIsWeak(pattern) {
   return null;
 }
 
-async function generateOnce(avoidNames) {
+async function generateOnce(avoidNames, feedback) {
   const mechanisms = ['spelling/letters', 'sound/phonetics', 'meaning/physical properties', 'clever/relational wordplay'];
-  const user = `Invent one new secret pattern. Lean toward a ${pick(mechanisms)} mechanism this time (but surprise me if you have something better). Do NOT reuse any of these already-played patterns: ${avoidNames.length ? avoidNames.join('; ') : '(none yet)'}.`;
+  const user = `Invent one new secret pattern. Lean toward a ${pick(mechanisms)} mechanism this time (but surprise me if you have something better). Do NOT reuse any of these already-played patterns: ${avoidNames.length ? avoidNames.join('; ') : '(none yet)'}.`
+    + (feedback ? `\n\nYour previous attempt was rejected: ${feedback}. Fix exactly that and try again.` : '');
   const out = await chatJSON({ system: GEN_SYSTEM, user, temperature: 1.1, maxTokens: 220 });
   if (!out?.name || !out?.description || !Array.isArray(out?.starters) || out.starters.length < 2) {
     throw new Error('AI returned an invalid pattern');
@@ -96,24 +133,24 @@ export async function generatePattern(avoidNames = []) {
   if (MOCK || !process.env.OPENAI_API_KEY) return bankPattern(avoidNames);
 
   const rejected = [];
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const pattern = await generateOnce([...avoidNames, ...rejected]);
+  const pattern = await refine({
+    label: 'pattern',
+    make: (feedback) => generateOnce([...avoidNames, ...rejected], feedback),
+    check: async (p) => {
+      const weak = patternIsWeak(p);
+      if (weak) { rejected.push(p.name); return { ok: false, why: weak }; }
+      // The opening items are the only evidence players start with, so they must satisfy
+      // the rule as the judge reads it — a live run once opened "ends with Y" on
+      // "Sailor", which makes the round unwinnable.
+      if (!await startersHold(p)) {
+        rejected.push(p.name);
+        return { ok: false, why: `the opening items ${p.starters.join(' and ')} do not actually satisfy your own rule` };
+      }
+      return { ok: true };
+    },
+  });
 
-    const weak = patternIsWeak(pattern);
-    if (weak) {
-      rejected.push(pattern.name);
-      console.warn(`[island ai] discarded "${pattern.name}", ${weak}`);
-      continue;
-    }
-    try {
-      if (await startersHold(pattern)) return pattern;
-    } catch (err) {
-      console.error('[island ai] starter check failed:', err.message);
-      return pattern; // the check is a safeguard, not a gate
-    }
-    rejected.push(pattern.name);
-    console.warn(`[island ai] discarded "${pattern.name}", opening items did not satisfy its own rule`);
-  }
+  if (pattern) return pattern;
   console.warn('[island ai] falling back to the curated pattern bank');
   return bankPattern(avoidNames);
 }
@@ -250,7 +287,16 @@ export async function judgeItem(pattern, item, mockHints = null) {
       temperature: 0, maxTokens: 60,
     });
     if (typeof check?.fits === 'boolean' && check.fits !== out.fits) {
-      return { valid: true, fits: check.fits, remark: safeRemark(check.remark || out.remark, pattern) };
+      // The two readings disagree, and taking the second on faith is just trusting
+      // whichever spoke last. A third judges the item cold, knowing neither verdict, and
+      // its answer is the one that already has a vote behind it.
+      const tie = await chatJSON({
+        system: VERIFY_ITEM_SYSTEM,
+        user: `Rule: ${pattern.description}\nItem: "${item}"\nFirst verdict: (withheld)\nDecide from scratch.`,
+        temperature: 0, maxTokens: 60,
+      });
+      const fits = typeof tie?.fits === 'boolean' ? tie.fits : check.fits;
+      return { valid: true, fits, remark: safeRemark(check.remark || out.remark, pattern) };
     }
   } catch { /* the first verdict stands if the checker is unavailable */ }
   return { valid: true, fits: out.fits, remark: safeRemark(out.remark, pattern) };
@@ -388,8 +434,35 @@ export async function judgePatternGuess(pattern, guessText) {
   const user = `Secret pattern: "${pattern.name}", rule: ${pattern.description}\n\nThe player's attempt to state the pattern:\n<guess>${guessText}</guess>`;
   const out = await chatJSON({ system: JUDGE_GUESS_SYSTEM, user, temperature: 0.2, maxTokens: 120 });
   if (typeof out?.correct !== 'boolean') throw new Error('AI returned an invalid guess verdict');
+
+  // A player gets three guesses in a whole round and is knocked out after the third, so
+  // a wrongly-rejected guess is the most expensive mistake the judge can make. Every NO
+  // goes to appeal: a second reading that looks only for whether the same rule is being
+  // described in different words. A YES needs no appeal — it costs the player nothing.
+  if (out.correct === false) {
+    try {
+      const appeal = await chatJSON({
+        system: APPEAL_GUESS_SYSTEM,
+        user: `${user}\n\nA first reading rejected this guess. Decide independently.`,
+        temperature: 0, maxTokens: 120,
+      });
+      if (appeal?.correct === true) {
+        return { correct: true, remark: safeRemark(appeal.remark || out.remark, pattern) };
+      }
+    } catch { /* the first verdict stands if the appeal cannot run */ }
+  }
   return { correct: out.correct, remark: safeRemark(out.remark, pattern) };
 }
+
+const APPEAL_GUESS_SYSTEM = `A player's attempt to state a party game's secret rule has just been REJECTED. You are the appeal.
+
+Your only job: decide whether the guess describes the SAME rule as the secret, however loosely or informally it is worded. Ignore phrasing, grammar, vocabulary and completeness of expression; look only at whether the player has understood the rule.
+
+Say correct = true if a knowledgeable player hearing this guess would say "yes, that's it" — including when the guess uses different words, everyday language, or an example-led explanation.
+Say correct = false only if the guess names a genuinely DIFFERENT rule, captures only one half of a two-part rule, or is so vague it would fit many unrelated patterns.
+
+Respond with JSON: {"correct": true|false, "remark": "<short encouraging line, max 70 chars, revealing nothing about the rule>"}
+The remark is shown to the whole room, so it must never restate, describe or hint at the rule.`;
 
 // ---------- Hints ----------
 const HINT_SYSTEM = `You are the gamemaster of the party game "The Island". You know the secret pattern. The players are stuck, so you are giving away two more items the boat will accept.
@@ -418,19 +491,35 @@ export async function suggestItems(pattern, known = [], bankEntry = null, count 
     return pool.slice(0, count);
   }
 
-  const result = await chatJSON({
-    system: HINT_SYSTEM,
-    user: `RULE: ${pattern.name}. ${pattern.description}\n`
-      + `ALREADY ON THE LIST (never repeat these): ${known.join(', ') || 'nothing yet'}\n`
-      + `Give exactly ${count} new items that satisfy the rule.`,
-    temperature: 0.7,
-    maxTokens: 80,
+  // A hint is the one thing players take as fact — they will build the rest of the round
+  // on it — so every suggested item is put through the judge before it is offered, and a
+  // failed item is named back to the model so the retry fixes that specific mistake.
+  const items = await refine({
+    label: 'hint',
+    make: async (feedback) => {
+      const result = await chatJSON({
+        system: HINT_SYSTEM,
+        user: `RULE: ${pattern.name}. ${pattern.description}\n`
+          + `ALREADY ON THE LIST (never repeat these): ${known.join(', ') || 'nothing yet'}\n`
+          + `Give exactly ${count} new items that satisfy the rule.`
+          + (feedback ? `\n\nYour previous suggestion was rejected: ${feedback}. Do not offer those again.` : ''),
+        temperature: 0.7,
+        maxTokens: 80,
+      });
+      return (Array.isArray(result?.items) ? result.items : [])
+        .map((t) => String(t || '').trim())
+        .filter((t) => t && t.length <= 40 && !seen.has(normalize(t)))
+        .slice(0, count);
+    },
+    check: async (candidates) => {
+      if (candidates.length < count) return { ok: false, why: `you returned ${candidates.length} usable items, not ${count}` };
+      const verdicts = await Promise.all(candidates.map((item) => judgeItem(pattern, item)));
+      const bad = candidates.filter((_, i) => verdicts[i].fits !== true);
+      if (bad.length) return { ok: false, why: `${bad.map((b) => `"${b}"`).join(' and ')} do not satisfy the rule` };
+      return { ok: true };
+    },
   });
 
-  const items = (Array.isArray(result?.items) ? result.items : [])
-    .map((t) => String(t || '').trim())
-    .filter((t) => t && t.length <= 40 && !seen.has(normalize(t)));
-
-  // Top up from the bank if the model repeated itself or came back short.
-  return [...new Set([...items, ...fromBank])].slice(0, count);
+  // Top up from the bank if the model never produced a clean pair.
+  return [...new Set([...(items || []), ...fromBank])].slice(0, count);
 }
