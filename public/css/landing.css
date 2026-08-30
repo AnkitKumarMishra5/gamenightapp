@@ -1718,3 +1718,21 @@
 @media (prefers-reduced-motion: reduce) {
   .lp-gcard:hover .lp-gcard-art img { transform: none; }
 }
+
+/* The card-table section leads with hands over a table, screen-blended like the
+   game cards and faded out well before the copy starts. */
+.lp-table { position: relative; }
+.lp-table-art {
+  position: absolute; left: 0; right: 0; top: 0;
+  height: min(58%, 460px);
+  display: block; overflow: hidden; pointer-events: none; z-index: 0;
+}
+.lp-table-art img {
+  width: 100%; height: 100%; object-fit: cover; object-position: center 30%;
+  mix-blend-mode: screen; opacity: 0.55;
+}
+.lp-table-art::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(0deg, #0b0e1a 0%, rgba(11, 14, 26, 0.7) 45%, rgba(11, 14, 26, 0.35) 100%);
+}
+.lp-table > :not(.lp-table-art) { position: relative; z-index: 1; }

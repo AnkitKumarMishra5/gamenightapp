@@ -1,5 +1,5 @@
 // The Island screen rendering.
-import { h, shake, animOnce, waitingFor, aiThinking } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, aiThinking, sceneArt } from '../../core/ui.js';
 
 export function renderIsland(snap, ctx) {
   const is = snap.island;
@@ -551,7 +551,8 @@ async function patternGuessModal(ctx, is) {
 
 function revealPhase(is, ctx) {
   const ranking = [...is.order].sort((a, b) => (is.scores[b] || 0) - (is.scores[a] || 0));
-  return h('div', { class: 'card win-screen' },
+  return h('div', { class: 'card win-screen has-art' },
+    sceneArt('win-together', 'band'),
     h('span', { class: 'ws-emoji' }, '🏝️'),
     h('h2', { class: 'gradient-text' },
       is.endedBy === 'all-solved' ? 'Everyone cracked it!' : (is.endedBy === 'gm-left' ? 'The gamemaster left!' : 'Round over!')),

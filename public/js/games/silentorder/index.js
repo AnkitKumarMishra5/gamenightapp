@@ -8,7 +8,7 @@
 // then updated imperatively from snapshot deltas. One-shot moments (a mistake, a level
 // clear, the end of the run) are detected by comparing snapshot fields against markers
 // kept here, never from fx events, so they survive reconnects and missed packets.
-import { h, shake, animOnce, waitingFor } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, sceneArt } from '../../core/ui.js';
 import { cardTable, cardTableDuration, flingCard } from '../../core/cards.js';
 import { memes, playMeme } from '../../core/memes.js';
 import { confettiBurst, confettiRain } from '../../core/fx.js';
@@ -539,8 +539,9 @@ function overScreen(so, snap, ctx) {
     .filter((e) => so.order.includes(e.id) || (e.silentorder || 0) > 0)
     .sort((a, b) => (b.silentorder || 0) - (a.silentorder || 0));
 
-  return h('div', { class: 'card win-screen so-over' },
-    candleRow(so.won ? so.lives : 0, so.startLives),
+  return h('div', { class: 'card win-screen so-over has-art' },
+    sceneArt(so.won ? 'win-together' : 'win-alone', 'band'),
+    candleRow(so.won ? so.lives : 0),
     h('span', { class: 'ws-emoji' }, so.won ? '🏆' : '🌑'),
     h('h2', { class: so.won ? 'gradient-text' : '' },
       so.won ? 'The order held!' : 'The order broke'),

@@ -126,3 +126,14 @@ export function aiThinking(title, sub, emoji = '🤖') {
     ),
   );
 }
+
+// ---------- scene art ----------
+// The key art is shot on pure black, so a screen blend composites it with no cutout:
+// black adds nothing and the lit subject keeps its soft edge. `place` picks how the
+// copy is kept clear of it — a side scrim, or a band across the bottom.
+export function sceneArt(name, place = 'side') {
+  return h('picture', { class: `scene-art scene-${place}`, 'aria-hidden': 'true' },
+    h('source', { srcset: `/media/games/${name}.webp`, type: 'image/webp' }),
+    h('img', { src: `/media/games/${name}.jpg`, alt: '', loading: 'lazy', decoding: 'async' }),
+  );
+}

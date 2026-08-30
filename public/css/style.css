@@ -2135,3 +2135,26 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 @media (prefers-reduced-motion: reduce) {
   .game-card:hover .gc-art img { transform: none; }
 }
+
+/* ---------- shared scene art ----------
+   Same screen blend as the game cards. `side` keeps the left clear for copy;
+   `band` sits behind a headline and fades out downward. */
+.scene-art {
+  position: absolute; inset: 0; display: block;
+  overflow: hidden; border-radius: inherit; pointer-events: none; z-index: 0;
+}
+.scene-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; mix-blend-mode: screen; }
+.scene-art::after { content: ''; position: absolute; inset: 0; }
+
+.scene-side img { right: -6%; left: auto; width: 86%; object-position: right center; opacity: 0.85; }
+.scene-side::after {
+  background:
+    linear-gradient(94deg, var(--bg) 0%, var(--bg) 40%, rgba(11, 14, 26, 0.84) 58%, rgba(11, 14, 26, 0.28) 82%, transparent 100%),
+    linear-gradient(0deg, rgba(11, 14, 26, 0.7) 0%, transparent 45%);
+}
+.scene-band img { object-position: center 34%; opacity: 0.8; }
+.scene-band::after {
+  background: linear-gradient(0deg, var(--bg) 4%, rgba(11, 14, 26, 0.86) 34%, rgba(11, 14, 26, 0.42) 66%, rgba(11, 14, 26, 0.2) 100%);
+}
+.has-art { position: relative; overflow: hidden; }
+.has-art > :not(.scene-art) { position: relative; z-index: 1; }

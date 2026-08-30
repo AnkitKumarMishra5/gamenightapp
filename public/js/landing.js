@@ -186,6 +186,12 @@ export function renderLanding(deps) {
     : 'Silent Order, Swap or Stay and Sleepless';
 
   const table = h('section', { class: 'lp-sec lp-table', id: 'lp-table', 'aria-label': 'The card table' },
+    // Hands only, no faces: the section is about the cards, and the five game cards
+    // above it are already all people.
+    h('picture', { class: 'lp-table-art', 'aria-hidden': 'true' },
+      h('source', { srcset: '/media/games/cardtable.webp', type: 'image/webp' }),
+      h('img', { src: '/media/games/cardtable.jpg', alt: '', loading: 'lazy', decoding: 'async' }),
+    ),
     sectionHead(h, 'The card table', 'Cards with real weight.',
       `${tableNames.length || 3} card games, one real table between you. Cards are shuffled, dealt and held like the night you are missing.`),
     tableau(h, cardBack),

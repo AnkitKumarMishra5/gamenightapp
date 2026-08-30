@@ -6,7 +6,7 @@
 // snapshot fields compared against module-level "last seen" markers rather than by fx
 // events. Markers key off dealId + round, so they survive other players' updates and a
 // replay in the same room starts clean.
-import { h, shake, animOnce, waitingFor, openModal, closeModal } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, openModal, closeModal, sceneArt } from '../../core/ui.js';
 import { cardTable, peekCard } from '../../core/cards.js';
 import { playMeme } from '../../core/memes.js';
 import { confettiRain } from '../../core/fx.js';
@@ -538,7 +538,8 @@ function gameOver(sl, ctx) {
   const myRole = sl.winner?.roles?.[ctx.me.id];
   const iWon = myRole && (villageWon ? myRole !== 'prowler' : myRole === 'prowler');
 
-  return h('div', { class: 'card win-screen sl-over' },
+  return h('div', { class: 'card win-screen sl-over has-art' },
+    sceneArt(villageWon ? 'win-together' : 'win-alone', 'band'),
     h('span', { class: 'ws-emoji' }, villageWon ? '🌅' : '🐾'),
     h('h2', { class: villageWon ? '' : 'gradient-text' },
       villageWon ? 'The village wins!' : 'The Prowler wins!'),

@@ -22,11 +22,17 @@ const WIDTH = 1200;
 
 // Source filename → the game id in the registry.
 const ART = {
+  // Per-game key art: the shelf, the lobby picker, the rules sheet.
   'blend-in': 'blendin',
   'island-rules': 'island',
   'silent-order': 'silentorder',
   'swap-or-stay': 'swaporstay',
   sleepless: 'sleepless',
+  // Shared scenes, used by whichever screen needs them.
+  'empty-lobby': 'lobby',
+  'village-wins': 'win-together',
+  'hidden-player-wins': 'win-alone',
+  'card-table': 'cardtable',
 };
 
 const kb = (p) => `${(fs.statSync(p).size / 1024).toFixed(0)} KB`;

@@ -1,6 +1,6 @@
 // Game Night — © 2026 Ankit Kumar Mishra. All rights reserved. See LICENSE.
 // Client: socket plumbing, screens (landing, lobby), fx, PWA install.
-import { $, h, toast, openModal, closeModal, snapshotInputs, restoreInputs, shake, animOnce, resetAnims } from './core/ui.js';
+import { $, h, toast, openModal, closeModal, snapshotInputs, restoreInputs, shake, animOnce, resetAnims, sceneArt } from './core/ui.js';
 import { confettiBurst, confettiRain, sound, isMuted, setMuted, refreshMuted } from './core/fx.js';
 import {
   armAmbience, startAmbience, stopAmbience, musicPlaying, playWelcome,
@@ -1171,7 +1171,8 @@ function renderLobby() {
         onClick: () => shareInvite(snap.code),
       }, '📤 Invite friends'),
     ),
-    h('div', { class: 'card' },
+    h('div', { class: 'card has-art' },
+      sceneArt('lobby'),
       h('h2', { class: 'subtitle' }, '👥 Players'),
       h('p', { class: 'hint', style: 'margin:4px 0 12px' },
         isHost ? 'You\'re the room owner 👑. Pick a game below and start when everyone\'s in.' : `Waiting in the lobby, ${c.player(snap.hostId).name} picks the game.`),

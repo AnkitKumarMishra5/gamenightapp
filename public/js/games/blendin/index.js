@@ -1,6 +1,6 @@
 // Blend In screen rendering. Receives the personalized room snapshot and a ctx
 // with { emit, me, isHost, player(id) } from main.js.
-import { h, shake, animOnce, waitingFor, aiThinking } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, aiThinking, sceneArt } from '../../core/ui.js';
 
 const REACTIONS = ['😂', '🤔', '😱', '🧐', '🔥', '💀'];
 // How long the reaction palette stays reachable after the pointer leaves it.
@@ -479,7 +479,8 @@ function gameOver(bi, snap, ctx) {
   const myRole = bi.reveal.roles[ctx.me.id];
   const iWon = myRole && ((civWin && myRole === 'insider') || (!civWin && myRole !== 'insider'));
 
-  return h('div', { class: 'card win-screen' },
+  return h('div', { class: 'card win-screen has-art' },
+    sceneArt(civWin ? 'win-together' : 'win-alone', 'band'),
     h('span', { class: 'ws-emoji' }, civWin ? '😇' : '🕵️'),
     h('h2', { class: civWin ? '' : 'gradient-text' }, civWin ? 'Insiders win!' : 'Outsiders win!'),
     h('p', { class: 'ws-reason' }, bi.winReason),
