@@ -1164,7 +1164,8 @@ function renderLobby() {
   );
 
   const parts = [
-    h('div', { class: 'status-strip' },
+    h('div', { class: 'status-strip has-art art-faint' },
+      sceneArt('invite'),
       h('div', { class: 'ss-label' }, h('span', { class: 'pulse-dot' }), ` Lobby · ${connectedCount} player${connectedCount === 1 ? '' : 's'} here`),
       h('button', {
         class: 'btn btn-ghost btn-sm',

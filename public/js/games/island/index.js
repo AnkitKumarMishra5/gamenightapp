@@ -395,6 +395,7 @@ function actionBar(is, ctx) {
       };
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
       parts.push(
+        sceneArt('cracked', 'band'),
         h('div', { class: 'turn-banner your-turn', style: 'margin:0 0 12px' }, `🎤 Your turn! You cracked it (#${is.yourRank}), help the others with a hint`),
         h('div', { class: 'inline-form' }, input, h('button', { class: 'btn btn-island', onClick: submit }, 'Ask')),
         h('button', { class: 'btn btn-ghost btn-sm btn-block', style: 'margin-top:8px', onClick: () => ctx.emit('is:pass') }, '⏭️ Pass'),
@@ -434,7 +435,7 @@ function actionBar(is, ctx) {
     parts.push(waitingFor(ctx.player(ctx.hostId)?.name, 'can end the round and reveal the pattern.'));
   }
   return h('div', { class: 'action-bar' },
-    h('div', { class: `card ${is.youKnockedOut ? 'has-art' : ''}` }, parts));
+    h('div', { class: `card ${is.youKnockedOut || is.yourRank ? 'has-art' : ''}` }, parts));
 }
 
 // The boat gives away two more items each time the table completes a full lap. Anyone can

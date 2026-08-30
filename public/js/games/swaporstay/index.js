@@ -4,7 +4,7 @@
 // Everything that changes within a round — the turn arrow, the hearts, the control bar,
 // the flying cards — is driven imperatively off snapshot deltas, so it all still works
 // after a reconnect, where transient fx events would be long gone.
-import { h, shake, waitingFor } from '../../core/ui.js';
+import { h, shake, waitingFor, sceneArt } from '../../core/ui.js';
 import { cardTable, setTurn, setDeckLabel, setDeckPickable } from '../../core/cards.js';
 import { playMeme } from '../../core/memes.js';
 import { confettiRain } from '../../core/fx.js';
@@ -338,6 +338,9 @@ function animateAction(api, act, ctx) {
     playMeme('clang');
     setTimeout(() => playMeme('dun'), 320);
     const slam = h('div', { class: 'ss-slam', 'aria-hidden': 'true' },
+      h('picture', { class: 'ss-slam-art' },
+        h('source', { srcset: '/media/games/sentinel.webp', type: 'image/webp' }),
+        h('img', { src: '/media/games/sentinel.jpg', alt: '' })),
       h('span', { class: 'ss-slam-shield' }, '🛡️'),
       h('span', { class: 'ss-slam-text' }, 'DENIED'),
     );
@@ -591,12 +594,14 @@ function updateDock(api, ss, ctx) {
   const youPlay = ss.aliveIds.includes(ctx.me.id);
   let content = null;
 
+  api.dock.classList.toggle('has-art', ss.phase === 'dealing');
+  api.dock.classList.toggle('art-faint', ss.phase === 'dealing');
   if (ss.phase === 'dealing') {
-    content = youPlay
+    content = [sceneArt('shuffling'), youPlay
       ? h('p', { class: 'ss-note' }, ss.youReady
           ? `Waiting for the table… (${ss.readyCount}/${ss.aliveIds.length})`
           : 'The cards are going out. Sneak a look at yours!')
-      : h('p', { class: 'ss-note' }, 'You are out — enjoy the show 🍿');
+      : h('p', { class: 'ss-note' }, 'You are out — enjoy the show 🍿')];
   } else if (ss.phase === 'acting') {
     if (!youPlay) {
       content = h('p', { class: 'ss-note' }, 'You are out — enjoy the show 🍿');

@@ -270,7 +270,8 @@ function dealingPhase(sl, ctx) {
     api: Object.assign(api, { readyBtn, table }),
     node: h('div', { class: 'stack sl-wrap sl-deal' },
       table,
-      h('div', { class: 'card sl-deal-card' }, note, sl.you ? readyBtn : null),
+      h('div', { class: 'card sl-deal-card has-art art-faint' },
+        sceneArt('shuffling'), note, sl.you ? readyBtn : null),
     ),
   };
   updateDealing(sl);

@@ -306,7 +306,8 @@ function describeBar(bi, ctx) {
     );
   }
   return h('div', { class: 'action-bar' },
-    h('div', { class: 'card' },
+    h('div', { class: 'card has-art art-faint' },
+      sceneArt('clue'),
       h('div', { class: 'turn-banner', style: 'margin:0' }, p ? `🎤 ${p.avatar} ${p.name} is thinking of a clue…` : '…'),
       ctx.isHost && p && !p.connected && h('button', {
         class: 'btn btn-ghost btn-sm btn-block', style: 'margin-top:10px',

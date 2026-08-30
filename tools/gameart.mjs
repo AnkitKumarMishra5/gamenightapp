@@ -38,6 +38,11 @@ const ART = {
   'vote-out': 'vote',
   eliminated: 'eliminated',
   'landing-hero': 'hero',
+  'room-code-invite': 'invite',
+  'clue-given': 'clue',
+  'pattern-cracked': 'cracked',
+  shuffling: 'shuffling',
+  'sentinel-block': 'sentinel',
 };
 
 const kb = (p) => `${(fs.statSync(p).size / 1024).toFixed(0)} KB`;
