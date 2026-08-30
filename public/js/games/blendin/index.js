@@ -332,7 +332,8 @@ function skipToVoteButton(bi, ctx) {
 
 function discussionBar(bi, ctx) {
   return h('div', { class: 'action-bar' },
-    h('div', { class: 'card', style: 'text-align:center' },
+    h('div', { class: 'card has-art art-faint', style: 'text-align:center' },
+      sceneArt('discussion'),
       h('div', { class: 'turn-banner', style: 'margin:0 0 10px' }, '🗣️ Everyone has spoken, discuss! Who sounds suspicious?'),
       ctx.isHost
         ? h('button', { class: 'btn btn-bi btn-lg btn-block', onClick: () => ctx.emit('bi:startVote') }, '🗳️ Start the vote')

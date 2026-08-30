@@ -154,6 +154,9 @@ export function renderLanding(deps) {
 
   // ---------- the shelf: every registered game ----------
   const shelf = h('section', { class: 'lp-sec lp-games', id: 'lp-games', 'aria-label': 'The games' },
+    h('picture', { class: 'lp-sec-art lp-sec-wide', 'aria-hidden': 'true' },
+      h('source', { srcset: '/media/games/ensemble.webp', type: 'image/webp' }),
+      h('img', { src: '/media/games/ensemble.jpg', alt: '', loading: 'lazy', decoding: 'async' })),
     sectionHead(h, "Tonight's lineup",
       `${capital(numWord(deps.GAMES.length))} games, one room.`,
       "Tap a card to see how it plays. One room runs them all, and the night's points follow you between games."),
@@ -220,12 +223,12 @@ export function renderLanding(deps) {
     ),
   );
 
-  // A thin band of the long candlelit table, purely to give the page a breath between
-  // the shelf and the previews.
-  const divider = h('div', { class: 'lp-divider', 'aria-hidden': 'true' },
+  // The page passes through one night as you scroll: people arrive, the table fills,
+  // the candles burn down. These bands are the clock.
+  const band = (name, cls = '') => h('div', { class: `lp-divider ${cls}`, 'aria-hidden': 'true' },
     h('picture', {},
-      h('source', { srcset: '/media/games/divider.webp', type: 'image/webp' }),
-      h('img', { src: '/media/games/divider.jpg', alt: '', loading: 'lazy', decoding: 'async' })),
+      h('source', { srcset: `/media/games/${name}.webp`, type: 'image/webp' }),
+      h('img', { src: `/media/games/${name}.jpg`, alt: '', loading: 'lazy', decoding: 'async' })),
   );
 
   // ---------- finale: the opening deal, reprised at full weight ----------
@@ -314,7 +317,9 @@ export function renderLanding(deps) {
   );
 
   const root = h('div', { class: `lp-root ${state.entered ? '' : 'lp-enter'}` },
-    hero, nav, shelf, divider, watch, how, table, trust, finale, footer,
+    hero, nav, band('arrival', 'lp-band-dusk'), shelf, band('divider'), watch,
+    how, band('foreground', 'lp-band-glow'), table, trust,
+    band('smallhours', 'lp-band-late'), finale, footer,
   );
   state.entered = true;
 
@@ -839,6 +844,9 @@ function buildWatch(deps, rm, cardBack) {
   onCleanup(() => { io.disconnect(); if (timer) { clearTimeout(timer); timer = 0; } running = false; });
 
   return h('section', { class: 'lp-sec lp-watch', id: 'lp-watch', 'aria-label': 'Watch a round' },
+    h('picture', { class: 'lp-sec-art', 'aria-hidden': 'true' },
+      h('source', { srcset: '/media/games/phone.webp', type: 'image/webp' }),
+      h('img', { src: '/media/games/phone.jpg', alt: '', loading: 'lazy', decoding: 'async' })),
     sectionHead(h, 'Watch a round', 'See a round play itself.',
       'These are the real game screens with a real crew — clues, reactions and verdicts exactly as they land on your phones.'),
     frame,

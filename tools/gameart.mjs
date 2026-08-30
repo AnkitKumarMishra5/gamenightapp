@@ -67,6 +67,18 @@ const ART = {
   'section-divider': 'divider',
   'the-finale': 'finale',
   'the-honest-part': 'honest',
+  // The landing's night, in order: arrival, the full table, the phone, the small hours.
+  arrival: 'arrival',
+  'the-ensemble': 'ensemble',
+  'phone-on-table': 'phone',
+  'small-hours': 'smallhours',
+  'hero-foreground': 'foreground',
+  // Island's core loop, and the rest.
+  'island-item-accepted': 'item-yes',
+  'island-item-rejected': 'item-no',
+  'island-boat-re-read': 'audit',
+  discussion: 'discussion',
+  'swap-or-stay-losing-a-heart': 'heart-lost',
 };
 
 const kb = (p) => `${(fs.statSync(p).size / 1024).toFixed(0)} KB`;

@@ -592,6 +592,12 @@ function updateDock(api, ss, ctx) {
     api.dock.replaceChildren(sceneArt('ss-reveal'), h('p', { class: 'ss-note' }, '👀 Cards up…'));
     return;
   }
+  if (ss.phase === 'result' && !ss.spared) {
+    // Somebody just lost a heart: the withdrawing hand, not the shuffle.
+    api.dock.classList.add('has-art', 'art-faint');
+    api.dock.replaceChildren(sceneArt('heart-lost'), h('p', { class: 'ss-note' }, '💔 Lowest card pays.'));
+    return;
+  }
   const youPlay = ss.aliveIds.includes(ctx.me.id);
   let content = null;
 

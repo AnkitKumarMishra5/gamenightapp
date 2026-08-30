@@ -2173,3 +2173,9 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 
 /* Reveal and verdict heroes need room for the art band behind them. */
 .reveal-pop.has-art, .sl-verdict-hero.has-art { position: relative; overflow: hidden; border-radius: var(--r-md); padding: 16px 14px; }
+
+/* The packing list's two columns each carry their own side of the boat's rail, so the
+   rule reads as a boundary even before you work out what it is. */
+.pack-col.has-art { position: relative; overflow: hidden; }
+.pack-col.has-art > :not(.scene-art) { position: relative; z-index: 1; }
+.pack-col .scene-art img { opacity: 0.3; }

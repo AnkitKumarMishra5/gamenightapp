@@ -12,6 +12,26 @@ five-letter code, and you play on your own phones. No download, no account, no t
 
 ---
 
+## A look at it
+
+![The landing page hero](docs/screens/landing-hero.jpg)
+
+Five games behind one room code. The page passes through a single night as you scroll —
+people arriving, the table filling, the candles burning down.
+
+![The game shelf](docs/screens/landing-games.jpg)
+
+Every game screen carries its own key art, composited with a screen blend so the black it
+was shot on drops out and the lit figures rise straight off the card.
+
+![A round of Sleepless](docs/screens/in-game.jpg)
+
+Each outcome gets its own image: a candle gone out with the smoke still rising when
+somebody was taken in the night, and one lifted clean out of the row — never lit, black
+wax — when the table finally catches the Prowler.
+
+---
+
 ## The games
 
 ### 🕵️ Blend In (5 to 16 players)

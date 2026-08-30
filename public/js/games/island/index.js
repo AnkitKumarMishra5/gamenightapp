@@ -231,7 +231,8 @@ function packingList(is, ctx) {
   return h('div', { class: 'card' },
     h('h2', { class: 'subtitle' }, '🧳 The packing list'),
     h('div', { class: 'packing-grid' },
-      h('div', { class: 'pack-col allowed' },
+      h('div', { class: 'pack-col allowed has-art art-faint' },
+        sceneArt('item-yes'),
         h('div', { class: 'pack-head' }, `✅ On the boat (${
     yes.length + (is.starters?.length || 0) + (is.hints || []).reduce((n, x) => n + x.items.length, 0)})`),
         (is.starters || []).map((s, i) => chip(s, gmLabel, i)),
@@ -242,7 +243,8 @@ function packingList(is, ctx) {
         (is.hints || []).flatMap((hint, hi) =>
           hint.items.map((text, i) => chip(text, '💡 hint', yes.length + hi * 2 + i))),
       ),
-      h('div', { class: 'pack-col rejected' },
+      h('div', { class: 'pack-col rejected has-art art-faint' },
+        sceneArt('item-no'),
         h('div', { class: 'pack-head' }, `🚫 Left behind (${no.length})`),
         no.length
           ? no.map((a, i) => {
@@ -286,7 +288,8 @@ function auditPanel(is, ctx) {
   if (is.mode !== 'ai' || is.phase !== 'playing') return null;
   const last = is.lastAudit;
   return h('div', { class: 'audit-box' },
-    is.auditing && h('div', { class: 'card audit-note audit-working', style: 'padding:12px 14px; margin-bottom:8px' },
+    is.auditing && h('div', { class: 'card audit-note audit-working has-art art-faint', style: 'padding:12px 14px; margin-bottom:8px' },
+      sceneArt('audit'),
       h('span', { class: 'audit-spinner', 'aria-hidden': 'true' }),
       h('span', {},
         h('b', {}, '👁 The boat is re-reading the round… '),
