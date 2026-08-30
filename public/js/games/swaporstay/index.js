@@ -588,16 +588,18 @@ function enterOnce(api, el, tag) {
 function updateDock(api, ss, ctx) {
   // While the reveal is playing out, the dock holds its breath with everyone else.
   if (api.revealBusy) {
-    api.dock.replaceChildren(h('p', { class: 'ss-note' }, '👀 Cards up…'));
+    api.dock.classList.add('has-art', 'art-faint');
+    api.dock.replaceChildren(sceneArt('ss-reveal'), h('p', { class: 'ss-note' }, '👀 Cards up…'));
     return;
   }
   const youPlay = ss.aliveIds.includes(ctx.me.id);
   let content = null;
 
+  const lastTwo = ss.aliveIds.length === 2;
   api.dock.classList.toggle('has-art', ss.phase === 'dealing');
   api.dock.classList.toggle('art-faint', ss.phase === 'dealing');
   if (ss.phase === 'dealing') {
-    content = [sceneArt('shuffling'), youPlay
+    content = [sceneArt(lastTwo ? 'lasttwo' : 'shuffling'), youPlay
       ? h('p', { class: 'ss-note' }, ss.youReady
           ? `Waiting for the table… (${ss.readyCount}/${ss.aliveIds.length})`
           : 'The cards are going out. Sneak a look at yours!')

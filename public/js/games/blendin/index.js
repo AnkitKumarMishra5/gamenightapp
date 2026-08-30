@@ -11,6 +11,8 @@ const REACTION_MENU_LINGER_MS = 2500;
 const openDrawers = new Set();
 
 const ROLE_LABEL = { insider: 'Insider', outsider: 'Outsider', blank: 'Blank' };
+// Who the vote actually removed decides which reveal the room sees.
+const OUT_ART = { insider: 'out-insider', outsider: 'out-outsider', blank: 'out-blank' };
 const ROLE_EMOJI = { insider: '😇', outsider: '🕵️', blank: '🃏' };
 
 export function renderBlendIn(snap, ctx) {
@@ -409,7 +411,8 @@ function blankGuessPhase(bi, ctx) {
       if (!res.ok) shake(input);
     };
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
-    return h('div', { class: 'card', style: 'text-align:center' },
+    return h('div', { class: 'card has-art', style: 'text-align:center' },
+      sceneArt('blank-guess', 'band'),
       h('div', { class: 'reveal-pop' },
         h('span', { class: 'rp-avatar' }, '🎩'),
         h('h2', { class: 'subtitle', style: 'margin-top:10px' }, 'Caught! One shot left.'),
@@ -418,7 +421,8 @@ function blankGuessPhase(bi, ctx) {
       h('div', { class: 'inline-form' }, input, h('button', { class: 'btn btn-bi', onClick: submit }, 'Guess!')),
     );
   }
-  return h('div', { class: 'card', style: 'text-align:center' },
+  return h('div', { class: 'card has-art', style: 'text-align:center' },
+    sceneArt('blank-guess', 'band'),
     h('div', { class: 'reveal-pop' },
       h('span', { class: 'rp-avatar' }, blankP.avatar),
       h('div', {}, h('b', {}, blankP.name), ' was… ', h('span', { class: 'rp-role blank' }, '🃏 the Blank')),
@@ -446,7 +450,7 @@ function roundResult(bi, ctx) {
   } else {
     const p = ctx.player(r.playerId);
     content = h('div', { class: 'reveal-pop has-art' },
-      sceneArt('reveal', 'band'),
+      sceneArt(OUT_ART[r.role] || 'reveal', 'band'),
       h('span', { class: 'rp-avatar' }, p.avatar),
       h('div', { style: 'font-weight:800; font-size:19px; margin-top:6px' }, `${p.name} ${r.quip || 'is out!'}`),
       h('div', {}, h('span', { class: `rp-role ${r.role}` }, `${ROLE_EMOJI[r.role]} ${ROLE_LABEL[r.role]}`)),

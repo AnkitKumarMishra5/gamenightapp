@@ -482,7 +482,8 @@ function render() {
 // Shown when everyone who could act has gone. Rejoining an abandoned round otherwise
 // dropped you on a vote with "0 of 0 votes are in" and no control that did anything.
 function stalledEscape() {
-  return h('div', { class: 'card stalled-card', 'data-overlay': 'stalled' },
+  return h('div', { class: 'card stalled-card has-art', 'data-overlay': 'stalled' },
+    sceneArt('reconnecting', 'band'),
     h('span', { class: 'sc-emoji' }, '🫥'),
     h('div', {},
       h('div', { class: 'sc-title' }, 'This round was abandoned'),
@@ -1173,7 +1174,7 @@ function renderLobby() {
       }, '📤 Invite friends'),
     ),
     h('div', { class: 'card has-art' },
-      sceneArt('lobby'),
+      sceneArt(connectedCount > 1 ? 'joined' : 'lobby'),
       h('h2', { class: 'subtitle' }, '👥 Players'),
       h('p', { class: 'hint', style: 'margin:4px 0 12px' },
         isHost ? 'You\'re the room owner 👑. Pick a game below and start when everyone\'s in.' : `Waiting in the lobby, ${c.player(snap.hostId).name} picks the game.`),

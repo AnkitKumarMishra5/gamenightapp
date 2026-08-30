@@ -206,6 +206,9 @@ export function renderLanding(deps) {
 
   // ---------- the honest part ----------
   const trust = h('section', { class: 'lp-sec lp-trust', id: 'lp-trust', 'aria-label': 'What it costs' },
+    h('picture', { class: 'lp-sec-art', 'aria-hidden': 'true' },
+      h('source', { srcset: '/media/games/honest.webp', type: 'image/webp' }),
+      h('img', { src: '/media/games/honest.jpg', alt: '', loading: 'lazy', decoding: 'async' })),
     sectionHead(h, 'The honest part', 'What it costs: nothing.', null),
     h('div', { class: 'lp-trust-grid' },
       trustItem(h, 0, svgTicket(), 'Free, with no ads', 'And no purchases hiding anywhere either.'),
@@ -217,11 +220,22 @@ export function renderLanding(deps) {
     ),
   );
 
+  // A thin band of the long candlelit table, purely to give the page a breath between
+  // the shelf and the previews.
+  const divider = h('div', { class: 'lp-divider', 'aria-hidden': 'true' },
+    h('picture', {},
+      h('source', { srcset: '/media/games/divider.webp', type: 'image/webp' }),
+      h('img', { src: '/media/games/divider.jpg', alt: '', loading: 'lazy', decoding: 'async' })),
+  );
+
   // ---------- finale: the opening deal, reprised at full weight ----------
   // The page closes on the beat it opened with: a fan of card backs blooms
   // open behind an oversized headline, and the button hands the player back
   // to the hero console with the name field focused.
   const finale = h('section', { class: 'lp-sec lp-cta', id: 'lp-cta', 'aria-label': 'Start a room now' },
+    h('picture', { class: 'lp-sec-art', 'aria-hidden': 'true' },
+      h('source', { srcset: '/media/games/finale.webp', type: 'image/webp' }),
+      h('img', { src: '/media/games/finale.jpg', alt: '', loading: 'lazy', decoding: 'async' })),
     h('div', { class: 'lp-cta-inner lp-reveal' },
       h('div', { class: 'lp-xfan', 'aria-hidden': 'true' },
         Array.from({ length: 5 }, (_, i) => h('span', {
@@ -300,7 +314,7 @@ export function renderLanding(deps) {
   );
 
   const root = h('div', { class: `lp-root ${state.entered ? '' : 'lp-enter'}` },
-    hero, nav, shelf, watch, how, table, trust, finale, footer,
+    hero, nav, shelf, divider, watch, how, table, trust, finale, footer,
   );
   state.entered = true;
 

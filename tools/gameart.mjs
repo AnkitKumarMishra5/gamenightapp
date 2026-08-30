@@ -34,7 +34,6 @@ const ART = {
   'hidden-player-wins': 'win-alone',
   'card-table': 'cardtable',
   'night-falls': 'night',
-  'dawn-breaks': 'dawn',
   'vote-out': 'vote',
   eliminated: 'eliminated',
   'landing-hero': 'hero',
@@ -48,6 +47,26 @@ const ART = {
   tie: 'tie',
   'caught-reveal': 'reveal',
   'last-two': 'lasttwo',
+  reconnecting: 'reconnecting',
+  // Sleepless dawns and verdicts — one motif, four outcomes.
+  killed: 'dawn-killed',
+  'attacked-but-safe': 'dawn-saved',
+  'innocent-voted-out': 'out-innocent',
+  'prowler-voted-out': 'out-prowler',
+  // Blend In verdicts — the circle of light, three outcomes.
+  'insider-voted-out': 'out-insider',
+  'outsider-voted-out': 'out-outsider',
+  'blank-voted-out': 'out-blank',
+  'blank-guessing': 'blank-guess',
+  // Silent Order lives.
+  'life-lost': 'life-lost',
+  'life-earned': 'life-earned',
+  // The rest.
+  'pattern-written': 'pattern-written',
+  'swap-or-stay-reveal': 'ss-reveal',
+  'section-divider': 'divider',
+  'the-finale': 'finale',
+  'the-honest-part': 'honest',
 };
 
 const kb = (p) => `${(fs.statSync(p).size / 1024).toFixed(0)} KB`;

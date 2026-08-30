@@ -26,7 +26,8 @@ export function renderIsland(snap, ctx) {
 function setupPhase(is, ctx) {
   const meIsGm = is.mode === 'host' && is.gmId === ctx.me.id;
   if (!ctx.isHost && !meIsGm) {
-    return h('div', { class: 'card', style: 'text-align:center' },
+    return h('div', { class: 'card has-art', style: 'text-align:center' },
+      sceneArt('pattern-written', 'band'),
       h('span', { class: 'hero-emoji', style: 'font-size:56px' }, '🏝️'),
       h('h2', { class: 'subtitle', style: 'margin-top:10px' }, 'Preparing the boat…'),
       h('p', { class: 'hint', style: 'margin-top:8px' }, `${ctx.player(is.gmId || ctx.hostId).name} is setting up the secret pattern. Get your thinking cap on! 🧢`),

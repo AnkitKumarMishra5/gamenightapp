@@ -404,7 +404,7 @@ function dawnBanner(sl, ctx) {
     const p = ctx.player(d.victimId);
     const r = ROLES[d.role];
     return h('div', { class: `card sl-dawn-card has-art ${animOnce(`sl-dawncard:${sl.dealId}:${d.seq}`, 'sl-rise')}` },
-      sceneArt('dawn', 'band'),
+      sceneArt('dawn-killed', 'band'),
       h('div', { class: 'sl-dawn-head' }, '🌅 Dawn'),
       h('div', { class: `sl-flip ${animOnce(`sl-dawnflip:${sl.dealId}:${d.seq}`, 'sl-flipping')}` },
         h('div', { class: 'sl-flip-face sl-flip-front' }, p.avatar),
@@ -414,7 +414,8 @@ function dawnBanner(sl, ctx) {
         h('b', {}, p.name), ` did not wake up — they were the ${r.word} ${r.emoji}`),
     );
   }
-  return h('div', { class: `card sl-dawn-card ${animOnce(`sl-dawncard:${sl.dealId}:${d.seq}`, 'sl-rise')}` },
+  return h('div', { class: `card sl-dawn-card has-art ${animOnce(`sl-dawncard:${sl.dealId}:${d.seq}`, 'sl-rise')}` },
+    sceneArt('dawn-saved', 'band'),
     h('div', { class: 'sl-dawn-head' }, '🌅 Dawn'),
     h('div', { class: 'sl-saved-mark' }, '🛡️'),
     h('p', { class: 'sl-dawn-line' }, 'Everyone woke up. Someone was attacked in the night — and survived.'),
@@ -492,7 +493,7 @@ function verdictPhase(sl, ctx) {
 
   const headline = out
     ? h('div', { class: `sl-verdict-hero has-art ${animOnce(`sl-verdict:${roundKey(sl)}`, 'sl-rise')}` },
-        sceneArt('reveal', 'band'),
+        sceneArt(v.role === 'prowler' ? 'out-prowler' : 'out-innocent', 'band'),
         h('div', { class: `sl-flip ${animOnce(`sl-verdictflip:${roundKey(sl)}`, 'sl-flipping')}` },
           h('div', { class: 'sl-flip-face sl-flip-front' }, out.avatar),
           h('div', { class: 'sl-flip-face sl-flip-back' }, role.emoji),
