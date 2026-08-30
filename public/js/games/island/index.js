@@ -438,7 +438,6 @@ function actionBar(is, ctx) {
 // The boat gives away two more items each time the table completes a full lap. Anyone can
 // spend a hint, not just whoever is up, because a stuck round is everybody's problem.
 function hintButton(is, ctx) {
-  if (is.hintSpent) return null;
   const ready = (is.hintsAvailable || 0) > 0;
   const gmRound = is.mode === 'host';
   const mine = gmRound ? is.gmId === ctx.me.id : ctx.isHost;
@@ -446,12 +445,12 @@ function hintButton(is, ctx) {
   if (!mine) {
     const who = gmRound ? 'The gamemaster' : 'The room owner';
     return ready
-      ? h('p', { class: 'hint hint-countdown' }, `💡 The table's one hint is unlocked. ${who} can give it if everyone agrees.`)
-      : h('p', { class: 'hint hint-countdown' }, `💡 The table's one hint unlocks in ${is.turnsToNextHint} more turn${is.turnsToNextHint === 1 ? '' : 's'}.`);
+      ? h('p', { class: 'hint hint-countdown' }, `💡 A hint is unlocked. ${who} can give it if everyone agrees.`)
+      : h('p', { class: 'hint hint-countdown' }, `💡 The next hint unlocks in ${is.turnsToNextHint} more turn${is.turnsToNextHint === 1 ? '' : 's'}.`);
   }
   if (!ready) {
     return h('p', { class: 'hint hint-countdown' },
-      `💡 Your one hint for this round unlocks in ${is.turnsToNextHint} more turn${is.turnsToNextHint === 1 ? '' : 's'}.`);
+      `💡 The next hint unlocks in ${is.turnsToNextHint} more turn${is.turnsToNextHint === 1 ? '' : 's'}.`);
   }
 
   // With an AI gamemaster the hint goes straight to the table. With a human one it is
@@ -467,13 +466,13 @@ function hintButton(is, ctx) {
         const res = await ctx.emit('is:hint');
         if (!res.ok) { btn.disabled = false; shake(btn); }
       },
-    }, '💡 Spend the table\'s one hint (ask everyone first!)');
+    }, '💡 Spend a hint for the table (ask everyone first!)');
   }
 
   return h('button', {
     class: 'btn btn-ghost btn-sm btn-block hint-btn', style: 'margin-top:10px',
     onClick: () => gmHintModal(ctx),
-  }, '💡 Give the table their one hint');
+  }, '💡 Give the table a hint');
 }
 
 // The gamemaster's hint desk: type two words that fit the pattern, or have the model

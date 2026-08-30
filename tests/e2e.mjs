@@ -980,9 +980,14 @@ async function testIslandHints() {
   check('a hint never repeats something already tried',
     items.every((t) => !already.includes(t)), JSON.stringify(items));
 
+  // Hints recur, but each one has to be earned again: none is waiting the instant the
+  // last was spent, and the snapshot counts down to the next.
   const second = await host.emit('is:hint');
-  check('there is no second hint, ever', !second.ok, second.error);
-  check('the snapshot agrees it is spent', host.is.hintSpent === true);
+  check('a second hint is not available immediately', !second.ok, second.error);
+  check('the refusal counts down to the next', /more turn/.test(second.error || ''), second.error);
+  check('none is banked right now', host.is.hintsAvailable === 0, String(host.is.hintsAvailable));
+  check('the snapshot says how far the next one is', host.is.turnsToNextHint > 0,
+    String(host.is.turnsToNextHint));
 
   await cleanup(players);
 }

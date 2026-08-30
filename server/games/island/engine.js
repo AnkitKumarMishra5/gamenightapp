@@ -39,6 +39,11 @@ export function startGame(room, playerId, payload) {
   if (participants.length < ISLAND_MIN_PLAYERS) {
     throw new GameError(`The Island needs at least ${ISLAND_MIN_PLAYERS} guessing players${mode === 'host' ? ' besides you' : ''}.`);
   }
+  // Start is for starting. A round in progress is finished with is:end, not replaced —
+  // re-dealing on demand would also buy a fresh AI pattern every time.
+  if (room.state?.kind === 'island' && (room.state.phase === 'setup' || room.state.phase === 'playing')) {
+    throw new GameError('A round is already going. Finish it first.');
+  }
 
   room.game = 'island';
   room.state = {
@@ -156,10 +161,12 @@ export function guessesLeft(state, playerId) {
   return Math.max(0, MAX_PATTERN_GUESSES - (state.wrongGuesses?.[playerId] || 0));
 }
 
-export function advanceTurn(room, state) {
+// `counts` is false when the pointer moves because somebody dropped rather than played:
+// a skipped seat is not a turn, and counting it let a flaky connection earn hints.
+export function advanceTurn(room, state, { counts = true } = {}) {
   const n = state.order.length;
   if (n === 0) return;
-  state.turnsTaken = (state.turnsTaken || 0) + 1;
+  if (counts) state.turnsTaken = (state.turnsTaken || 0) + 1;
   for (let step = 1; step <= n; step++) {
     const idx = (state.turnPtr + step) % n;
     const id = state.order[idx];
@@ -180,16 +187,28 @@ export function lapsCompleted(state) {
   return Math.floor((state.turnsTaken || 0) / n);
 }
 
-// One hint per round, and it has to be earned: with three or fewer hunters everyone gets
-// two turns first, with more everyone gets one. The room owner spends it for the table
-// after checking out loud that everyone wants it.
+// Hints are earned, and they keep coming: one for every completed lap at a table of more
+// than three, one for every two laps at three or fewer, where a lap is cheap. The room
+// owner spends them for the table after checking out loud that everyone wants one.
 export function hintLapsNeeded(state) {
   return (state.order?.length || 0) <= 3 ? 2 : 1;
 }
 
+// Turns left until the next hint is earned; 0 when one is already waiting.
+export function turnsToNextHint(state) {
+  if (hintsAvailable(state) > 0) return 0;
+  const n = Math.max(state.order?.length || 0, 1);
+  const perHint = hintLapsNeeded(state) * n;
+  const spent = ((state.hints?.length || 0) + 1) * perHint;
+  return Math.max(0, spent - (state.turnsTaken || 0));
+}
+
+export function hintsEarned(state) {
+  return Math.floor(lapsCompleted(state) / hintLapsNeeded(state));
+}
+
 export function hintsAvailable(state) {
-  if ((state.hints?.length || 0) >= 1) return 0;
-  return lapsCompleted(state) >= hintLapsNeeded(state) ? 1 : 0;
+  return Math.max(0, hintsEarned(state) - (state.hints?.length || 0));
 }
 
 // Everything already on the table, so a hint never repeats a word the room has seen.
@@ -221,11 +240,9 @@ export function requestHint(room, playerId) {
       ? 'Only the gamemaster can give the hint.'
       : 'Only the room owner can spend the hint, after the table agrees.');
   }
-  if ((state.hints?.length || 0) >= 1) throw new GameError('The one hint for this round is already spent.');
   if (hintsAvailable(state) < 1) {
-    const n = Math.max(state.order.length, 1);
-    const left = hintLapsNeeded(state) * n - (state.turnsTaken || 0);
-    throw new GameError(`No hint yet. ${left} more turn${left === 1 ? '' : 's'} until it unlocks.`);
+    const left = turnsToNextHint(state);
+    throw new GameError(`No hint yet. ${left} more turn${left === 1 ? '' : 's'} until the next one unlocks.`);
   }
   return state;
 }
@@ -472,7 +489,7 @@ export function removePlayerFromGame(room, targetId) {
   }
   if (wasCurrent && !state.pendingJudge) {
     state.turnPtr = state.turnPtr % state.order.length;
-    if (!room.players.get(currentPlayer(state))?.connected) advanceTurn(room, state);
+    if (!room.players.get(currentPlayer(state))?.connected) advanceTurn(room, state, { counts: false });
   }
   const unsolved = state.order.filter((id) => !state.solvedOrder.includes(id) && !state.knockedOut.includes(id));
   if (unsolved.length === 0) {
@@ -506,7 +523,7 @@ export function onConnectivityChange(room) {
   const state = room.state;
   if (!state || room.game !== 'island' || state.phase !== 'playing' || state.pendingJudge) return;
   const current = currentPlayer(state);
-  if (current && !room.players.get(current)?.connected) advanceTurn(room, state);
+  if (current && !room.players.get(current)?.connected) advanceTurn(room, state, { counts: false });
 }
 
 // ---------- snapshot ----------
@@ -540,14 +557,9 @@ export function snapshot(room, forPlayerId) {
     starters: state.pattern?.starters || null,
     hints: (state.hints || []).map((h) => ({ items: h.items, byId: h.byId })),
     hintsAvailable: hintsAvailable(state),
-    hintSpent: (state.hints?.length || 0) >= 1,
     lastAudit: state.lastAudit || null,
     auditing: Boolean(state.auditing),
-    turnsToNextHint: (() => {
-      if (hintsAvailable(state) > 0 || (state.hints?.length || 0) >= 1) return 0;
-      const n = Math.max(state.order.length, 1);
-      return Math.max(0, hintLapsNeeded(state) * n - (state.turnsTaken || 0));
-    })(),
+    turnsToNextHint: turnsToNextHint(state),
     pendingJudge: state.pendingJudge
       ? {
           attemptId: state.pendingJudge.attemptId,

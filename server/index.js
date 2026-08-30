@@ -482,6 +482,21 @@ async function judgeIslandAttempt(room, attempt) {
   }
 }
 
+// Every model call in a room passes through here. The per-action cooldowns stop the
+// obvious spam; this is the backstop that bounds the bill when one of them has a hole.
+const AI_BUDGET_MAX = 120;             // model calls per room per window
+const AI_BUDGET_WINDOW_MS = 60_000;
+function spendAiBudget(room, cost = 1) {
+  const now = Date.now();
+  if (!room.aiBudget || now > room.aiBudget.resetAt) {
+    room.aiBudget = { spent: 0, resetAt: now + AI_BUDGET_WINDOW_MS };
+  }
+  if (room.aiBudget.spent + cost > AI_BUDGET_MAX) {
+    throw new GameError('This room has asked the AI a lot in the last minute. Give it a moment.');
+  }
+  room.aiBudget.spent += cost;
+}
+
 function aiCooldown(room, playerId) {
   const now = Date.now();
   room.aiCooldowns ||= new Map();
@@ -678,6 +693,7 @@ io.on('connection', (socket) => {
     let state;
     try {
       if (!room || !playerId) throw new GameError('You are not in a room.');
+      spendAiBudget(room, 2);         // one word pair, retried once
       const opened = blendin.beginDealing(room, playerId);
       state = room.state;
       broadcast(room);
@@ -787,12 +803,19 @@ io.on('connection', (socket) => {
       if (room.hostId !== playerId) throw new GameError('Only the room owner can do that.');
       if (room.game !== 'island' || room.state?.phase !== 'setup') throw new GameError('Not in island setup.');
       if (room.state.mode !== 'ai') throw new GameError('This round has a human gamemaster.');
+      // Phase stays 'setup' while a pattern is being written, so without this a host
+      // could stack overlapping generations, each costing a handful of model calls.
+      if (room.state.generating) throw new GameError('The gamemaster is already thinking.');
+      spendAiBudget(room, 15);        // the worst case for a full generate-and-check
+      room.state.generating = true;
     } catch (err) {
       return cb?.({ ok: false, error: err instanceof GameError ? err.message : 'Setup failed.' });
     }
     const state = room.state;
+    const doneGenerating = () => { if (room.state === state) state.generating = false; };
     islandAI.generatePattern(state.usedPatternNames)
       .then((result) => {
+        doneGenerating();
         if (room.state !== state || state.phase !== 'setup') return;
         const { bankEntry = null, ...pattern } = result;
         const fx = island.setupAIPattern(room, playerId, pattern, bankEntry);
@@ -801,6 +824,7 @@ io.on('connection', (socket) => {
         cb?.({ ok: true });
       })
       .catch((err) => {
+        doneGenerating();
         console.error('[island ai generate]', err.message);
         cb?.({ ok: false, error: 'The AI could not come up with a pattern, try again.' });
       });
@@ -823,6 +847,7 @@ io.on('connection', (socket) => {
       // from the judging cooldown: someone who just asked for an item should still be
       // able to spend a hint the table has earned.
       if (Date.now() < (room.hintCooldownUntil || 0)) throw new GameError('One hint at a time.');
+      spendAiBudget(room, 9);         // worst case: three suggest-and-verify rounds
       room.hintCooldownUntil = Date.now() + 3000;
     } catch (err) {
       return cb?.({ ok: false, error: err instanceof GameError ? err.message : 'No hint right now.' });
@@ -856,6 +881,7 @@ io.on('connection', (socket) => {
     const state = room.state;
     const { attempt } = island.attemptItem(room, playerId, payload);
     if (state.mode === 'ai') {
+      spendAiBudget(room, 3);         // judge, verify, and a tie-break if they disagree
       aiCooldown(room, playerId);
       queueMicrotask(() => judgeIslandAttempt(room, attempt));
     }
@@ -866,6 +892,7 @@ io.on('connection', (socket) => {
     const state = room.state;
     const { attempt } = island.attemptPattern(room, playerId, payload);
     if (state.mode === 'ai') {
+      spendAiBudget(room, 2);         // judge, plus an appeal if it is rejected
       aiCooldown(room, playerId);
       queueMicrotask(() => judgeIslandAttempt(room, attempt));
     }
@@ -882,6 +909,7 @@ io.on('connection', (socket) => {
       if (!room || !playerId) throw new GameError('You are not in a room.');
       if (room.game !== 'island') throw new GameError('No island round in progress.');
       if (Date.now() < (room.auditCooldownUntil || 0)) throw new GameError('The boat just re-checked. Give it a minute.');
+      spendAiBudget(room, 6);         // worst case: three judge-and-defend rounds
       gate = island.requestAudit(room, playerId);
       room.auditCooldownUntil = Date.now() + 60_000;
     } catch (err) {
