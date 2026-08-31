@@ -18,11 +18,11 @@ as stock audio, so do not lift this folder into a sound library.
 
 | Reaction | Files |
 | --- | --- |
-| 😂 laugh | `rxLaugh` ×10 — evil, high-pitch, male, mischievous, horror, funny, hyena, "dat evil laugh", child, goofy |
+| 😂 laugh | `rxLaugh` ×9 — evil, high-pitch, male, mischievous, funny, hyena, "dat evil laugh", child, goofy (a 30-second laughing fit was retired) |
 | 😱 shock | `rxShock` ×6 — wow, "what", "ehhh", what-meme, "what are you doing", "oh my god" |
-| 🔥 fire | `rxFire` ×3 — "perfect", "nailed it", child saying "awesome" |
+| 🔥 fire | `rxFire` ×4 — "perfect", "nailed it", child saying "awesome", a thug-life music sting (trimmed to 3s, moved over from 💀) |
 | 🧐 doubt | `rxDoubt` ×3 — "that's a lie", bruh 2, an unprintable one |
-| 💀 dead | `rxDead` ×3 — two cinematic braams, thug-life music |
+| 💀 dead | `rxDead` ×2 — two cinematic braams (silent tails trimmed) |
 | 🤔 thinking | `rxThink` ×2 — two "hmm"s |
 
 **Everywhere else** — `laughTrack` ×6, `wow` ×3, `evilLaugh` ×2, `fail` ×2, `dun` ×2,
