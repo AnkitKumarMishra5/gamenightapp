@@ -907,10 +907,21 @@ body:has(.bg-canvas) .blob { opacity: 0.22; }
 
 /* ---------- sound panel ---------- */
 .sound-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 4px 0; }
+/* The sound panel's hierarchy drawn as boxes: the master switch stands alone at the
+   top, and each family of controls (music with its volume and soundtrack; the game
+   effects) lives inside its own outlined group that dims as one unit. */
+.sound-group {
+  border: 1px solid var(--stroke); border-radius: var(--r-md);
+  padding: 12px 14px; margin-top: 14px;
+  background: rgba(0, 0, 0, 0.16);
+}
+.sound-group-body { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--stroke); }
+.sound-group, .sound-group-body { transition: opacity 0.2s ease; }
 .sound-row.master .sr-title { font-size: 16px; }
 .sound-row .sr-title { font-weight: 700; font-size: 14.5px; }
 .sound-row .sr-sub { font-size: 12.5px; color: var(--ink-faint); margin-top: 3px; line-height: 1.4; }
-.sound-row.dimmed, .vol-row.dimmed, .theme-row.dimmed { opacity: 0.45; }
+.sound-row.dimmed, .vol-row.dimmed, .theme-row.dimmed,
+.sound-group.dimmed, .sound-group-body.dimmed { opacity: 0.45; }
 .theme-row.dimmed { pointer-events: auto; }  /* tapping a theme re-enables the music */
 
 .vol-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }

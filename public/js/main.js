@@ -664,11 +664,11 @@ function showSoundPanel() {
     });
 
     body.replaceChildren(
-      // --- master ---
+      // --- the parent switch: everything below answers to this ---
       h('div', { class: 'sound-row master' },
         h('div', {},
-          h('div', { class: 'sr-title' }, on ? '🔊 All sound is on' : '🔇 All sound is off'),
-          h('div', { class: 'sr-sub' }, 'Master switch for the music and the game effects'),
+          h('div', { class: 'sr-title' }, on ? '🔊 All sound' : '🔇 All sound'),
+          h('div', { class: 'sr-sub' }, 'The parent switch — nothing below plays while this is off'),
         ),
         h('button', {
           class: `switch ${on ? 'on' : ''}`, 'aria-label': 'Toggle all sound',
@@ -683,67 +683,68 @@ function showSoundPanel() {
           },
         }),
       ),
-      h('hr', { class: 'divider' }),
 
-      // --- background music ---
-      h('div', { class: `sound-row ${on ? '' : 'dimmed'}` },
-        h('div', {},
-          h('div', { class: 'sr-title' }, '🎵 Background music'),
-          h('div', { class: 'sr-sub' }, 'Turn this off to keep the game sounds only'),
-        ),
-        h('button', {
-          class: `switch ${on && music ? 'on' : ''}`, 'aria-label': 'Toggle background music',
-          onClick: () => {
-            if (!soundEnabled()) return;
-            setMusicOn(!musicIsOn());
-            draw();
-            renderAppBar();
-          },
-        }),
-      ),
-      h('div', { class: `vol-row ${on && music ? '' : 'dimmed'}` },
-        h('span', { class: 'vol-icon' }, '🔈'),
-        volSlider,
-        h('span', { class: 'vol-icon' }, '🔊'),
-        volValue,
-      ),
-      h('hr', { class: 'divider' }),
-
-      // --- game effects (informational: they follow the master switch) ---
-      h('div', { class: `sound-row ${on ? '' : 'dimmed'}` },
-        h('div', {},
-          h('div', { class: 'sr-title' }, '🎉 Game sounds'),
-          h('div', { class: 'sr-sub' }, on ? 'Votes, reveals, confetti and win stings' : 'Silenced by the master switch'),
-        ),
-        h('span', { class: `badge ${on ? 'live' : 'warn'}` }, on ? 'on' : 'off'),
-      ),
-      h('hr', { class: 'divider' }),
-
-      // --- soundtrack ---
-      h('div', { class: 'label', style: 'margin-bottom:10px' }, 'Soundtrack'),
-      h('div', { class: 'theme-list' },
-        THEMES.map((t) => h('button', {
-          class: `theme-row ${t.id === currentThemeId() ? 'active' : ''} ${on && music ? '' : 'dimmed'}`,
-          onClick: () => {
-            if (!soundEnabled()) { setSoundEnabled(true); setMuted(false); refreshMuted(); }
-            if (!musicIsOn()) setMusicOn(true);
-            if (musicVolume() <= 0.01) setMusicVolume(0.7);
-            armAmbience();
-            setTheme(t.id);
-            draw();
-            renderAppBar();
-          },
-        },
-          h('span', { class: 'tr-dot' }),
+      // --- music: the switch, the volume and the track, one group ---
+      h('div', { class: `sound-group ${on ? '' : 'dimmed'}` },
+        h('div', { class: 'sound-row' },
           h('div', {},
-            h('div', { class: 'tr-name' }, t.name),
-            h('div', { class: 'tr-blurb' }, t.blurb),
+            h('div', { class: 'sr-title' }, '🎵 Music'),
+            h('div', { class: 'sr-sub' }, 'The background track on the home screen and in the lobby'),
           ),
-          h('span', { class: 'tr-check' }, t.id === currentThemeId() ? '▶' : ''),
-        )),
+          h('button', {
+            class: `switch ${on && music ? 'on' : ''}`, 'aria-label': 'Toggle background music',
+            onClick: () => {
+              if (!soundEnabled()) return;
+              setMusicOn(!musicIsOn());
+              draw();
+              renderAppBar();
+            },
+          }),
+        ),
+        h('div', { class: `sound-group-body ${on && music ? '' : 'dimmed'}` },
+          h('div', { class: 'vol-row' },
+            h('span', { class: 'vol-icon' }, '🔈'),
+            volSlider,
+            h('span', { class: 'vol-icon' }, '🔊'),
+            volValue,
+          ),
+          h('div', { class: 'label', style: 'margin:12px 0 8px' }, 'Soundtrack'),
+          h('div', { class: 'theme-list' },
+            THEMES.map((t) => h('button', {
+              class: `theme-row ${t.id === currentThemeId() ? 'active' : ''}`,
+              onClick: () => {
+                if (!soundEnabled()) { setSoundEnabled(true); setMuted(false); refreshMuted(); }
+                if (!musicIsOn()) setMusicOn(true);
+                if (musicVolume() <= 0.01) setMusicVolume(0.7);
+                armAmbience();
+                setTheme(t.id);
+                draw();
+                renderAppBar();
+              },
+            },
+              h('span', { class: 'tr-dot' }),
+              h('div', {},
+                h('div', { class: 'tr-name' }, t.name),
+                h('div', { class: 'tr-blurb' }, t.blurb),
+              ),
+              h('span', { class: 'tr-check' }, t.id === currentThemeId() ? '▶' : ''),
+            )),
+          ),
+          h('p', { class: 'hint', style: 'margin-top:10px' },
+            'Every track is synthesized live in your browser — nothing is streamed. Music steps aside once a round starts.'),
+        ),
       ),
-      h('p', { class: 'hint', style: 'margin-top:12px' },
-        'Every theme is synthesized live in your browser, so nothing is streamed or downloaded. The music plays on the home screen and in the lobby, then steps aside once a round starts.'),
+
+      // --- game sounds: their own group, ruled by the parent switch ---
+      h('div', { class: `sound-group ${on ? '' : 'dimmed'}` },
+        h('div', { class: 'sound-row' },
+          h('div', {},
+            h('div', { class: 'sr-title' }, '🎉 Game sounds'),
+            h('div', { class: 'sr-sub' }, on ? 'Votes, reveals, confetti and win stings' : 'Silenced by the All sound switch above'),
+          ),
+          h('span', { class: `badge ${on ? 'live' : 'warn'}` }, on ? 'on' : 'off'),
+        ),
+      ),
     );
   };
   draw();
