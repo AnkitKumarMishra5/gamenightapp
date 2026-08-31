@@ -39,11 +39,15 @@ export function startGame(room, playerId, payload) {
   if (participants.length < ISLAND_MIN_PLAYERS) {
     throw new GameError(`The Island needs at least ${ISLAND_MIN_PLAYERS} guessing players${mode === 'host' ? ' besides you' : ''}.`);
   }
-  // Start is for starting. A round in progress is finished with is:end, not replaced —
-  // re-dealing on demand would also buy a fresh AI pattern every time.
-  if (room.state?.kind === 'island' && (room.state.phase === 'setup' || room.state.phase === 'playing')) {
+  // Start is for starting. A round in play is finished with is:end, not replaced —
+  // re-dealing on demand would also buy a fresh AI pattern every time. Setup is fair
+  // game though: nothing is committed yet, and the setup screen switches gamemaster
+  // mode (and hands the judge's chair around) by re-issuing this very event.
+  if (room.state?.kind === 'island' && room.state.phase === 'playing') {
     throw new GameError('A round is already going. Finish it first.');
   }
+  // Re-picking the mode or the judge mid-setup is the same round, not the next one.
+  const resetup = room.state?.kind === 'island' && room.state.phase === 'setup';
 
   room.game = 'island';
   room.state = {
@@ -52,7 +56,7 @@ export function startGame(room, playerId, payload) {
     startedAt: Date.now(),   // only used to measure how long a game runs
     mode,
     gmId,
-    roundNum: (room.state?.kind === 'island' ? room.state.roundNum : 0) + 1,
+    roundNum: (room.state?.kind === 'island' ? room.state.roundNum : 0) + (resetup ? 0 : 1),
     pattern: null,
     bankEntry: null, // full bank entry when pattern came from the bank (mock judging hints)
     order: [],
@@ -555,7 +559,9 @@ export function snapshot(room, forPlayerId) {
     youKnockedOut: (state.knockedOut || []).includes(forPlayerId),
     scores: state.scores,
     starters: state.pattern?.starters || null,
-    hints: (state.hints || []).map((h) => ({ items: h.items, byId: h.byId })),
+    // `at` lets the client keep the packing list in true table order: a hint slots in
+    // between the items that were asked before and after it, not always at the end.
+    hints: (state.hints || []).map((h) => ({ items: h.items, byId: h.byId, at: h.at || 0 })),
     hintsAvailable: hintsAvailable(state),
     lastAudit: state.lastAudit || null,
     auditing: Boolean(state.auditing),

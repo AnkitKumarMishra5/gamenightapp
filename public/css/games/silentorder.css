@@ -65,6 +65,18 @@
   border: 1px solid rgba(248, 113, 113, 0.4);
   animation: so-banner-in 0.35s cubic-bezier(0.3, 1.4, 0.5, 1);
 }
+.so-banner.so-good {
+  color: #d5ffe9; background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  animation: so-banner-in 0.35s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+/* A banner carrying key art: the photograph gets the top of the panel to itself at
+   near-full strength, and the caption sits under it on the banner's own tint. The old
+   treatment washed these images out behind one line of text. */
+.so-banner.so-moment { padding: 0; overflow: hidden; }
+.so-banner.so-moment .scene-frame { height: 150px; border-radius: var(--r-md) var(--r-md) 0 0; }
+.so-banner.so-moment > span { display: block; padding: 10px 14px 12px; }
 @keyframes so-banner-in {
   from { transform: scale(0.9); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
@@ -247,7 +259,8 @@
 @media (prefers-reduced-motion: reduce) {
   .so-flame,
   .so-mini.so-live .ct-face.front,
-  .so-banner.so-bad { animation: none; }
+  .so-banner.so-bad,
+  .so-banner.so-good { animation: none; }
   /* No last struggle for the dying candle: it goes straight to dark, not lit-then-blink. */
   .so-candle.guttering .so-flame { animation: none; opacity: 0; }
   .so-pile.so-glint::after { animation: none; opacity: 0; }

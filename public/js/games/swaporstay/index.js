@@ -4,7 +4,7 @@
 // Everything that changes within a round — the turn arrow, the hearts, the control bar,
 // the flying cards — is driven imperatively off snapshot deltas, so it all still works
 // after a reconnect, where transient fx events would be long gone.
-import { h, shake, waitingFor, sceneArt } from '../../core/ui.js';
+import { h, shake, waitingFor, sceneArt, sceneFrame } from '../../core/ui.js';
 import { cardTable, setTurn, setDeckLabel, setDeckPickable } from '../../core/cards.js';
 import { playMeme } from '../../core/memes.js';
 import { confettiRain } from '../../core/fx.js';
@@ -592,12 +592,6 @@ function updateDock(api, ss, ctx) {
     api.dock.replaceChildren(sceneArt('ss-reveal'), h('p', { class: 'ss-note' }, '👀 Cards up…'));
     return;
   }
-  if (ss.phase === 'result' && !ss.spared) {
-    // Somebody just lost a heart: the withdrawing hand, not the shuffle.
-    api.dock.classList.add('has-art', 'art-faint');
-    api.dock.replaceChildren(sceneArt('heart-lost'), h('p', { class: 'ss-note' }, '💔 Lowest card pays.'));
-    return;
-  }
   const youPlay = ss.aliveIds.includes(ctx.me.id);
   let content = null;
 
@@ -690,6 +684,9 @@ function resultCard(api, ss, ctx) {
   else verdict = ss.roundQuip || '';
 
   return h('div', { class: 'ss-result card' },
+    // Somebody just lost a heart: the withdrawing hand gets its own framed moment above
+    // the verdict — visible, not a wash behind the text.
+    !ss.spared && sceneFrame('heart-lost', 'ss-result-art'),
     h('p', { class: 'ss-verdict' }, verdict),
     ctx.isHost
       ? h('button', {

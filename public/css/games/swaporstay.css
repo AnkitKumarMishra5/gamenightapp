@@ -166,6 +166,12 @@
 /* Same one-shot rule as the choice bar: entrances only under .ss-enter, so a mid-scene
    broadcast rebuilding the dock never re-bounces the card or re-drops the trophy. */
 .ss-result { text-align: center; }
+/* The lost-heart photograph, full-bleed across the top of the result card. */
+.ss-result .scene-frame.ss-result-art {
+  width: auto; height: 130px;
+  margin: calc(-1 * var(--card-pad)) calc(-1 * var(--card-pad)) 12px;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
 .ss-result.ss-enter { animation: ss-rise 0.35s cubic-bezier(0.2, 1.2, 0.4, 1) both; }
 .ss-verdict { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
 

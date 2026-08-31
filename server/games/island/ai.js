@@ -185,6 +185,12 @@ function stem(word) {
 function safeRemark(remark, pattern) {
   const text = String(remark || '').slice(0, 90);
   if (!text) return '';
+  // A single letter called out on its own is the rule spelled out, whatever the wording
+  // around it — a live round leaked "All aboard the 'S' train!" against an ends-with-S
+  // pattern. Quoted single letters, and bare capitals that are not the words A or I,
+  // both go: no legitimate compliment needs to name a letter.
+  if (/['"‘’“”`]\s*[a-z]\s*['"‘’“”`]/i.test(text)) return '';
+  if (/(?:^|[^A-Za-z'’])[B-HJ-Z](?:[^A-Za-z]|$)/.test(text)) return '';
   const distinctive = (source) => normalize(source)
     .split(' ')
     .filter((w) => w.length > 3 && !REMARK_STOPWORDS.has(w))
@@ -194,7 +200,8 @@ function safeRemark(remark, pattern) {
   // Mechanism words give the game away whatever the rule turns out to be: a remark that
   // talks about letters or spelling is a clue even when this round is about meaning.
   for (const hint of ['sound', 'letter', 'spell', 'rhyme', 'syllab', 'vowel', 'consonant',
-    'begin', 'start', 'end', 'double', 'contain', 'hidden', 'palindrome', 'compound', 'prefix', 'suffix']) {
+    'begin', 'start', 'end', 'double', 'contain', 'hidden', 'palindrome', 'compound',
+    'prefix', 'suffix', 'plural', 'alphabet', 'initial']) {
     secretStems.add(hint);
   }
 

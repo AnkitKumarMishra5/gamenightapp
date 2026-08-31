@@ -8,7 +8,7 @@
 // then updated imperatively from snapshot deltas. One-shot moments (a mistake, a level
 // clear, the end of the run) are detected by comparing snapshot fields against markers
 // kept here, never from fx events, so they survive reconnects and missed packets.
-import { h, shake, animOnce, waitingFor, sceneArt } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, sceneArt, sceneFrame } from '../../core/ui.js';
 import { cardTable, cardTableDuration, flingCard } from '../../core/cards.js';
 import { memes, playMeme } from '../../core/memes.js';
 import { confettiBurst, confettiRain } from '../../core/fx.js';
@@ -58,7 +58,9 @@ export function renderSilentOrder(snap, ctx) {
   const so = snap.silentorder;
   syncRun(so);
   if (so.phase === 'dealing') return dealingScreen(so, ctx);
-  if (so.phase === 'playing') return playingScreen(so, ctx);
+  // 'cleared' is the level's curtain call: same table, last card still on the pile,
+  // applause running, while the server holds the next deal back a beat.
+  if (so.phase === 'playing' || so.phase === 'cleared') return playingScreen(so, ctx);
   return overScreen(so, snap, ctx);
 }
 
@@ -147,9 +149,9 @@ function dealingScreen(so, ctx) {
         candleRow(so.lives),
         h('div', { class: 'so-level-pill' }, `Level ${so.level} of ${so.maxLevel}`),
       ),
-      h('div', { class: 'card has-art art-faint', style: 'text-align:center' },
-        sceneArt(dealMistake ? 'life-lost' : (clearedLevel >= 1 ? 'life-earned' : 'shuffling')),
-        h('p', { class: 'so-quip' }, `Level ${so.level} is being dealt…`),
+      h('div', { class: 'card', style: 'text-align:center' },
+        sceneFrame(dealMistake ? 'life-lost' : (clearedLevel >= 1 ? 'life-earned' : 'shuffling')),
+        h('p', { class: 'so-quip', style: 'margin-top:10px' }, `Level ${so.level} is being dealt…`),
         h('p', { class: 'hint' }, 'You joined mid-run. You\'ll be dealt in next run!'),
       ),
       chipsRow,
@@ -229,12 +231,12 @@ function dealingScreen(so, ctx) {
     ),
     so.level === 1 && so.startQuip && h('p', { class: 'so-quip' }, so.startQuip),
     // A level cleared without a burn is the only way to gain a life, so it gets the
-    // taper catching a fresh wick.
-    !dealMistake && clearedLevel >= 1 && h('div', { class: 'so-banner so-good has-art' },
-      sceneArt('life-earned', 'band'),
+    // taper catching a fresh wick — framed above the caption, not buried behind it.
+    !dealMistake && clearedLevel >= 1 && h('div', { class: 'so-banner so-good so-moment' },
+      sceneFrame('life-earned', 'so-moment-art'),
       h('span', {}, `Level ${clearedLevel} cleared — a life earned. ${so.lives} now burning.`)),
-    dealMistake && h('div', { class: 'so-banner so-bad has-art' },
-      sceneArt('life-lost', 'band'),
+    dealMistake && h('div', { class: 'so-banner so-bad so-moment' },
+      sceneFrame('life-lost', 'so-moment-art'),
       h('span', {}, `${dealMistake.by === ctx.me.id ? 'You' : ctx.player(dealMistake.by).name} played ${dealMistake.card} — ${dealMistake.burned.join(', ')} burned`)),
     table,
     handFan,
@@ -512,6 +514,17 @@ function playingScreen(so, ctx) {
       && low > fresh.topCard && low - fresh.topCard <= 3;
     if (close && !seen.close) playMeme('heartbeat');
     seen.close = close;
+
+    // The level just cleared: the last card is on the pile and stays there while the
+    // server holds the deal back. Celebrate now — sound first, card still in view —
+    // and mark it so the fresh deal doesn't applaud the same clear twice.
+    if (fresh.phase === 'cleared' && seen.clearShown <= fresh.level) {
+      seen.clearShown = fresh.level + 1;
+      playMeme('applause');
+      confettiBurst({ count: 90 });
+      glint();
+      showBanner(`✨ Level ${fresh.level} cleared — a life earned. Next level coming up…`, 'good');
+    }
   };
 
   // First paint: everything drawn straight from the snapshot, no animations replayed.

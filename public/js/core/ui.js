@@ -110,6 +110,16 @@ export function sceneArt(name, place = 'side') {
   );
 }
 
+// The framed variant: the photograph gets its own window — a full-width strip with a
+// feathered edge — instead of lying underneath the copy. For the screens where a
+// background blend buries the image behind text and it reads as mud rather than art.
+export function sceneFrame(name, cls = '') {
+  return h('picture', { class: `scene-frame ${cls}`, 'aria-hidden': 'true' },
+    h('source', { srcset: `/media/games/${name}.webp`, type: 'image/webp' }),
+    h('img', { src: `/media/games/${name}.jpg`, alt: '', loading: 'lazy', decoding: 'async' }),
+  );
+}
+
 // Shown to everyone who is not the room owner, in place of a control only the owner has.
 // Without it a guest sits on a screen with nothing on it, waiting for something they
 // cannot see is coming.

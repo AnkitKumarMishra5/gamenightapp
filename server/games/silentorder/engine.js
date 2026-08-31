@@ -188,11 +188,29 @@ export function playLowest(room, playerId) {
     state.lives += 1;
     fx.push({ kind: 'so-level', level: state.level, lives: state.lives });
     if (state.level >= state.maxLevel) return { fx: [...fx, ...endRun(room, state, true).fx] };
-    state.level += 1;
-    dealLevel(room, state);
-    fx.push({ kind: 'so-deal', level: state.level });
+    holdCleared(state, fx);
   }
   return { fx };
+}
+
+// How long the finished level stays on screen before the next deal. Dealing on the very
+// play that emptied the last hand yanked the final card off the pile before anyone saw
+// it land; the celebration starts at once, the shuffle waits its beat.
+export const LEVEL_CLEAR_MS = 2800;
+
+function holdCleared(state, fx) {
+  state.phase = 'cleared';
+  state.clearedAt = Date.now();
+  fx.push({ kind: 'so-cleared', level: state.level });
+}
+
+// The socket layer's timer lands here once the cleared level has had its moment.
+export function advanceLevel(room) {
+  const state = room.state;
+  if (!state || room.game !== 'silentorder' || state.phase !== 'cleared') return null;
+  state.level += 1;
+  dealLevel(room, state);
+  return { fx: [{ kind: 'so-deal', level: state.level }] };
 }
 
 function endRun(room, state, won) {
@@ -245,9 +263,8 @@ export function removePlayerFromGame(room, playerId) {
       award(room, id, 'silentorder', POINTS.silentorder.levelCleared, `cleared level ${state.level}`);
     }
     if (state.level >= state.maxLevel) return { fx: [...fx, ...endRun(room, state, true).fx] };
-    state.level += 1;
-    dealLevel(room, state);
-    return { fx: [...fx, { kind: 'so-deal', level: state.level }] };
+    holdCleared(state, fx);
+    return { fx };
   }
   return { fx: [{ kind: 'so-left', playerId, cards: held.length }] };
 }

@@ -323,11 +323,29 @@ setInterval(sweepRooms, 30 * 1000);
 function broadcast(room) {
   room.lastActivity = Date.now();
   noteFinish(room);
+  scheduleSilentOrderAdvance(room);
   for (const player of room.players.values()) {
     if (player.connected && player.socketId) {
       io.to(player.socketId).emit('room:state', snapshot(room, player.id));
     }
   }
+}
+
+// A cleared Silent Order level holds on screen so the final card is actually seen on the
+// pile, then the next level deals itself. Hooked off broadcast because every path that
+// can finish a level (a play, a departure) already broadcasts, and the timer re-checks
+// the state so a run that ended or restarted in the meantime is left alone.
+function scheduleSilentOrderAdvance(room) {
+  if (room.game !== 'silentorder' || room.state?.phase !== 'cleared' || room.soAdvanceTimer) return;
+  const state = room.state;
+  room.soAdvanceTimer = setTimeout(() => {
+    room.soAdvanceTimer = null;
+    if (rooms.get(room.code) !== room || room.state !== state) return;
+    const result = silentorder.advanceLevel(room);
+    if (!result) return;
+    broadcast(room);
+    emitFx(room, result.fx);
+  }, silentorder.LEVEL_CLEAR_MS);
 }
 
 // A game reaching its end is the single most useful thing to measure: it turns "somebody

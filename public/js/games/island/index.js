@@ -1,5 +1,5 @@
 // The Island screen rendering.
-import { h, shake, animOnce, waitingFor, aiThinking, sceneArt } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, aiThinking, sceneArt, sceneFrame } from '../../core/ui.js';
 
 export function renderIsland(snap, ctx) {
   const is = snap.island;
@@ -214,42 +214,47 @@ function judgePanel(is, ctx) {
 }
 
 // Two-column at-a-glance board: what made it onto the boat vs what got rejected,
-// each item tagged with who asked. The opening items sit in the allowed column.
+// each item tagged with who asked. The opening items sit in the allowed column, and
+// after them the column runs in true table order: an item accepted after a hint was
+// given appears after that hint, so the list reads back the way the round was played.
 function packingList(is, ctx) {
   const yes = is.attempts.filter((a) => a.type === 'item' && a.verdict === 'yes');
   const no = is.attempts.filter((a) => a.type === 'item' && a.verdict === 'no');
   const gmLabel = is.mode === 'ai' ? '🤖 AI' : `${ctx.player(is.gmId).avatar} ${ctx.player(is.gmId).name}`;
 
-  const chip = (text, byLabel, i) => h('div', {
+  const chip = ({ text, by }, i) => h('div', {
     class: `pack-item ${animOnce(`is-pack:${is.roundNum}:${text}`)}`,
     style: `animation-delay:${Math.min(i, 10) * 30}ms`,
   },
     h('span', { class: 'pack-word' }, text),
-    h('span', { class: 'pack-by' }, byLabel),
+    h('span', { class: 'pack-by' }, by),
   );
+
+  const aboard = [
+    ...(is.starters || []).map((s, i) => ({ text: s, by: gmLabel, ts: i })),
+    ...yes.map((a) => {
+      const p = ctx.player(a.playerId);
+      return { text: a.text, by: `${p.avatar} ${p.name}`, ts: a.ts || 0 };
+    }),
+    ...(is.hints || []).flatMap((hint, hi) =>
+      hint.items.map((text, i) => ({ text, by: '💡 hint', ts: (hint.at || hi + 2) + i }))),
+  ].sort((a, b) => a.ts - b.ts);
 
   return h('div', { class: 'card' },
     h('h2', { class: 'subtitle' }, '🧳 The packing list'),
     h('div', { class: 'packing-grid' },
-      h('div', { class: 'pack-col allowed has-art art-faint' },
-        sceneArt('item-yes'),
-        h('div', { class: 'pack-head' }, `✅ On the boat (${
-    yes.length + (is.starters?.length || 0) + (is.hints || []).reduce((n, x) => n + x.items.length, 0)})`),
-        (is.starters || []).map((s, i) => chip(s, gmLabel, i)),
-        yes.map((a, i) => {
-          const p = ctx.player(a.playerId);
-          return chip(a.text, `${p.avatar} ${p.name}`, i + 2);
-        }),
-        (is.hints || []).flatMap((hint, hi) =>
-          hint.items.map((text, i) => chip(text, '💡 hint', yes.length + hi * 2 + i))),
+      h('div', { class: 'pack-col allowed' },
+        sceneFrame('item-yes', 'pack-art'),
+        h('div', { class: 'pack-head' }, `✅ On the boat (${aboard.length})`),
+        aboard.map(chip),
       ),
-      h('div', { class: 'pack-col rejected has-art art-faint' },
-        sceneArt('item-no'),
+      h('div', { class: 'pack-col rejected' },
+        sceneFrame('item-no', 'pack-art'),
         h('div', { class: 'pack-head' }, `🚫 Left behind (${no.length})`),
         no.length
           ? no.map((a, i) => {
               const p = ctx.player(a.playerId);
-              return chip(a.text, `${p.avatar} ${p.name}`, i);
+              return chip({ text: a.text, by: `${p.avatar} ${p.name}` }, i);
             })
           : h('p', { class: 'hint', style: 'padding:6px 2px' }, 'Nothing rejected yet…'),
       ),

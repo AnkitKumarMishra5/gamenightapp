@@ -568,9 +568,6 @@ function gameOver(sl, ctx) {
           h('span', {}, info.avatar),
           h('span', { class: 'rl-name' }, info.name, p.left ? ' (left)' : (!p.alive ? ' 💀' : '')),
           role && h('span', { class: `sl-role-tag sl-role-${role}` }, `${ROLES[role].emoji} ${ROLES[role].word}`),
-          // A harmless brag: who kept a clear head through the nights.
-          (sl.winner?.solved?.[p.id] || 0) > 0 && h('span', { class: 'sl-instinct' },
-            `🧮 sums ×${sl.winner.solved[p.id]}`),
         );
       }),
     ),
