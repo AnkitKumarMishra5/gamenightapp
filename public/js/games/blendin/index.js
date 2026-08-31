@@ -1,6 +1,6 @@
 // Blend In screen rendering. Receives the personalized room snapshot and a ctx
 // with { emit, me, isHost, player(id) } from main.js.
-import { h, shake, animOnce, waitingFor, aiThinking, sceneHero } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, aiThinking, sceneHero, scoringDetails } from '../../core/ui.js';
 
 const REACTIONS = ['😂', '🤔', '😱', '🧐', '🔥', '💀'];
 // How long the reaction palette stays reachable after the pointer leaves it.
@@ -516,6 +516,7 @@ function gameOver(bi, snap, ctx) {
         );
       }),
     ),
+    scoringDetails(snap.scoringRules?.blendin),
     ctx.isHost
       ? h('div', { style: 'display:grid; gap:10px; margin-top:16px' },
           h('button', { class: 'btn btn-bi btn-lg', onClick: () => ctx.emit('bi:playAgain') }, '🔁 Play again (new words)'),

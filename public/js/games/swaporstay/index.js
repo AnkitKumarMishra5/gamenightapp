@@ -4,7 +4,7 @@
 // Everything that changes within a round — the turn arrow, the hearts, the control bar,
 // the flying cards — is driven imperatively off snapshot deltas, so it all still works
 // after a reconnect, where transient fx events would be long gone.
-import { h, shake, waitingFor, sceneFrame, sceneHero } from '../../core/ui.js';
+import { h, shake, waitingFor, sceneHero, scoringDetails } from '../../core/ui.js';
 import { cardTable, setTurn, setDeckLabel, setDeckPickable } from '../../core/cards.js';
 import { playMeme } from '../../core/memes.js';
 import { confettiRain } from '../../core/fx.js';
@@ -15,8 +15,13 @@ const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 // identical root node, so returning the same element is what keeps the animations alive.
 let mount = { key: null, node: null, api: null };
 
+// The scoring rules ride the room snapshot; kept here so the deeply nested winner
+// card can show them without threading snap through every update call.
+let scoringRules = null;
+
 export function renderSwapOrStay(snap, ctx) {
   const ss = snap.swaporstay;
+  scoringRules = snap.scoringRules?.swaporstay || null;
   const key = `ss:${ss.startedAt}:${ss.round}`;
   if (mount.key !== key) buildRound(key, ss, ctx);
   updateRound(ss, ctx);
@@ -488,7 +493,9 @@ function maybeCelebrate(api) {
 // The round read back as a list: who kept, who forced a swap, who was refused, and who
 // went to the deck. Card values are never in it — only the moves.
 function syncLog(api, ss, ctx) {
-  const entries = ss.log || [];
+  // Latest beat on top: the question the log answers is "what just happened?",
+  // and nobody should scroll past round one to find out.
+  const entries = (ss.log || []).slice().reverse();
   if (api.log.childElementCount === entries.length) return;
   const name = (id) => (id ? ctx.player(id).name : 'someone');
   api.log.replaceChildren(...entries.map((e) => {
@@ -684,10 +691,13 @@ function resultCard(api, ss, ctx) {
   else verdict = ss.roundQuip || '';
 
   return h('div', { class: 'ss-result card' },
-    // Somebody just lost a heart: the withdrawing hand gets its own framed moment above
-    // the verdict — visible, not a wash behind the text.
-    !ss.spared && sceneFrame('heart-lost', 'ss-result-art'),
-    h('p', { class: 'ss-verdict' }, verdict),
+    // Somebody just lost a heart: the verdict — who pays, by name — sits ON the
+    // withdrawing-hand image, in its fade, the same hero language as everywhere else.
+    ss.spared
+      ? h('p', { class: 'ss-verdict' }, verdict)
+      : sceneHero('heart-lost',
+          h('p', { class: 'ss-verdict', style: 'margin:0' }, verdict),
+          { cls: 'hero-bleed' }),
     ctx.isHost
       ? h('button', {
           class: 'btn btn-lg btn-block ss-btn ss-next',
@@ -711,6 +721,7 @@ function winnerCard(ss, ctx) {
       winner ? `${winner.avatar} ${winner.name} wins!` : 'Nobody survived the deck!'),
     winner && ss.winnerId === ctx.me.id && h('p', { class: 'ss-win-you' }, 'That is you. Take the bow! 🎉'),
     h('p', { class: 'ss-win-quip' }, ss.endQuip),
+    scoringDetails(scoringRules),
     ctx.isHost
       ? h('div', { class: 'ss-win-actions' },
           h('button', {

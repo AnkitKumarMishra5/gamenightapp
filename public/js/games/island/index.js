@@ -1,5 +1,5 @@
 // The Island screen rendering.
-import { h, shake, animOnce, waitingFor, aiThinking, sceneFrame, sceneHero } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, aiThinking, sceneFrame, sceneHero, scoringDetails } from '../../core/ui.js';
 
 export function renderIsland(snap, ctx) {
   const is = snap.island;
@@ -16,7 +16,7 @@ export function renderIsland(snap, ctx) {
       attemptLog(is, ctx),
       auditPanel(is, ctx),
     ); break;
-    case 'reveal': parts.push(revealPhase(is, ctx)); break;
+    case 'reveal': parts.push(revealPhase(is, ctx, snap.scoringRules?.island)); break;
   }
   return h('div', { class: 'stack' }, parts);
 }
@@ -562,7 +562,7 @@ async function patternGuessModal(ctx, is) {
 
 // ---------- reveal ----------
 
-function revealPhase(is, ctx) {
+function revealPhase(is, ctx, rules) {
   const ranking = [...is.order].sort((a, b) => (is.scores[b] || 0) - (is.scores[a] || 0));
   return h('div', { class: 'card win-screen' },
     sceneHero('win-together', [
@@ -595,6 +595,7 @@ function revealPhase(is, ctx) {
         );
       }),
     ),
+    scoringDetails(rules),
     ctx.isHost
       ? h('div', { style: 'display:grid; gap:10px; margin-top:16px' },
           h('button', { class: 'btn btn-island btn-lg', onClick: () => ctx.emit('is:newRound', { mode: is.mode }) }, '🔁 New round, new pattern'),

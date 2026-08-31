@@ -145,6 +145,23 @@ export function waitingFor(hostName, what) {
     { size: 'sm', cls: 'waiting-wrap' });
 }
 
+// The game's scoring rules, folded under the final standings, so "why do I have
+// 7 points?" is answered right where the question happens. Rules arrive from the
+// server snapshot (core/scores.js), so the numbers can never drift from the truth.
+export function scoringDetails(rules) {
+  if (!rules?.length) return null;
+  return h('details', { class: 'score-how' },
+    h('summary', {}, '🧮 How these points were scored'),
+    h('div', { class: 'score-rules' },
+      rules.map(([icon, pts, text]) => h('div', { class: 'score-rule' },
+        h('span', { class: 'sr-icon' }, icon),
+        h('span', { class: 'sr-pts' }, pts),
+        h('span', { class: 'sr-text' }, text),
+      )),
+    ),
+  );
+}
+
 // A visible "the machine is working" state, used wherever the app is waiting on the AI.
 // Built from transforms and opacity only so it stays smooth on a phone, and it collapses
 // to a static badge under prefers-reduced-motion.

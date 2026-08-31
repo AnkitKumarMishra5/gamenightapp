@@ -6,7 +6,7 @@
 // snapshot fields compared against module-level "last seen" markers rather than by fx
 // events. Markers key off dealId + round, so they survive other players' updates and a
 // replay in the same room starts clean.
-import { h, shake, animOnce, waitingFor, openModal, closeModal, sceneHero } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, openModal, closeModal, sceneHero, scoringDetails } from '../../core/ui.js';
 import { cardTable, peekCard } from '../../core/cards.js';
 import { playMeme } from '../../core/memes.js';
 import { confettiRain } from '../../core/fx.js';
@@ -77,7 +77,7 @@ export function renderSleepless(snap, ctx) {
     case 'night': parts.push(nightPhase(sl, ctx)); break;
     case 'day': parts.push(dawnBanner(sl, ctx), voteBoard(sl, ctx)); break;
     case 'verdict': parts.push(verdictPhase(sl, ctx)); break;
-    case 'gameOver': parts.push(gameOver(sl, ctx)); break;
+    case 'gameOver': parts.push(gameOver(sl, ctx, snap.scoringRules?.sleepless)); break;
   }
 
   const night = sl.phase === 'night';
@@ -543,7 +543,7 @@ function voteRevealList(sl, ctx) {
 
 // ---------- game over ----------
 
-function gameOver(sl, ctx) {
+function gameOver(sl, ctx, rules) {
   const villageWon = sl.winner?.side === 'village';
   const myRole = sl.winner?.roles?.[ctx.me.id];
   const iWon = myRole && (villageWon ? myRole !== 'prowler' : myRole === 'prowler');
@@ -575,6 +575,7 @@ function gameOver(sl, ctx) {
         );
       }),
     ),
+    scoringDetails(rules),
     ctx.isHost
       ? h('div', { style: 'display:grid; gap:10px; margin-top:16px' },
           h('button', { class: 'btn sl-btn btn-lg', onClick: () => ctx.emit('sl:next') }, '🔁 Play again (new roles)'),

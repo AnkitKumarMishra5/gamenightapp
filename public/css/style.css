@@ -10,6 +10,10 @@
   --glass: rgba(255, 255, 255, 0.055);
   --glass-2: rgba(255, 255, 255, 0.09);
   --stroke: rgba(255, 255, 255, 0.1);
+  /* Gold as bare RGB channels for rgb()/rgba() composition. Global on purpose: the
+     card-table skin, the Swap or Stay chrome and the winner title all mix from it,
+     and a scope that misses it renders transparent text instead of gold. */
+  --gold: 212, 175, 55;
   --stroke-2: rgba(255, 255, 255, 0.18);
   --violet: #8b5cf6;
   --cyan: #22d3ee;
@@ -1202,6 +1206,18 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 
 /* ---------- how points work ---------- */
 .score-rules { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 4px; }
+/* The end-screen fold-out: how the numbers above came to be, where the question is asked. */
+.score-how {
+  margin-top: 14px; text-align: left;
+  border: 1px solid var(--stroke); border-radius: var(--r-md);
+  background: rgba(0, 0, 0, 0.18); padding: 10px 14px;
+}
+.score-how summary {
+  cursor: pointer; font-weight: 700; font-size: 13.5px; color: var(--ink-dim);
+  list-style: none; text-align: center;
+}
+.score-how summary::-webkit-details-marker { display: none; }
+.score-how[open] summary { color: var(--ink); margin-bottom: 4px; }
 .score-rule {
   display: flex; align-items: center; gap: 10px; padding: 7px 11px; border-radius: 10px;
   background: var(--glass); border: 1px solid var(--stroke); font-size: 13.5px;

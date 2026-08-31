@@ -1098,8 +1098,11 @@ function showScoring(snap) {
       h('p', {}, 'Points stay with you all night, through new rounds, new games, and if you drop out and rejoin. Your title comes from where the points came from.'),
       section('blendin', 'Blend In', '🕵️'),
       section('island', 'Island Rules', '🏝️'),
+      section('silentorder', 'Silent Order', '🕯️'),
+      section('swaporstay', 'Swap or Stay', '🃏'),
+      section('sleepless', 'Sleepless', '🌙'),
       h('h4', {}, '📊 About the board'),
-      h('p', {}, 'Points cover everyone in this room, across every round and both games. They follow you if you drop out and rejoin, and the board clears once the last player leaves.'),
+      h('p', {}, 'Points cover everyone in this room, across every round and every game. They follow you if you drop out and rejoin, and the board clears once the last player leaves.'),
     ),
     h('button', { class: 'btn btn-primary btn-block', style: 'margin-top:14px', onClick: closeModal }, 'Got it'),
   ));
