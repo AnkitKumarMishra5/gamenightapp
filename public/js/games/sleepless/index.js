@@ -209,17 +209,17 @@ function grid(sl, ctx, { selectable = null, selected = null, onSelect = null, sk
           : ''),
     );
   });
-  if (skipTile) {
-    tiles.push(h('div', {
-      class: `player-tile sl-skip-tile selectable ${selected === 'skip' ? 'vote-selected' : ''}`,
+  const board = h('div', { class: 'players-grid sl-grid' }, tiles);
+  if (!skipTile) return board;
+  // Skip is a decision about the vote, not a person at the table, so it does not get a
+  // chair in the grid: it hangs under the players as its own plainly-worded button.
+  return h('div', {},
+    board,
+    h('button', {
+      class: `sl-skip-btn ${selected === 'skip' ? 'sl-skip-armed' : ''}`,
       onClick: () => onSelect('skip'),
-    },
-      h('div', { class: 'pt-avatar' }, '🤷'),
-      h('div', { class: 'pt-name' }, 'Skip'),
-      h('div', { class: 'pt-sub' }, 'nobody today'),
-    ));
-  }
-  return h('div', { class: 'players-grid sl-grid' }, tiles);
+    }, selected === 'skip' ? '🤷 Skipping — confirm below' : '🤷 Skip today — I\'m ready to waste my vote'),
+  );
 }
 
 // ---------- dealing ----------

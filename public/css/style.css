@@ -2250,6 +2250,14 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 .card.win-screen > .hero-bleed { margin-top: -8px; }
 /* The waiting note keeps its compact footprint wherever it is dropped in. */
 .waiting-wrap .waiting-note { margin: 0; font-size: 14px; }
+/* And when it closes a card, the image becomes the card's own backdrop: run it
+   edge-to-edge into the bottom corners instead of floating as an inset box. */
+.card > .waiting-wrap:last-child {
+  margin: 14px calc(-1 * var(--card-pad)) calc(-1 * var(--card-pad));
+  align-self: stretch; border: 0; border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+}
+.card.win-screen > .waiting-wrap:last-child { margin-bottom: -8px; }
 /* The boat's re-read notice, shown as its own hero above the audit controls. */
 .audit-hero { margin-bottom: 8px; }
 .audit-hero .audit-spinner { margin-right: 8px; }
