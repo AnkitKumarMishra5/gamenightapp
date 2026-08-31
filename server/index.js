@@ -819,6 +819,36 @@ io.on('connection', (socket) => {
   socket.on('bi:nextRound', action(socket, (room, playerId) => blendin.nextRound(room, playerId)));
   socket.on('bi:playAgain', (_payload, cb) => dealAndStart(socket, cb));
 
+  // ----- room-wide reactions -----
+  // Stateless and broadcast-only, like Swap or Stay's table reactions, but usable from
+  // any screen that mounts the bar. Games where an emoji could carry forbidden
+  // information gate it: Silent Order is played in silence, and a Sleepless night must
+  // not reveal who is awake doing something.
+  const ROOM_REACTIONS = ['😂', '😱', '🔥', '💀', '🤔', '🧐', '😭'];
+  socket.on('room:react', (payload, cb) => {
+    try {
+      const { roomCode, playerId } = socket.data;
+      const room = rooms.get(roomCode);
+      if (!room || !playerId || !room.players.has(playerId)) throw new GameError('You are not in a room.');
+      const emoji = String(payload?.emoji || '');
+      if (!ROOM_REACTIONS.includes(emoji)) throw new GameError('Unknown reaction.');
+      if (room.game === 'silentorder' && room.state && !room.state.over) {
+        throw new GameError('Silent Order is played in silence — save it for the scoreboard.');
+      }
+      if (room.game === 'sleepless' && room.state?.phase === 'night') {
+        throw new GameError('The village is asleep. Reactions wake with the sun.');
+      }
+      // One reaction a second per player: enough for banter, too slow for a soundboard.
+      const now = Date.now();
+      if (now < (socket.data.reactCooldownUntil || 0)) throw new GameError('Easy on the button!');
+      socket.data.reactCooldownUntil = now + 1_000;
+      emitFx(room, [{ kind: 'room-react', playerId, emoji, seed: Math.floor(Math.random() * 1e6) }]);
+      cb?.({ ok: true });
+    } catch (err) {
+      cb?.({ ok: false, error: err instanceof GameError ? err.message : 'No reaction right now.' });
+    }
+  });
+
   // ----- The Island -----
   socket.on('is:start', action(socket, (room, playerId, payload) => {
     const result = island.startGame(room, playerId, payload);

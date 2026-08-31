@@ -209,7 +209,7 @@ function updateRound(ss, ctx) {
 // which is the same correspondence playToCentre relies on in cards.js.
 // One tap, one shared laugh: reactions ride fx, never state, and land as a float over
 // the reactor's chair on everyone's table.
-const SS_REACTIONS = ['😂', '😱', '🔥', '💀', '🤔', '🧐'];
+const SS_REACTIONS = ['😂', '😱', '🔥', '💀', '🤔', '🧐', '😭'];
 function reactionBar(ctx) {
   return h('div', { class: 'ss-reactbar' },
     SS_REACTIONS.map((e) => h('button', {

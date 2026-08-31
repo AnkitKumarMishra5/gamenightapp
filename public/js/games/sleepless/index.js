@@ -6,7 +6,7 @@
 // snapshot fields compared against module-level "last seen" markers rather than by fx
 // events. Markers key off dealId + round, so they survive other players' updates and a
 // replay in the same room starts clean.
-import { h, shake, animOnce, waitingFor, openModal, closeModal, sceneHero, scoringDetails } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, openModal, closeModal, sceneHero, scoringDetails, roomReactionBar } from '../../core/ui.js';
 import { cardTable, peekCard } from '../../core/cards.js';
 import { playMeme } from '../../core/memes.js';
 import { confettiRain } from '../../core/fx.js';
@@ -75,9 +75,11 @@ export function renderSleepless(snap, ctx) {
   const parts = [hud(sl, ctx)];
   switch (sl.phase) {
     case 'night': parts.push(nightPhase(sl, ctx)); break;
-    case 'day': parts.push(dawnBanner(sl, ctx), voteBoard(sl, ctx)); break;
-    case 'verdict': parts.push(verdictPhase(sl, ctx)); break;
-    case 'gameOver': parts.push(gameOver(sl, ctx, snap.scoringRules?.sleepless)); break;
+    // Reactions live in the daylight phases only: a float at night would out whoever
+    // is awake doing something, and the server refuses night reactions anyway.
+    case 'day': parts.push(roomReactionBar(ctx), dawnBanner(sl, ctx), voteBoard(sl, ctx)); break;
+    case 'verdict': parts.push(roomReactionBar(ctx), verdictPhase(sl, ctx)); break;
+    case 'gameOver': parts.push(roomReactionBar(ctx), gameOver(sl, ctx, snap.scoringRules?.sleepless)); break;
   }
 
   const night = sl.phase === 'night';

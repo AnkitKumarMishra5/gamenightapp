@@ -2,7 +2,7 @@
 // with { emit, me, isHost, player(id) } from main.js.
 import { h, shake, animOnce, waitingFor, aiThinking, sceneHero, scoringDetails } from '../../core/ui.js';
 
-const REACTIONS = ['😂', '🤔', '😱', '🧐', '🔥', '💀'];
+const REACTIONS = ['😂', '🤔', '😱', '🧐', '🔥', '💀', '😭'];
 // How long the reaction palette stays reachable after the pointer leaves it.
 const REACTION_MENU_LINGER_MS = 2500;
 // Which clue's palette is open, by clue id. Held outside the render because the whole

@@ -145,6 +145,18 @@ export function waitingFor(hostName, what) {
     { cls: 'waiting-wrap' });
 }
 
+// One tap, one shared laugh, on any screen that mounts it: the emoji floats up on
+// every phone in the room with its sound. Stateless — a laugh is not game state.
+const ROOM_REACTIONS = ['😂', '😱', '🔥', '💀', '🤔', '🧐', '😭'];
+export function roomReactionBar(ctx) {
+  return h('div', { class: 'gn-reactbar' },
+    ROOM_REACTIONS.map((e) => h('button', {
+      class: 'gn-react-btn', 'aria-label': `react ${e}`,
+      onClick: () => { ctx.sound.tap(); ctx.emit('room:react', { emoji: e }); },
+    }, e)),
+  );
+}
+
 // The game's scoring rules, folded under the final standings, so "why do I have
 // 7 points?" is answered right where the question happens. Rules arrive from the
 // server snapshot (core/scores.js), so the numbers can never drift from the truth.

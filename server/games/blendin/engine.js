@@ -251,7 +251,7 @@ export function startVote(room, playerId, payload) {
 }
 
 // One reaction per player per clue; tapping the same one again removes it.
-const REACTIONS = ['😂', '🤔', '😱', '🧐', '🔥', '💀'];
+const REACTIONS = ['😂', '🤔', '😱', '🧐', '🔥', '💀', '😭'];
 export function reactToClue(room, playerId, payload) {
   const state = st(room);
   if (!state.roles[playerId]) throw new GameError('Only players in this game can react.');

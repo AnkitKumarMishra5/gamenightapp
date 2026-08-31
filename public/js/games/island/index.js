@@ -1,5 +1,5 @@
 // The Island screen rendering.
-import { h, shake, animOnce, waitingFor, aiThinking, sceneFrame, sceneHero, scoringDetails } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, aiThinking, sceneFrame, sceneHero, scoringDetails, roomReactionBar } from '../../core/ui.js';
 
 export function renderIsland(snap, ctx) {
   const is = snap.island;
@@ -7,6 +7,7 @@ export function renderIsland(snap, ctx) {
   switch (is.phase) {
     case 'setup': parts.push(setupPhase(is, ctx)); break;
     case 'playing': parts.push(
+      roomReactionBar(ctx),
       starterBanner(is),
       gmSecret(is, ctx),
       judgePanel(is, ctx),
@@ -16,7 +17,7 @@ export function renderIsland(snap, ctx) {
       attemptLog(is, ctx),
       auditPanel(is, ctx),
     ); break;
-    case 'reveal': parts.push(revealPhase(is, ctx, snap.scoringRules?.island)); break;
+    case 'reveal': parts.push(roomReactionBar(ctx), revealPhase(is, ctx, snap.scoringRules?.island)); break;
   }
   return h('div', { class: 'stack' }, parts);
 }

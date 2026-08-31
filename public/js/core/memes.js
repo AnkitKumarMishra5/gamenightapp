@@ -540,6 +540,7 @@ export const MEME_CATALOG = [
   { id: 'rxDoubt', emoji: '🧐', name: 'Doubt pack', where: 'The 🧐 reaction (3 clips)', recorded: true },
   { id: 'rxDead', emoji: '💀', name: 'Dead pack', where: 'The 💀 reaction (2 clips)', recorded: true },
   { id: 'rxThink', emoji: '🤔', name: 'Thinking pack', where: 'The 🤔 reaction (2 clips)', recorded: true },
+  { id: 'rxCry', emoji: '😭', name: 'Crying pack', where: 'The 😭 reaction (1 clip)', recorded: true },
   { id: 'rimshot', emoji: '🥁', name: 'Rimshot', where: 'Lands the quip after a tied vote', recorded: true },
   { id: 'bruh', emoji: '🫠', name: 'Bruh', where: 'The judge cannot make sense of what you typed' },
   { id: 'recordScratch', emoji: '💿', name: 'Record scratch', where: 'An unrecognised item; an AI error' },
@@ -611,6 +612,7 @@ export const REACTION_SOUNDS = {
   '🧐': ['rxDoubt'],
   '🔥': ['rxFire'],
   '💀': ['rxDead'],
+  '😭': ['rxCry'],
 };
 
 // The pool is weighted by repetition (the signature sound appears more than once), so

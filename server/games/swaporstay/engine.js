@@ -325,7 +325,7 @@ function endGame(room, state, winnerId) {
 // round, and from a finished game it starts a new one with everyone connected.
 // Table reactions: stateless, broadcast-only. The seed makes every phone play the same
 // clip, and nothing is stored because a laugh is not game state.
-const SS_REACTIONS = ['😂', '😱', '🔥', '💀', '🤔', '🧐'];
+const SS_REACTIONS = ['😂', '😱', '🔥', '💀', '🤔', '🧐', '😭'];
 export function react(room, playerId, payload) {
   const state = st(room);
   if (!state.order.includes(playerId)) throw new GameError('Only players at this table can react.');

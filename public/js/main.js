@@ -1,6 +1,6 @@
 // Game Night — © 2026 Ankit Kumar Mishra. All rights reserved. See LICENSE.
 // Client: socket plumbing, screens (landing, lobby), fx, PWA install.
-import { $, h, toast, openModal, closeModal, snapshotInputs, restoreInputs, shake, animOnce, resetAnims, sceneHero } from './core/ui.js';
+import { $, h, toast, openModal, closeModal, snapshotInputs, restoreInputs, shake, animOnce, resetAnims, sceneHero, scoringDetails } from './core/ui.js';
 import { confettiBurst, confettiRain, sound, isMuted, setMuted, refreshMuted } from './core/fx.js';
 import {
   armAmbience, startAmbience, stopAmbience, musicPlaying, playWelcome,
@@ -248,6 +248,18 @@ socket.on('fx', (fx) => {
     // for everyone. Naming who moved would be a tell.
     case 'sl-tuck': sound.tick(); break;
     case 'sl-vote': sound.tick(); break;
+    case 'room-react': {
+      // A live-stream style float: the emoji and its sender rise from the foot of the
+      // screen on every phone in the room, wherever each of them happens to be looking.
+      playReaction(fx.emoji, fx.seed);
+      const who = store.snap?.players.find((p) => p.id === fx.playerId);
+      const float = h('div', { class: 'gn-react-float', style: `left:${(8 + Math.random() * 60).toFixed(0)}%` },
+        h('span', { class: 'grf-emoji' }, fx.emoji),
+        who && h('span', { class: 'grf-name' }, `${who.avatar} ${who.name}`));
+      document.body.append(float);
+      setTimeout(() => float.remove(), 2800);
+      break;
+    }
     case 'ss-react': {
       // Same shared-clip rule as Blend In's reactions, landing over the chair at the
       // card table instead of a player tile.
@@ -687,7 +699,7 @@ function showSoundPanel() {
       // --- the parent switch: everything below answers to this ---
       h('div', { class: 'sound-row master' },
         h('div', {},
-          h('div', { class: 'sr-title' }, on ? '🔊 All sound' : '🔇 All sound'),
+          h('div', { class: 'sr-title' }, 'All sound'),
           h('div', { class: 'sr-sub' }, 'The parent switch — nothing below plays while this is off'),
         ),
         h('button', {
@@ -1263,18 +1275,21 @@ function renderLobby() {
   if (snap.game === 'blendin') parts.push(blendInLobbyPanel(snap, c));
   if (snap.game === 'island') parts.push(islandLobbyPanel(snap, c));
   if (snap.game === 'silentorder') parts.push(cardGameLobbyPanel(snap, c, {
+    rulesKey: 'silentorder',
     emoji: '🕯️', title: 'Silent Order setup', startEvent: 'so:start',
     min: snap.limits.soMin ?? 2, max: snap.limits.soMax ?? 8,
     blurb: 'One team, one life to start, no talking. Play your cards in rising order using nothing but nerve.',
     startLabel: (n) => `🃏 Deal level 1 for ${n} players`,
   }));
   if (snap.game === 'swaporstay') parts.push(cardGameLobbyPanel(snap, c, {
+    rulesKey: 'swaporstay',
     emoji: '🔁', title: 'Swap or Stay setup', startEvent: 'ss:start',
     min: snap.limits.ssMin ?? 3, max: snap.limits.ssMax ?? 10,
     blurb: 'One card each, lowest loses a life. Keep what you have, or force a swap and hope.',
     startLabel: (n) => `🃏 Deal the first round for ${n} players`,
   }));
   if (snap.game === 'sleepless') parts.push(cardGameLobbyPanel(snap, c, {
+    rulesKey: 'sleepless',
     emoji: '🌙', title: 'Sleepless setup', startEvent: 'sl:start',
     min: snap.limits.slMin ?? 4, max: snap.limits.slMax ?? 16,
     blurb: 'Someone at this table is the Prowler. Survive the nights, find them by day.',
@@ -1295,7 +1310,7 @@ function renderLobby() {
 
 // The three card games share one lobby shape: a blurb, a player-count gate and a start
 // button. Anything richer (difficulty, role toggles) belongs to the game's own screens.
-function cardGameLobbyPanel(snap, c, { emoji, title, startEvent, min, max, blurb, startLabel }) {
+function cardGameLobbyPanel(snap, c, { emoji, title, startEvent, min, max, blurb, startLabel, rulesKey }) {
   const n = snap.players.filter((p) => p.connected).length;
   const canStart = n >= min && n <= max;
   const gateText = n < min
@@ -1317,6 +1332,8 @@ function cardGameLobbyPanel(snap, c, { emoji, title, startEvent, min, max, blurb
         }, canStart ? startLabel(n) : `Need ${min}+ players (${n} here)`)
       : h('p', { class: 'hint' }, gateText),
     c.isHost && h('p', { class: 'hint', style: 'margin-top:8px' }, gateText),
+    // The same fold-out the end screen shows, here for anyone sizing the game up first.
+    scoringDetails(snap.scoringRules?.[rulesKey]),
   );
 }
 
@@ -1375,6 +1392,7 @@ function blendInLobbyPanel(snap, c) {
       : h('p', { class: 'waiting-note' }, canStart
           ? `⏳ Everyone's in. Waiting for ${c.player(snap.hostId)?.name || 'the owner'} to start…`
           : `Blend In needs at least ${snap.limits.biMin} players, invite more friends!`),
+    scoringDetails(snap.scoringRules?.blendin),
   );
 }
 
@@ -1439,6 +1457,7 @@ function islandLobbyPanel(snap, c) {
           : `Island Rules needs ${needed}+ players, invite more friends!`),
     mode === 'host' && c.isHost && !canStart && h('p', { class: 'hint', style: 'margin-top:8px; text-align:center' },
       `You'll be the gamemaster this round, so you need ${snap.limits.islandMin} other players.`),
+    scoringDetails(snap.scoringRules?.island),
   );
 }
 

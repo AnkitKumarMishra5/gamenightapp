@@ -28,6 +28,7 @@ as stock audio, so do not lift this folder into a sound library.
 | 🧐 doubt | `rxDoubt` ×3 — "that's a lie", bruh 2, an unprintable one |
 | 💀 dead | `rxDead` ×2 — vine boom (by Fzst, Pixabay 162668), musical stab F# (by BRVHRTZ, Pixabay 224599) |
 | 🤔 thinking | `rxThink` ×2 — two "hmm"s |
+| 😭 crying | `rxCry` ×1 — baby crying (by DRAGON-STUDIO, Pixabay 463213; cut to 2.3s) |
 
 **Everywhere else** — `laughTrack` ×6, `wow` ×3, `evilLaugh` ×2, `fail` ×2, `dun` ×2,
 `ding` ×2, `aww` ×2, `bellToll` ×2, `clang` ×2, `rooster` ×2, `bonk` ×2, `buzzer` ×2,

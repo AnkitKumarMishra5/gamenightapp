@@ -1248,6 +1248,38 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 
 /* ---------- how points work ---------- */
 .score-rules { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 4px; }
+/* ---------- room reactions ----------
+   The shared emoji bar (same look as Swap or Stay's table bar) and the live-stream
+   float every phone plays when anyone taps one. */
+.gn-reactbar { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.gn-react-btn {
+  font-size: 22px; line-height: 1; padding: 8px 12px; border-radius: 999px;
+  border: 1px solid var(--stroke); background: var(--glass); cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.15s ease;
+}
+.gn-react-btn:hover { transform: translateY(-2px) scale(1.12); border-color: rgba(139, 92, 246, 0.55); }
+.gn-react-btn:active { transform: scale(0.94); }
+.gn-react-float {
+  position: fixed; bottom: 8vh; z-index: 90; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  animation: gn-react-rise 2.7s cubic-bezier(0.2, 0.6, 0.4, 1) both;
+}
+.gn-react-float .grf-emoji { font-size: 44px; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5)); }
+.gn-react-float .grf-name {
+  font-size: 12px; font-weight: 700; color: var(--ink);
+  background: rgba(11, 14, 26, 0.75); border: 1px solid var(--stroke);
+  border-radius: 999px; padding: 3px 10px; white-space: nowrap;
+}
+@keyframes gn-react-rise {
+  0% { opacity: 0; transform: translateY(30px) scale(0.6); }
+  12% { opacity: 1; transform: translateY(0) scale(1.08); }
+  25% { transform: translateY(-4vh) scale(1); }
+  100% { opacity: 0; transform: translateY(-34vh) scale(0.92); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gn-react-float { animation: none; opacity: 0.9; }
+}
+
 /* ---------- premium dropdown (soundtrack picker) ----------
    The native options list is OS chrome and cannot be styled, so the drawer is ours:
    a glass panel under the field, each track with its character line, the chevron
@@ -1266,6 +1298,9 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
   transition: transform 0.25s cubic-bezier(0.3, 1.2, 0.4, 1);
 }
 .gn-dd-open .gn-dd-chev { transform: rotate(180deg); color: var(--ink); }
+/* The class sets display:flex, which would silently defeat the hidden attribute's
+   UA display:none — state the closed state explicitly or the drawer is born open. */
+.gn-dd-list[hidden] { display: none; }
 .gn-dd-list {
   position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 6px);
   display: flex; flex-direction: column; gap: 2px; padding: 6px;
