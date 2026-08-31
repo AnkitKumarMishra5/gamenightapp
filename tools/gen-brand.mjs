@@ -2,7 +2,7 @@
 // across the favicon, the installed-app icons and the link-preview card.
 //
 //   source: public/icons/logo.svg           -> favicons + icon-180/192/512 + maskable
-//   source: source-assets/ankitkumarmishra.png -> icons/author-48/96/192.png (author avatar)
+//   source: source-assets/ankitkumarmishra.{jpg,png,...} -> icons/author-48/96/192.png (author avatar)
 //   source: tools/og-preview.html           -> icons/og-image.jpg (1200x630, <300KB)
 //
 // Run: npm run brand   (needs the local server running and Google Chrome installed;
@@ -116,9 +116,12 @@ async function main() {
   }
 
   // Skipped silently if the source photo isn't there, so the script still works for
-  // anyone who clones the repo without it.
-  const authorSrc = path.join(ROOT, 'source-assets', 'ankitkumarmishra.png');
-  if (fs.existsSync(authorSrc)) {
+  // anyone who clones the repo without it. Any common image format will do — the photo
+  // gets re-rendered into the PNG icons regardless.
+  const authorSrc = ['.jpg', '.jpeg', '.png', '.webp']
+    .map((ext) => path.join(ROOT, 'source-assets', `ankitkumarmishra${ext}`))
+    .find((p) => fs.existsSync(p));
+  if (authorSrc) {
     console.log('Author avatar:');
     for (const [name, size] of [['author-48.png', 48], ['author-96.png', 96], ['author-192.png', 192]]) {
       await shoot(chrome, {
@@ -129,7 +132,7 @@ async function main() {
       });
     }
   } else {
-    console.log('Author avatar: skipped (source-assets/ankitkumarmishra.png not found)');
+    console.log('Author avatar: skipped (no source-assets/ankitkumarmishra image found)');
   }
 
   console.log('Link preview:');
