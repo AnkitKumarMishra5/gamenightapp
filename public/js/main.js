@@ -730,22 +730,51 @@ function showSoundPanel() {
           ),
           h('div', { class: 'label', style: 'margin:12px 0 8px' }, 'Soundtrack'),
           (() => {
-            // A dropdown, not a wall of cards: pick a track, and its one-line character
-            // note updates underneath. Picking one also revives sound if it was off,
-            // because choosing music IS asking to hear it.
+            // A custom dropdown, because the native options list is unstyleable OS
+            // chrome and looks like a spreadsheet crashed the party. Pick a track and
+            // its character note updates underneath; picking one also revives sound if
+            // it was off, because choosing music IS asking to hear it.
             const active = THEMES.find((t) => t.id === currentThemeId()) || THEMES[0];
-            const sel = h('select', { class: 'input', 'aria-label': 'Soundtrack' },
-              THEMES.map((t) => h('option', { value: t.id, selected: t.id === currentThemeId() ? '' : null }, t.name)));
-            sel.addEventListener('change', () => {
-              if (!soundEnabled()) { setSoundEnabled(true); setMuted(false); refreshMuted(); }
-              if (!musicIsOn()) setMusicOn(true);
-              if (musicVolume() <= 0.01) setMusicVolume(0.7);
-              armAmbience();
-              setTheme(sel.value);
-              draw();
-              renderAppBar();
+            const chev = h('span', { class: 'gn-dd-chev', 'aria-hidden': 'true' }, '▾');
+            const ddBtn = h('button', { class: 'gn-dd-btn', 'aria-haspopup': 'listbox', 'aria-expanded': 'false' },
+              h('span', {}, active.name), chev);
+            const onDoc = (e) => { if (!dd.contains(e.target)) closeList(); };
+            const closeList = () => {
+              ddList.hidden = true;
+              dd.classList.remove('gn-dd-open');
+              ddBtn.setAttribute('aria-expanded', 'false');
+              document.removeEventListener('click', onDoc, true);
+            };
+            const ddList = h('div', { class: 'gn-dd-list', role: 'listbox', hidden: true },
+              THEMES.map((t) => h('button', {
+                class: `gn-dd-opt ${t.id === currentThemeId() ? 'on' : ''}`,
+                role: 'option', 'aria-selected': String(t.id === currentThemeId()),
+                onClick: () => {
+                  closeList();
+                  if (!soundEnabled()) { setSoundEnabled(true); setMuted(false); refreshMuted(); }
+                  if (!musicIsOn()) setMusicOn(true);
+                  if (musicVolume() <= 0.01) setMusicVolume(0.7);
+                  armAmbience();
+                  setTheme(t.id);
+                  draw();
+                  renderAppBar();
+                },
+              },
+                h('span', { class: 'gn-dd-check' }, t.id === currentThemeId() ? '▶' : ''),
+                h('div', {},
+                  h('div', { class: 'gn-dd-name' }, t.name),
+                  h('div', { class: 'gn-dd-blurb' }, t.blurb),
+                ),
+              )));
+            const dd = h('div', { class: 'gn-dd' }, ddBtn, ddList);
+            ddBtn.addEventListener('click', () => {
+              if (!ddList.hidden) return closeList();
+              ddList.hidden = false;
+              dd.classList.add('gn-dd-open');
+              ddBtn.setAttribute('aria-expanded', 'true');
+              setTimeout(() => document.addEventListener('click', onDoc, true), 0);
             });
-            return [sel, h('p', { class: 'hint', style: 'margin-top:8px' }, `▶ ${active.blurb}`)];
+            return [dd, h('p', { class: 'hint', style: 'margin-top:8px' }, `▶ ${active.blurb}`)];
           })(),
           h('p', { class: 'hint', style: 'margin-top:10px' },
             'Every track is synthesized live in your browser — nothing is streamed. Music steps aside once a round starts.'),
@@ -768,7 +797,7 @@ function showSoundPanel() {
 
   openModal(h('div', {},
     h('button', { class: 'icon-btn modal-close', onClick: closeModal, 'aria-label': 'Close' }, '✕'),
-    h('div', { class: 'modal-title' }, '🔊 Sound'),
+    h('div', { class: 'modal-title' }, '🎧 Sound'),
     body,
     h('button', { class: 'btn btn-primary btn-block', style: 'margin-top:16px', onClick: closeModal }, 'Done'),
   ));

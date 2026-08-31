@@ -948,7 +948,11 @@ body:has(.bg-canvas) .blob { opacity: 0.22; }
 .sound-row .sr-title { font-weight: 700; font-size: 14.5px; }
 .sound-row .sr-sub { font-size: 12.5px; color: var(--ink-faint); margin-top: 3px; line-height: 1.4; }
 .sound-row.dimmed, .vol-row.dimmed, .theme-row.dimmed,
-.sound-group.dimmed, .sound-group-body.dimmed { opacity: 0.45; }
+.sound-group.dimmed { opacity: 0.45; }
+/* Dim the body's children rather than the body, so an OPEN soundtrack drawer can pop
+   back to full strength instead of ghosting at 45% with text bleeding through it. */
+.sound-group-body.dimmed > * { opacity: 0.45; }
+.sound-group-body.dimmed > .gn-dd.gn-dd-open { opacity: 1; }
 .theme-row.dimmed { pointer-events: auto; }  /* tapping a theme re-enables the music */
 
 .vol-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
@@ -1244,6 +1248,47 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 
 /* ---------- how points work ---------- */
 .score-rules { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 4px; }
+/* ---------- premium dropdown (soundtrack picker) ----------
+   The native options list is OS chrome and cannot be styled, so the drawer is ours:
+   a glass panel under the field, each track with its character line, the chevron
+   turning as it opens. */
+.gn-dd { position: relative; }
+.gn-dd-btn {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 13px 16px; border-radius: var(--r-md);
+  background: rgba(0, 0, 0, 0.32); border: 1.5px solid var(--stroke-2);
+  color: var(--ink); font: inherit; font-weight: 700; font-size: 15px; cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.gn-dd-btn:hover, .gn-dd-open .gn-dd-btn { border-color: rgba(139, 92, 246, 0.6); background: rgba(0, 0, 0, 0.42); }
+.gn-dd-chev {
+  flex: none; margin-right: 2px; color: var(--ink-dim); font-size: 13px;
+  transition: transform 0.25s cubic-bezier(0.3, 1.2, 0.4, 1);
+}
+.gn-dd-open .gn-dd-chev { transform: rotate(180deg); color: var(--ink); }
+.gn-dd-list {
+  position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 6px);
+  display: flex; flex-direction: column; gap: 2px; padding: 6px;
+  background: linear-gradient(180deg, rgba(30, 35, 66, 0.98), rgba(19, 23, 46, 0.98));
+  border: 1px solid rgba(139, 92, 246, 0.4); border-radius: var(--r-md);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.6); backdrop-filter: blur(14px);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .gn-dd-list { animation: dd-pop 0.22s cubic-bezier(0.2, 1.1, 0.35, 1) both; }
+}
+@keyframes dd-pop { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: none; } }
+.gn-dd-opt {
+  display: flex; align-items: flex-start; gap: 10px; text-align: left;
+  padding: 10px 12px; border-radius: 12px; border: 0; background: transparent;
+  color: var(--ink); font: inherit; cursor: pointer;
+  transition: background 0.12s ease;
+}
+.gn-dd-opt:hover { background: rgba(139, 92, 246, 0.16); }
+.gn-dd-opt.on { background: rgba(139, 92, 246, 0.2); }
+.gn-dd-check { width: 16px; flex: none; margin-top: 2px; color: var(--violet); font-size: 11px; }
+.gn-dd-name { font-weight: 700; font-size: 14.5px; }
+.gn-dd-blurb { font-size: 12px; color: var(--ink-dim); margin-top: 2px; line-height: 1.35; }
+
 /* The end-screen fold-out: how the numbers above came to be, where the question is asked. */
 .score-how {
   margin-top: 14px; text-align: left;
