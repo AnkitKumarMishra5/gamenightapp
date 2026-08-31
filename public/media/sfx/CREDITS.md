@@ -7,7 +7,11 @@ A trailing `-N` marks a variant of the same sound. The app groups them by name a
 one of them, so a sound rarely lands the same way twice. For reactions the choice is
 seeded by the server, so every phone at the table hears the same clip at the same moment.
 
-## Pixabay (`.mp3`)
+File extensions no longer track the source: clips with silent lead-ins or tails have been
+trimmed (-40 dB relative threshold, short fades at the cuts) and re-encoded as AAC .m4a,
+whatever format they arrived in. Provenance is as listed below, per sound.
+
+## Pixabay
 
 From [Pixabay](https://pixabay.com/sound-effects/) under the
 [Pixabay Content License](https://pixabay.com/service/license-summary/): free for
@@ -19,10 +23,10 @@ as stock audio, so do not lift this folder into a sound library.
 | Reaction | Files |
 | --- | --- |
 | 😂 laugh | `rxLaugh` ×9 — evil, high-pitch, male, mischievous, funny, hyena, "dat evil laugh", child, goofy (a 30-second laughing fit was retired) |
-| 😱 shock | `rxShock` ×6 — wow, "what", "ehhh", what-meme, "what are you doing", "oh my god" |
+| 😱 shock | `rxShock` ×5 — wow, "what", "ehhh", "what are you doing", "oh my god" (the murmuring what-meme clip was retired) |
 | 🔥 fire | `rxFire` ×4 — "perfect", "nailed it", child saying "awesome", a thug-life music sting (trimmed to 3s, moved over from 💀) |
 | 🧐 doubt | `rxDoubt` ×3 — "that's a lie", bruh 2, an unprintable one |
-| 💀 dead | `rxDead` ×2 — two cinematic braams (silent tails trimmed) |
+| 💀 dead | `rxDead` ×2 — vine boom (by Fzst, Pixabay 162668), musical stab F# (by BRVHRTZ, Pixabay 224599) |
 | 🤔 thinking | `rxThink` ×2 — two "hmm"s |
 
 **Everywhere else** — `laughTrack` ×6, `wow` ×3, `evilLaugh` ×2, `fail` ×2, `dun` ×2,
@@ -34,7 +38,7 @@ as stock audio, so do not lift this folder into a sound library.
 audience, add or remove files in that folder: ids come from filenames, `-N` suffixes are
 variants, and `INDIAN_SFX` in `public/js/core/memes.js` is the only code that names it.
 
-## Red Library (`.m4a`)
+## Red Library
 
 CC0 / public domain recordings from the Red Library sound-effect collection on the
 Internet Archive, under

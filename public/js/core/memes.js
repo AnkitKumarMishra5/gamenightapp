@@ -535,7 +535,7 @@ export const MEME_CATALOG = [
   // The emoji reactions. One pack each; the server seeds the pick so the whole room
   // hears the same clip at the same moment.
   { id: 'rxLaugh', emoji: '😂', name: 'Laugh pack', where: 'The 😂 reaction (9 clips)', recorded: true },
-  { id: 'rxShock', emoji: '😱', name: 'Shock pack', where: 'The 😱 reaction (6 clips)', recorded: true },
+  { id: 'rxShock', emoji: '😱', name: 'Shock pack', where: 'The 😱 reaction (5 clips)', recorded: true },
   { id: 'rxFire', emoji: '🔥', name: 'Fire pack', where: 'The 🔥 reaction (4 clips)', recorded: true },
   { id: 'rxDoubt', emoji: '🧐', name: 'Doubt pack', where: 'The 🧐 reaction (3 clips)', recorded: true },
   { id: 'rxDead', emoji: '💀', name: 'Dead pack', where: 'The 💀 reaction (2 clips)', recorded: true },
