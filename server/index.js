@@ -480,7 +480,7 @@ async function judgeIslandAttempt(room, attempt) {
           io.to(player.socketId).emit('fx', {
             kind: 'item-invalid',
             playerId: rejected.playerId,
-            message: `“${rejected.text}” isn't something you can bring, try a real word.`,
+            message: `“${rejected.text}” isn't one thing the boat can take — name a real item, or use “Guess the pattern”.`,
           });
         }
       }

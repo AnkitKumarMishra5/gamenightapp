@@ -411,21 +411,7 @@ function actionBar(is, ctx) {
         h('button', { class: 'btn btn-ghost btn-sm btn-block', style: 'margin-top:8px', onClick: () => ctx.emit('is:pass') }, '⏭️ Pass'),
       );
     } else {
-      const input = h('input', { class: 'input', type: 'text', maxlength: 40, placeholder: 'Can I bring a…', 'data-preserve': 'is-item', autocomplete: 'off', enterkeyhint: 'send' });
-      const submit = async () => {
-        const res = await ctx.emit('is:item', { text: input.value });
-        if (!res.ok) shake(input); else input.value = '';
-      };
-      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
-      parts.push(
-        h('div', { class: 'turn-banner your-turn', style: 'margin:0 0 12px' }, '🎤 Your turn! One move: ask for an item OR guess the pattern.'),
-        h('div', { class: 'inline-form' }, input, h('button', { class: 'btn btn-island', onClick: submit }, 'Ask')),
-        h('p', { class: 'hint', style: 'text-align:center; margin:6px 0 2px' }, '— or —'),
-        h('button', {
-          class: 'btn btn-ghost btn-sm btn-block', style: 'margin-top:8px',
-          onClick: () => patternGuessModal(ctx, is),
-        }, `💡 I think I know the pattern! (${is.yourGuessesLeft} of ${is.maxGuesses} left)`),
-      );
+      parts.push(...turnMovePicker(is, ctx));
     }
   } else {
     const p = is.currentTurn ? ctx.player(is.currentTurn) : null;
@@ -535,29 +521,64 @@ async function gmHintModal(ctx) {
   ));
 }
 
-async function patternGuessModal(ctx, is) {
-  const { openModal, closeModal } = await import('../../core/ui.js');
-  const left = is?.yourGuessesLeft ?? 3;
-  const input = h('textarea', { class: 'textarea', maxlength: 200, placeholder: 'Describe the rule in your own words, e.g. "things that can break"' });
-  openModal(h('div', {},
-    h('div', { class: 'modal-title' }, '💡 Guess the pattern'),
-    h('p', { class: `hint ${left === 1 ? 'danger-hint' : ''}`, style: 'margin-bottom:12px' },
+// ---------- the one move ----------
+// A turn is exactly one of two different moves, and mixing them up is the classic
+// mistake: a rule typed into the item box ("something you can hold") reads as a
+// bizarre item. So the moves are explicit tabs — say what you are doing first, and
+// each pane explains in its own words what belongs in it.
+let moveTab = 'item';
+let moveTabKey = null;
+
+function turnMovePicker(is, ctx) {
+  // A fresh turn (or a resolved attempt) snaps back to the safe default.
+  const key = `${is.roundNum}:${is.attempts.length}`;
+  if (moveTabKey !== key) { moveTabKey = key; moveTab = 'item'; }
+
+  const seg = (mode, label) => h('button', {
+    class: `is-seg ${moveTab === mode ? 'is-seg-on' : ''}`,
+    'aria-pressed': String(moveTab === mode),
+    onClick: () => { if (moveTab !== mode) { moveTab = mode; ctx.sound.tap(); ctx.rerender(); } },
+  }, label);
+
+  const head = h('div', { class: 'turn-banner your-turn', style: 'margin:0 0 10px' },
+    '🎤 Your turn! One move — pick which:');
+  const tabs = h('div', { class: 'is-segrow' },
+    seg('item', '🎒 Ask for an item'),
+    seg('pattern', `💡 Guess the pattern (${is.yourGuessesLeft} left)`),
+  );
+
+  if (moveTab === 'item') {
+    const input = h('input', { class: 'input', type: 'text', maxlength: 40, placeholder: 'Can I bring a…', 'data-preserve': 'is-item', autocomplete: 'off', enterkeyhint: 'send' });
+    const submit = async () => {
+      const res = await ctx.emit('is:item', { text: input.value });
+      if (!res.ok) shake(input); else input.value = '';
+    };
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+    return [head, tabs,
+      h('div', { class: 'inline-form' }, input, h('button', { class: 'btn btn-island', onClick: submit }, 'Ask')),
+      h('p', { class: 'hint', style: 'text-align:center; margin:8px 0 2px' },
+        'Name ONE concrete thing, like “kettle” — the boat answers yes or no. Describing a rule? That belongs in Guess the pattern.'),
+    ];
+  }
+
+  const left = is.yourGuessesLeft;
+  const guess = h('textarea', { class: 'textarea', maxlength: 200, placeholder: 'Describe the rule in your own words, e.g. "things that can break"', 'data-preserve': 'is-patt' });
+  return [head, tabs,
+    guess,
+    h('p', { class: `hint ${left === 1 ? 'danger-hint' : ''}`, style: 'text-align:center; margin:8px 0' },
       left === 1
         ? '⚠️ This is your LAST guess. Get it wrong and you are out for the round.'
-        : `Your guess stays hidden from other players. You have ${left} of ${is?.maxGuesses ?? 3} guesses left. Use all three and you are out for the round.`),
-    input,
-    h('div', { style: 'display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px' },
-      h('button', { class: 'btn btn-ghost', onClick: closeModal }, 'Not yet'),
-      h('button', {
-        class: 'btn btn-island',
-        onClick: async (e) => {
-          const res = await ctx.emit('is:pattern', { text: input.value });
-          if (!res.ok) shake(input); else closeModal();
-        },
-      }, 'Lock it in!'),
-    ),
-  ));
-  input.focus();
+        : `Your guess stays hidden from other players. ${left} of ${is.maxGuesses} guesses left — use all three and you are out for the round.`),
+    h('button', {
+      class: 'btn btn-island btn-block',
+      onClick: async (e) => {
+        const btn = e.currentTarget;
+        btn.disabled = true;
+        const res = await ctx.emit('is:pattern', { text: guess.value });
+        if (!res.ok) { btn.disabled = false; shake(guess); }
+      },
+    }, '💡 Lock it in!'),
+  ];
 }
 
 // ---------- reveal ----------

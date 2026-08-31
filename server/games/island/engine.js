@@ -261,12 +261,26 @@ export function applyHint(room, playerId, items) {
   };
 }
 
+// "something you can hold" is a rule, not a thing. A category typed into the item box
+// is almost always a pattern guess gone astray — and a judge blessing it corrupts the
+// packing list everyone reasons from. Shapes kept conservative so real items
+// ("rubber duck", "fire alarm", "bowling ball") sail through.
+const CATEGORY_SHAPE = new RegExp([
+  String.raw`^(?:some|any|every|no)thing\b`,
+  String.raw`^(?:things|items|objects|stuff|words|whatever)\b`,
+  String.raw`\b(?:you can|that (?:can|are|is|have|has)|which (?:can|are|is|have|has))\b`,
+  String.raw`\b(?:kinds? of|types? of|sorts? of)\b`,
+].join('|'), 'i');
+
 export function attemptItem(room, playerId, payload) {
   const state = st(room);
   requireNotAuditing(state);
   requireTurn(room, state, playerId);
   const text = cleanText(payload?.text, 40);
   if (!text) throw new GameError('Name the thing you want to bring!');
+  if (CATEGORY_SHAPE.test(text)) {
+    throw new GameError('Name ONE thing, like “kettle”. That reads like a rule — if you think you know the pattern, use “Guess the pattern” instead.');
+  }
   const norm = normalize(text);
   if (state.pattern.starters.some((s) => normalize(s) === norm)
     || state.attempts.some((a) => a.type === 'item' && normalize(a.text) === norm)) {

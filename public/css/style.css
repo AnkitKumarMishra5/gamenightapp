@@ -1275,6 +1275,20 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
   background: var(--glass); border: 1px dashed var(--stroke-2);
 }
 
+/* The turn's two moves as explicit tabs, so a rule never lands in the item box:
+   dashed until picked, solid island-green once it is what you are doing. */
+.is-segrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.is-seg {
+  padding: 10px 8px; border-radius: var(--r-md); font-weight: 700; font-size: 13.5px;
+  border: 1.5px dashed var(--stroke-2); background: transparent; color: var(--ink-dim);
+  cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.is-seg:hover { color: var(--ink); }
+.is-seg.is-seg-on {
+  border-style: solid; border-color: rgba(52, 211, 153, 0.55);
+  color: #86efac; background: rgba(52, 211, 153, 0.08);
+}
+
 /* ---------- island hints ---------- */
 .hint-countdown { margin-top: 10px; text-align: center; font-size: 12.5px; }
 .hint-btn { border-color: rgba(251, 191, 36, 0.35); color: var(--amber); }

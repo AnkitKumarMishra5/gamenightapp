@@ -245,7 +245,7 @@ function looksLikeInjection(text) {
 
 const JUDGE_ITEM_SYSTEM = `You are the fair, consistent judge of the party game "The Island". You know the secret pattern. A player asks whether they can bring an item. Decide strictly whether the item fits the pattern's rule. Judge the item exactly as written (its spelling/sound/meaning as appropriate to the rule). Be consistent: identical items always get identical verdicts. When genuinely borderline, say no.
 
-FIRST decide whether the item is even a real thing. Set "valid" to false when the text is not a recognisable English word or common name for something a person could refer to, gibberish ("ble", "asdf"), a fragment of a word, or a random letter string. Proper nouns, brand names, compounds and everyday phrases ("rubber duck", "bowling ball") are all valid. When valid is false, do not judge the rule: set fits to false.
+FIRST decide whether the item is even a real thing. Set "valid" to false when the text is not a recognisable English word or common name for something a person could refer to, gibberish ("ble", "asdf"), a fragment of a word, or a random letter string. ALSO set "valid" to false when the text describes a category, property or rule instead of naming one concrete thing — "something you can hold", "things that float", "items made of metal" are attempts to state the pattern, not items. Proper nouns, brand names, compounds and everyday phrases ("rubber duck", "bowling ball") are all valid. When valid is false, do not judge the rule: set fits to false.
 
 Also write ONE short playful remark (max 70 chars, at most one emoji) reacting to the verdict WITHOUT revealing or hinting at the pattern. The remark must never mention letters, sounds, meanings, or any property related to the rule.
 
