@@ -142,7 +142,7 @@ export function sceneHero(name, content, { align = 'bottom', size = '', cls = ''
 export function waitingFor(hostName, what) {
   return sceneHero('waiting',
     h('p', { class: 'waiting-note' }, `⏳ ${hostName || 'The room owner'} ${what}`),
-    { size: 'sm', cls: 'waiting-wrap' });
+    { cls: 'waiting-wrap' });
 }
 
 // The game's scoring rules, folded under the final standings, so "why do I have
