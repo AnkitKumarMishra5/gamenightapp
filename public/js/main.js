@@ -537,10 +537,30 @@ function renderAppBar() {
 
 // A single invite format everywhere: brand name, the code, and a link that unfurls
 // with the preview card on WhatsApp/iMessage/Slack.
+// Fifteen ways to say "get in here", drawn fresh each share, so inviting the same crew
+// twice never reads like a copy-pasted flyer.
+const INVITE_MESSAGES = [
+  (c) => `🎭 Game night is ON. Room ${c} — your seat already has your name on it.`,
+  (c) => `🃏 I dealt you in. Room ${c}. Don't leave me alone with these people.`,
+  (c) => `🕯️ Candles lit, cards shuffled. Room ${c}. Get in here.`,
+  (c) => `🚪 One code between you and total chaos: ${c}`,
+  (c) => `😏 I need someone I can actually beat. Room ${c}.`,
+  (c) => `🔥 Drop what you're doing. Game night, room ${c}, right now.`,
+  (c) => `🦄 We're one player short and everyone voted for you. Room ${c}.`,
+  (c) => `🏝️ There's a secret pattern and nobody can crack it. Room ${c}. Save us.`,
+  (c) => `👻 It's game night and you're the missing piece. Room ${c}.`,
+  (c) => `🎟️ Admit one: YOU. Room ${c}, tonight only.`,
+  (c) => `🤫 No downloads, no excuses, just room ${c}.`,
+  (c) => `⚡ Phone out. Code in: ${c}. That's it, you're playing.`,
+  (c) => `🏆 Winner gets bragging rights forever. Room ${c}.`,
+  (c) => `🫵 Out of everyone I know, I picked you. Room ${c}.`,
+  (c) => `💀 The table demands one more player, and it said your name. Room ${c}.`,
+];
+
 async function shareInvite(code) {
   const url = `${location.origin}/?join=${code}`;
   const title = `${BRAND.short}. Room ${code}`;
-  const text = `🎭 It's game night! Join my room on ${BRAND.short}.\nRoom code: ${code}`;
+  const text = INVITE_MESSAGES[(Math.random() * INVITE_MESSAGES.length) | 0](code);
   if (navigator.share) {
     try {
       await navigator.share({ title, text, url });
@@ -709,27 +729,24 @@ function showSoundPanel() {
             volValue,
           ),
           h('div', { class: 'label', style: 'margin:12px 0 8px' }, 'Soundtrack'),
-          h('div', { class: 'theme-list' },
-            THEMES.map((t) => h('button', {
-              class: `theme-row ${t.id === currentThemeId() ? 'active' : ''}`,
-              onClick: () => {
-                if (!soundEnabled()) { setSoundEnabled(true); setMuted(false); refreshMuted(); }
-                if (!musicIsOn()) setMusicOn(true);
-                if (musicVolume() <= 0.01) setMusicVolume(0.7);
-                armAmbience();
-                setTheme(t.id);
-                draw();
-                renderAppBar();
-              },
-            },
-              h('span', { class: 'tr-dot' }),
-              h('div', {},
-                h('div', { class: 'tr-name' }, t.name),
-                h('div', { class: 'tr-blurb' }, t.blurb),
-              ),
-              h('span', { class: 'tr-check' }, t.id === currentThemeId() ? '▶' : ''),
-            )),
-          ),
+          (() => {
+            // A dropdown, not a wall of cards: pick a track, and its one-line character
+            // note updates underneath. Picking one also revives sound if it was off,
+            // because choosing music IS asking to hear it.
+            const active = THEMES.find((t) => t.id === currentThemeId()) || THEMES[0];
+            const sel = h('select', { class: 'input', 'aria-label': 'Soundtrack' },
+              THEMES.map((t) => h('option', { value: t.id, selected: t.id === currentThemeId() ? '' : null }, t.name)));
+            sel.addEventListener('change', () => {
+              if (!soundEnabled()) { setSoundEnabled(true); setMuted(false); refreshMuted(); }
+              if (!musicIsOn()) setMusicOn(true);
+              if (musicVolume() <= 0.01) setMusicVolume(0.7);
+              armAmbience();
+              setTheme(sel.value);
+              draw();
+              renderAppBar();
+            });
+            return [sel, h('p', { class: 'hint', style: 'margin-top:8px' }, `▶ ${active.blurb}`)];
+          })(),
           h('p', { class: 'hint', style: 'margin-top:10px' },
             'Every track is synthesized live in your browser — nothing is streamed. Music steps aside once a round starts.'),
         ),
@@ -1169,12 +1186,18 @@ function renderLobby() {
 
   const parts = [
     sceneHero('invite', [
-      h('div', { class: 'ss-label' }, h('span', { class: 'pulse-dot' }), ` Lobby · ${connectedCount} player${connectedCount === 1 ? '' : 's'} here`),
+      h('div', { class: 'lobby-kicker' }, h('span', { class: 'pulse-dot' }), 'Lobby · live'),
+      h('div', { class: 'lobby-count' },
+        // Keyed by the count, so the number pops exactly when somebody walks in or out.
+        h('b', { class: animOnce(`lobby-count:${snap.code}:${connectedCount}`, 'count-pop') },
+          String(connectedCount)),
+        ` player${connectedCount === 1 ? '' : 's'} at the table`),
+      connectedCount === 1 && h('p', { class: 'hint', style: 'margin:2px 0 0' }, 'It\'s quiet in here… fix that:'),
       h('button', {
-        class: 'btn btn-ghost btn-sm', style: 'margin-top:8px',
+        class: 'btn btn-ghost btn-sm', style: 'margin-top:10px',
         onClick: () => shareInvite(snap.code),
       }, '📤 Invite friends'),
-    ], { align: 'left', size: 'sm' }),
+    ], { align: 'left', cls: 'lobby-hero' }),
     h('div', { class: 'card' },
       sceneHero(connectedCount > 1 ? 'joined' : 'lobby', [
         h('h2', { class: 'subtitle' }, '👥 Players'),

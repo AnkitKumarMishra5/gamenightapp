@@ -116,6 +116,18 @@ const HOME_OG = [
     desc: 'Social deduction, secret patterns and three card games on one premium table. Make a room, share the code, play tonight.' },
   { image: '/icons/og-home-4.jpg', title: 'Game Night: bluff, deduce, survive',
     desc: 'Five games where the fun is reading your friends. One room code, points that follow you all night, nothing to install.' },
+  { image: '/icons/og-home-5.jpg', title: 'Game Night: five games, one code',
+    desc: 'Somebody is lying, a pattern needs cracking, and the lowest card loses a heart. All from the phones already in the room.' },
+  { image: '/icons/og-home-6.jpg', title: 'Game Night: wake the group chat up',
+    desc: 'Turn "we should hang out" into an actual game night. Make a room, drop the code in the chat, and watch everyone show up.' },
+  { image: '/icons/og-home-1.jpg', title: 'Game Night: the table is set',
+    desc: 'Cards, candles and accusations. Five live party games for 2 to 16 friends, free in the browser, ready in ten seconds.' },
+  { image: '/icons/og-home-3.jpg', title: 'Game Night: bring snacks, bring suspicion',
+    desc: 'One room code turns every phone into a seat. Bluff your best friend, crack the pattern, survive the deck.' },
+  { image: '/icons/og-home-2.jpg', title: 'Game Night: tonight, at your place',
+    desc: "No downloads, no accounts, no excuses. Five party games that run on the phones already in everyone's pockets." },
+  { image: '/icons/og-home-5.jpg', title: 'Game Night: reading friends since tonight',
+    desc: 'The games are simple. Your friends are not. One five-letter code and the whole room is playing.' },
 ];
 const dayIndex = () => Math.floor(Date.now() / 86_400_000);
 const DEFAULT_OG = () => ({ ...HOME_OG[dayIndex() % HOME_OG.length] });
@@ -131,10 +143,34 @@ const INVITE_LINES = [
   (n, a) => `${a} ${n} picked you. Out of everyone`,
   (n, a) => `${a} ${n} is shuffling. Sit down before the deal`,
   (n, a) => `${a} ${n} left the porch light on for you`,
+  (n, a) => `${a} ${n} wrote your name on a chair`,
+  (n, a) => `${a} ${n} refuses to start without you`,
+  (n, a) => `${a} ${n} bet you would show up. Prove them right`,
+  (n, a) => `${a} ${n} needs somebody they can actually beat`,
+  (n, a) => `${a} ${n} says this is your sign`,
+  (n, a) => `${a} ${n} is stalling the whole table for you`,
+  (n, a) => `${a} ${n} put game night on the calendar: now`,
 ];
 const INVITE_IMAGES = [
   '/icons/og-invite-1.jpg', '/icons/og-invite-2.jpg', '/icons/og-invite-3.jpg',
   '/icons/og-invite-4.jpg', '/icons/og-invite-5.jpg', '/icons/og-invite-6.jpg',
+  '/icons/og-invite-7.jpg', '/icons/og-invite-8.jpg', '/icons/og-invite-9.jpg',
+  '/icons/og-invite-10.jpg',
+];
+// One teasing line per game, so the card sells what is actually on the table tonight.
+const GAME_HOOK = {
+  blendin: 'Somebody at that table is lying to everyone.',
+  island: 'There is a secret pattern nobody has cracked yet.',
+  silentorder: 'One wrong card burns a candle.',
+  swaporstay: 'Lowest card loses a heart. No pressure.',
+  sleepless: 'The Prowler walks tonight.',
+};
+const INVITE_TAILS = [
+  'No download, no sign-up, just the code.',
+  'Nothing to install — the code is the whole key.',
+  'Free, in the browser, ready in ten seconds.',
+  'Your phone is the ticket. This link is the door.',
+  'No app store between you and the table.',
 ];
 const codeHash = (code) => [...code].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7) >>> 0;
 
@@ -171,10 +207,13 @@ function ogFor(req) {
     ? `At the table already: ${others.join(', ')}${extra ? ` +${extra}` : ''}.`
     : `${name} is setting the table in room ${room.code}.`;
 
+  // Independent hash shifts so the line, the art, the hook and the tail all rotate on
+  // their own axes: neighbouring room codes land on genuinely different cards.
+  const hook = room.game && GAME_HOOK[room.game] ? ` ${GAME_HOOK[room.game]}` : '';
   return {
     image: INVITE_IMAGES[h % INVITE_IMAGES.length],
-    title: INVITE_LINES[h % INVITE_LINES.length](name, room.hostAvatar || '🎭'),
-    desc: `${crowd}${game ? ` Tonight: ${game}.` : ''} No download, no sign-up, just the code.`,
+    title: INVITE_LINES[(h >>> 3) % INVITE_LINES.length](name, room.hostAvatar || '🎭'),
+    desc: `${crowd}${game ? ` Tonight: ${game}.` : ''}${hook} ${INVITE_TAILS[(h >>> 7) % INVITE_TAILS.length]}`,
   };
 }
 
