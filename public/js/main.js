@@ -1,6 +1,6 @@
 // Game Night — © 2026 Ankit Kumar Mishra. All rights reserved. See LICENSE.
 // Client: socket plumbing, screens (landing, lobby), fx, PWA install.
-import { $, h, toast, openModal, closeModal, snapshotInputs, restoreInputs, shake, animOnce, resetAnims, sceneArt } from './core/ui.js';
+import { $, h, toast, openModal, closeModal, snapshotInputs, restoreInputs, shake, animOnce, resetAnims, sceneHero } from './core/ui.js';
 import { confettiBurst, confettiRain, sound, isMuted, setMuted, refreshMuted } from './core/fx.js';
 import {
   armAmbience, startAmbience, stopAmbience, musicPlaying, playWelcome,
@@ -482,13 +482,12 @@ function render() {
 // Shown when everyone who could act has gone. Rejoining an abandoned round otherwise
 // dropped you on a vote with "0 of 0 votes are in" and no control that did anything.
 function stalledEscape() {
-  return h('div', { class: 'card stalled-card has-art', 'data-overlay': 'stalled' },
-    sceneArt('reconnecting', 'band'),
-    h('span', { class: 'sc-emoji' }, '🫥'),
-    h('div', {},
+  return h('div', { class: 'card stalled-card', 'data-overlay': 'stalled' },
+    sceneHero('reconnecting', [
+      h('span', { class: 'sc-emoji' }, '🫥'),
       h('div', { class: 'sc-title' }, 'This round was abandoned'),
       h('div', { class: 'sc-sub' }, 'Everyone who was playing has gone. Nothing here can move forward.'),
-    ),
+    ], { cls: 'hero-bleed' }),
     h('button', {
       class: 'btn btn-primary', style: 'margin-top:12px',
       onClick: async (e) => {
@@ -1165,19 +1164,19 @@ function renderLobby() {
   );
 
   const parts = [
-    h('div', { class: 'status-strip has-art art-faint' },
-      sceneArt('invite'),
+    sceneHero('invite', [
       h('div', { class: 'ss-label' }, h('span', { class: 'pulse-dot' }), ` Lobby · ${connectedCount} player${connectedCount === 1 ? '' : 's'} here`),
       h('button', {
-        class: 'btn btn-ghost btn-sm',
+        class: 'btn btn-ghost btn-sm', style: 'margin-top:8px',
         onClick: () => shareInvite(snap.code),
       }, '📤 Invite friends'),
-    ),
-    h('div', { class: 'card has-art' },
-      sceneArt(connectedCount > 1 ? 'joined' : 'lobby'),
-      h('h2', { class: 'subtitle' }, '👥 Players'),
-      h('p', { class: 'hint', style: 'margin:4px 0 12px' },
-        isHost ? 'You\'re the room owner 👑. Pick a game below and start when everyone\'s in.' : `Waiting in the lobby, ${c.player(snap.hostId).name} picks the game.`),
+    ], { align: 'left', size: 'sm' }),
+    h('div', { class: 'card' },
+      sceneHero(connectedCount > 1 ? 'joined' : 'lobby', [
+        h('h2', { class: 'subtitle' }, '👥 Players'),
+        h('p', { class: 'hint', style: 'margin:4px 0 0' },
+          isHost ? 'You\'re the room owner 👑. Pick a game below and start when everyone\'s in.' : `Waiting in the lobby, ${c.player(snap.hostId).name} picks the game.`),
+      ], { cls: 'hero-bleed' }),
       h('div', { class: 'players-grid' },
         snap.players.map((p, i) => h('div', {
           class: ['player-tile', animOnce(`lobby-tile:${p.id}`), !p.connected && 'offline', p.id === c.me.id && 'you'].filter(Boolean).join(' '),

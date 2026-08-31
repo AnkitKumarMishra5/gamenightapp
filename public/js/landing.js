@@ -441,11 +441,18 @@ function buildConsole(deps) {
     onClick: () => join(joinBtn),
   }, 'Join');
 
-  const joinPanel = h('div', { class: 'lp-joinrow' },
-    codeInput,
-    joinBtn,
+  const joinPanel = h('div', { class: 'lp-joinrow-wrap' },
+    h('div', { class: 'lp-joinrow' }, codeInput, joinBtn),
+    // What the row of boxes IS, said right under it. An invited player is told their
+    // code is already handled; anyone else is told where a code comes from.
+    h('p', { class: 'lp-join-hint' },
+      state.inviteCode
+        ? `🔑 Your invite filled the code in for you — just add a name and hit Join.`
+        : 'This is the 5-character room code — ask whoever created the room, it\'s on their screen.'),
   );
 
+  // An invited player is not "joining with a code" — they are joining THIS room,
+  // and the button says so, so the pre-filled boxes underneath explain themselves.
   const joinToggle = h('button', {
     class: 'lp-act lp-act-join', 'aria-expanded': 'false',
     onClick: () => {
@@ -454,7 +461,8 @@ function buildConsole(deps) {
       syncJoin();
       if (state.joinOpen) setTimeout(() => codeInput.focus(), 60);
     },
-  }, h('span', { class: 'lp-act-emoji', 'aria-hidden': 'true' }, '🎟️'), 'Join with a code');
+  }, h('span', { class: 'lp-act-emoji', 'aria-hidden': 'true' }, '🎟️'),
+    state.inviteCode ? `Join room ${state.inviteCode}` : 'Join with a code');
 
   const syncJoin = () => {
     joinPanel.hidden = !state.joinOpen;

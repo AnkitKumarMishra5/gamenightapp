@@ -232,6 +232,8 @@
 
 .lp-joinrow { display: flex; gap: 10px; margin-top: 10px; }
 .lp-joinrow[hidden] { display: none; }
+.lp-joinrow-wrap[hidden] { display: none; }
+.lp-join-hint { font-size: 12.5px; color: var(--ink-dim); margin-top: 8px; text-align: center; }
 @media (prefers-reduced-motion: no-preference) {
   .lp-joinrow { animation: lp-pop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
 }

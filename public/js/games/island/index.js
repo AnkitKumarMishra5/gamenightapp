@@ -1,5 +1,5 @@
 // The Island screen rendering.
-import { h, shake, animOnce, waitingFor, aiThinking, sceneArt, sceneFrame } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, aiThinking, sceneFrame, sceneHero } from '../../core/ui.js';
 
 export function renderIsland(snap, ctx) {
   const is = snap.island;
@@ -26,11 +26,12 @@ export function renderIsland(snap, ctx) {
 function setupPhase(is, ctx) {
   const meIsGm = is.mode === 'host' && is.gmId === ctx.me.id;
   if (!ctx.isHost && !meIsGm) {
-    return h('div', { class: 'card has-art', style: 'text-align:center' },
-      sceneArt('pattern-written', 'band'),
-      h('span', { class: 'hero-emoji', style: 'font-size:56px' }, '🏝️'),
-      h('h2', { class: 'subtitle', style: 'margin-top:10px' }, 'Preparing the boat…'),
-      h('p', { class: 'hint', style: 'margin-top:8px' }, `${ctx.player(is.gmId || ctx.hostId).name} is setting up the secret pattern. Get your thinking cap on! 🧢`),
+    return h('div', { class: 'card', style: 'text-align:center' },
+      sceneHero('pattern-written', [
+        h('span', { style: 'font-size:44px; line-height:1' }, '🏝️'),
+        h('h2', { class: 'subtitle', style: 'margin-top:6px' }, 'Preparing the boat…'),
+      ], { size: 'tall', cls: 'hero-bleed' }),
+      h('p', { class: 'hint' }, `${ctx.player(is.gmId || ctx.hostId).name} is setting up the secret pattern. Get your thinking cap on! 🧢`),
     );
   }
   // A non-host gamemaster skips the mode cards (that choice is the owner's) and goes
@@ -293,13 +294,11 @@ function auditPanel(is, ctx) {
   if (is.mode !== 'ai' || is.phase !== 'playing') return null;
   const last = is.lastAudit;
   return h('div', { class: 'audit-box' },
-    is.auditing && h('div', { class: 'card audit-note audit-working has-art art-faint', style: 'padding:12px 14px; margin-bottom:8px' },
-      sceneArt('audit'),
-      h('span', { class: 'audit-spinner', 'aria-hidden': 'true' }),
-      h('span', {},
-        h('b', {}, '👁 The boat is re-reading the round… '),
-        'Every call judged again from scratch, over and over, until two passes agree. This takes a moment, and nothing can be played until it is done.'),
-    ),
+    is.auditing && sceneHero('audit', [
+      h('span', {}, h('span', { class: 'audit-spinner', 'aria-hidden': 'true' }), h('b', {}, '👁 The boat is re-reading the round…')),
+      h('span', { class: 'hint' },
+        'Every call judged again from scratch, over and over, until two passes agree. Nothing can be played until it is done.'),
+    ], { align: 'left', cls: 'audit-hero' }),
     last && h('div', { class: `card audit-note ${last.fixed.length ? 'warn' : ''}`, style: 'padding:10px 14px; margin-bottom:8px' },
       h('b', {}, last.fixed.length ? '🐟 The boat stands corrected. ' : '👁 The boat re-checked itself. '),
       last.note,
@@ -391,9 +390,10 @@ function actionBar(is, ctx) {
     parts.push(h('p', { class: 'hint', style: 'text-align:center; margin:0' }, 'You joined mid-round. You\'ll board the boat next round! ⛵'));
   } else if (is.youKnockedOut) {
     parts.push(
-      sceneArt('eliminated', 'band'),
-      h('div', { class: 'turn-banner', style: 'margin:0' }, '💀 You used all three pattern guesses, out for this round'),
-      h('p', { class: 'hint', style: 'text-align:center; margin-top:8px' }, 'Watch the rest unfold; you\'re back in next round.'),
+      sceneHero('eliminated', [
+        h('div', { class: 'sh-title' }, '💀 You used all three pattern guesses, out for this round'),
+        h('p', { class: 'hint', style: 'margin:2px 0 0' }, 'Watch the rest unfold; you\'re back in next round.'),
+      ], { cls: 'hero-bleed' }),
     );
   } else if (myTurn) {
     if (is.youSolved) {
@@ -404,8 +404,9 @@ function actionBar(is, ctx) {
       };
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
       parts.push(
-        sceneArt('cracked', 'band'),
-        h('div', { class: 'turn-banner your-turn', style: 'margin:0 0 12px' }, `🎤 Your turn! You cracked it (#${is.yourRank}), help the others with a hint`),
+        sceneHero('cracked',
+          h('div', { class: 'sh-title' }, `🎤 Your turn! You cracked it (#${is.yourRank}), help the others with a hint`),
+          { cls: 'hero-bleed' }),
         h('div', { class: 'inline-form' }, input, h('button', { class: 'btn btn-island', onClick: submit }, 'Ask')),
         h('button', { class: 'btn btn-ghost btn-sm btn-block', style: 'margin-top:8px', onClick: () => ctx.emit('is:pass') }, '⏭️ Pass'),
       );
@@ -444,7 +445,7 @@ function actionBar(is, ctx) {
     parts.push(waitingFor(ctx.player(ctx.hostId)?.name, 'can end the round and reveal the pattern.'));
   }
   return h('div', { class: 'action-bar' },
-    h('div', { class: `card ${is.youKnockedOut || is.yourRank ? 'has-art' : ''}` }, parts));
+    h('div', { class: 'card' }, parts));
 }
 
 // The boat gives away two more items each time the table completes a full lap. Anyone can
@@ -563,12 +564,13 @@ async function patternGuessModal(ctx, is) {
 
 function revealPhase(is, ctx) {
   const ranking = [...is.order].sort((a, b) => (is.scores[b] || 0) - (is.scores[a] || 0));
-  return h('div', { class: 'card win-screen has-art' },
-    sceneArt('win-together', 'band'),
-    h('span', { class: 'ws-emoji' }, '🏝️'),
-    h('h2', { class: 'gradient-text' },
-      is.endedBy === 'all-solved' ? 'Everyone cracked it!' : (is.endedBy === 'gm-left' ? 'The gamemaster left!' : 'Round over!')),
-    is.endedBy === 'gm-left' && h('p', { class: 'ws-reason' }, 'They took the secret with them. So here it is.'),
+  return h('div', { class: 'card win-screen' },
+    sceneHero('win-together', [
+      h('span', { class: 'ws-emoji' }, '🏝️'),
+      h('h2', { class: 'gradient-text' },
+        is.endedBy === 'all-solved' ? 'Everyone cracked it!' : (is.endedBy === 'gm-left' ? 'The gamemaster left!' : 'Round over!')),
+      is.endedBy === 'gm-left' && h('p', { class: 'ws-reason' }, 'They took the secret with them. So here it is.'),
+    ], { size: 'tall', cls: 'hero-bleed' }),
     is.pattern && h('div', { class: 'example', style: 'margin-top:12px; text-align:left' },
       h('b', {}, `The pattern was: ${is.pattern.name}`),
       h('p', { style: 'margin-top:4px' }, is.pattern.description),

@@ -120,14 +120,29 @@ export function sceneFrame(name, cls = '') {
   );
 }
 
+// The hero treatment: the photograph fills its own stage, shown whole and at nearly
+// full strength, and the copy sits ON it inside a directional fade — rising out of the
+// foot of the image, or holding one side of it. This is the "moment" presentation:
+// nothing is dimmed to a wash, the image is the scene and the words caption it.
+//   align: 'bottom' (default) | 'left' | 'right'
+//   size:  '' (default ~200px) | 'sm' (~130px) | 'tall' (~260px)
+export function sceneHero(name, content, { align = 'bottom', size = '', cls = '' } = {}) {
+  return h('div', { class: `scene-hero hero-${align}${size ? ` hero-${size}` : ''}${cls ? ` ${cls}` : ''}` },
+    h('picture', { class: 'sh-pic', 'aria-hidden': 'true' },
+      h('source', { srcset: `/media/games/${name}.webp`, type: 'image/webp' }),
+      h('img', { src: `/media/games/${name}.jpg`, alt: '', loading: 'lazy', decoding: 'async' }),
+    ),
+    h('div', { class: 'sh-copy' }, content),
+  );
+}
+
 // Shown to everyone who is not the room owner, in place of a control only the owner has.
 // Without it a guest sits on a screen with nothing on it, waiting for something they
 // cannot see is coming.
 export function waitingFor(hostName, what) {
-  return h('div', { class: 'waiting-wrap has-art art-faint' },
-    sceneArt('waiting'),
+  return sceneHero('waiting',
     h('p', { class: 'waiting-note' }, `⏳ ${hostName || 'The room owner'} ${what}`),
-  );
+    { size: 'sm', cls: 'waiting-wrap' });
 }
 
 // A visible "the machine is working" state, used wherever the app is waiting on the AI.

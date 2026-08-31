@@ -106,6 +106,9 @@
 }
 
 .sl-dawn-card { text-align: center; }
+/* The dawn hero is the whole card: bleed it on every side so the photograph IS the
+   banner, with the flip tile and the news line resting in its foot. */
+.card > .sl-dawn-hero { margin-bottom: calc(-1 * var(--card-pad)); border-radius: var(--r-lg); }
 .sl-dawn-head {
   font-family: var(--display);
   font-weight: 800; font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase;

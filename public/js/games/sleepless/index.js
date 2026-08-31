@@ -6,7 +6,7 @@
 // snapshot fields compared against module-level "last seen" markers rather than by fx
 // events. Markers key off dealId + round, so they survive other players' updates and a
 // replay in the same room starts clean.
-import { h, shake, animOnce, waitingFor, openModal, closeModal, sceneArt } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, openModal, closeModal, sceneHero } from '../../core/ui.js';
 import { cardTable, peekCard } from '../../core/cards.js';
 import { playMeme } from '../../core/memes.js';
 import { confettiRain } from '../../core/fx.js';
@@ -270,8 +270,9 @@ function dealingPhase(sl, ctx) {
     api: Object.assign(api, { readyBtn, table }),
     node: h('div', { class: 'stack sl-wrap sl-deal' },
       table,
-      h('div', { class: 'card sl-deal-card has-art art-faint' },
-        sceneArt('shuffling'), note, sl.you ? readyBtn : null),
+      h('div', { class: 'card sl-deal-card' },
+        sceneHero('shuffling', note, { size: 'sm', cls: 'hero-bleed' }),
+        sl.you ? readyBtn : null),
     ),
   };
   updateDealing(sl);
@@ -364,11 +365,12 @@ function nightPhase(sl, ctx) {
     else { shake(btn || answerBox); ctx.sound.tap(); ctx.toast(res.error); }
   };
 
-  return h('div', { class: 'card sl-night-card has-art art-faint' },
-    sceneArt('night'),
-    h('h2', { class: 'subtitle', style: 'text-align:center' }, `🌙 ${role.prompt}`),
-    allies.length > 0 && h('p', { class: 'hint sl-allies', style: 'text-align:center; margin:2px 0 0; color:var(--amber)' },
-      `🐾 Hunting with ${allies.map((id) => ctx.player(id).name).join(' and ')}. The most-named door falls.`),
+  return h('div', { class: 'card sl-night-card' },
+    sceneHero('night', [
+      h('h2', { class: 'subtitle' }, `🌙 ${role.prompt}`),
+      allies.length > 0 && h('p', { class: 'hint sl-allies', style: 'margin:2px 0 0; color:var(--amber)' },
+        `🐾 Hunting with ${allies.map((id) => ctx.player(id).name).join(' and ')}. The most-named door falls.`),
+    ], { cls: 'hero-bleed' }),
     // The sum everyone answers: the reason every screen looks equally busy tonight.
     h('div', { class: 'sl-sum' },
       h('span', { class: 'sl-sum-q' }, sl.puzzle?.text || '…'),
@@ -403,22 +405,24 @@ function dawnBanner(sl, ctx) {
   if (d.kind === 'death') {
     const p = ctx.player(d.victimId);
     const r = ROLES[d.role];
-    return h('div', { class: `card sl-dawn-card has-art ${animOnce(`sl-dawncard:${sl.dealId}:${d.seq}`, 'sl-rise')}` },
-      sceneArt('dawn-killed', 'band'),
-      h('div', { class: 'sl-dawn-head' }, '🌅 Dawn'),
-      h('div', { class: `sl-flip ${animOnce(`sl-dawnflip:${sl.dealId}:${d.seq}`, 'sl-flipping')}` },
-        h('div', { class: 'sl-flip-face sl-flip-front' }, p.avatar),
-        h('div', { class: 'sl-flip-face sl-flip-back' }, r.emoji),
-      ),
-      h('p', { class: 'sl-dawn-line' },
-        h('b', {}, p.name), ` did not wake up — they were the ${r.word} ${r.emoji}`),
+    return h('div', { class: `card sl-dawn-card ${animOnce(`sl-dawncard:${sl.dealId}:${d.seq}`, 'sl-rise')}` },
+      sceneHero('dawn-killed', [
+        h('div', { class: 'sl-dawn-head' }, '🌅 Dawn'),
+        h('div', { class: `sl-flip ${animOnce(`sl-dawnflip:${sl.dealId}:${d.seq}`, 'sl-flipping')}` },
+          h('div', { class: 'sl-flip-face sl-flip-front' }, p.avatar),
+          h('div', { class: 'sl-flip-face sl-flip-back' }, r.emoji),
+        ),
+        h('p', { class: 'sl-dawn-line' },
+          h('b', {}, p.name), ` did not wake up — they were the ${r.word} ${r.emoji}`),
+      ], { size: 'tall', cls: 'hero-bleed sl-dawn-hero' }),
     );
   }
-  return h('div', { class: `card sl-dawn-card has-art ${animOnce(`sl-dawncard:${sl.dealId}:${d.seq}`, 'sl-rise')}` },
-    sceneArt('dawn-saved', 'band'),
-    h('div', { class: 'sl-dawn-head' }, '🌅 Dawn'),
-    h('div', { class: 'sl-saved-mark' }, '🛡️'),
-    h('p', { class: 'sl-dawn-line' }, 'Everyone woke up. Someone was attacked in the night — and survived.'),
+  return h('div', { class: `card sl-dawn-card ${animOnce(`sl-dawncard:${sl.dealId}:${d.seq}`, 'sl-rise')}` },
+    sceneHero('dawn-saved', [
+      h('div', { class: 'sl-dawn-head' }, '🌅 Dawn'),
+      h('div', { class: 'sl-saved-mark' }, '🛡️'),
+      h('p', { class: 'sl-dawn-line' }, 'Everyone woke up. Someone was attacked in the night — and survived.'),
+    ], { size: 'tall', cls: 'hero-bleed sl-dawn-hero' }),
   );
 }
 
@@ -437,14 +441,15 @@ function voteBoard(sl, ctx) {
   const target = pendingVote && pendingVote !== 'skip' ? ctx.player(pendingVote) : null;
   const pct = sl.votersTotal ? Math.round((sl.voteCount / sl.votersTotal) * 100) : 0;
 
-  return h('div', { class: 'card has-art art-faint' },
-    sceneArt('vote'),
-    h('h2', { class: 'subtitle', style: 'text-align:center' }, '🗳️ Who doesn\'t sleep at night?'),
-    h('p', { class: 'hint', style: 'text-align:center; margin:6px 0 14px' },
-      !alive ? 'You\'re spectating this vote.'
-        : sl.youVoted ? `Vote locked in ✅ (${sl.voteCount}/${sl.votersTotal})`
-        : pendingVote ? 'Confirm below, or pick someone else.'
-        : 'Tap a player, or Skip. Votes stay sealed until everyone has cast one.'),
+  return h('div', { class: 'card' },
+    sceneHero('vote', [
+      h('h2', { class: 'subtitle' }, '🗳️ Who doesn\'t sleep at night?'),
+      h('p', { class: 'hint', style: 'margin:4px 0 0' },
+        !alive ? 'You\'re spectating this vote.'
+          : sl.youVoted ? `Vote locked in ✅ (${sl.voteCount}/${sl.votersTotal})`
+          : pendingVote ? 'Confirm below, or pick someone else.'
+          : 'Tap a player, or Skip. Votes stay sealed until everyone has cast one.'),
+    ], { cls: 'hero-bleed' }),
     grid(sl, ctx, {
       selectable,
       selected: pendingVote,
@@ -492,20 +497,18 @@ function verdictPhase(sl, ctx) {
   const role = v?.role ? ROLES[v.role] : null;
 
   const headline = out
-    ? h('div', { class: `sl-verdict-hero has-art ${animOnce(`sl-verdict:${roundKey(sl)}`, 'sl-rise')}` },
-        sceneArt(v.role === 'prowler' ? 'out-prowler' : 'out-innocent', 'band'),
+    ? sceneHero(v.role === 'prowler' ? 'out-prowler' : 'out-innocent', [
         h('div', { class: `sl-flip ${animOnce(`sl-verdictflip:${roundKey(sl)}`, 'sl-flipping')}` },
           h('div', { class: 'sl-flip-face sl-flip-front' }, out.avatar),
           h('div', { class: 'sl-flip-face sl-flip-back' }, role.emoji),
         ),
         h('p', { class: 'sl-dawn-line' },
           h('b', {}, out.name), ` was sent to bed early — they were the ${role.word} ${role.emoji}`),
-      )
-    : h('div', { class: `sl-verdict-hero has-art ${animOnce(`sl-verdict:${roundKey(sl)}`, 'sl-rise')}` },
-        sceneArt('tie', 'band'),
+      ], { size: 'tall', cls: `sl-verdict-hero ${animOnce(`sl-verdict:${roundKey(sl)}`, 'sl-rise')}` })
+    : sceneHero('tie', [
         h('div', { class: 'sl-saved-mark' }, '🤝'),
         h('p', { class: 'sl-dawn-line' }, 'The village couldn\'t agree. Nobody was sent home.'),
-      );
+      ], { size: 'tall', cls: `sl-verdict-hero ${animOnce(`sl-verdict:${roundKey(sl)}`, 'sl-rise')}` });
 
   return h('div', { class: 'card' },
     h('h2', { class: 'subtitle', style: 'text-align:center' }, '⚖️ The votes are in'),
@@ -545,15 +548,16 @@ function gameOver(sl, ctx) {
   const myRole = sl.winner?.roles?.[ctx.me.id];
   const iWon = myRole && (villageWon ? myRole !== 'prowler' : myRole === 'prowler');
 
-  return h('div', { class: 'card win-screen sl-over has-art' },
-    sceneArt(villageWon ? 'win-together' : 'win-alone', 'band'),
-    h('span', { class: 'ws-emoji' }, villageWon ? '🌅' : '🐾'),
-    h('h2', { class: villageWon ? '' : 'gradient-text' },
-      villageWon ? 'The village wins!' : 'The Prowler wins!'),
-    h('p', { class: 'ws-reason' },
-      villageWon
-        ? 'The Prowler is out. Everyone finally gets some sleep.'
-        : 'Too few left standing. The nights belong to the Prowler now.'),
+  return h('div', { class: 'card win-screen sl-over' },
+    sceneHero(villageWon ? 'win-together' : 'win-alone', [
+      h('span', { class: 'ws-emoji' }, villageWon ? '🌅' : '🐾'),
+      h('h2', { class: villageWon ? '' : 'gradient-text' },
+        villageWon ? 'The village wins!' : 'The Prowler wins!'),
+      h('p', { class: 'ws-reason' },
+        villageWon
+          ? 'The Prowler is out. Everyone finally gets some sleep.'
+          : 'Too few left standing. The nights belong to the Prowler now.'),
+    ], { size: 'tall', cls: 'hero-bleed' }),
     h('p', { class: 'ws-reason', style: 'font-weight:700' }, sl.endQuip),
     myRole && h('p', { style: 'margin-top:10px; font-size:15px' },
       `You were the ${ROLES[myRole].emoji} ${ROLES[myRole].word}, ${iWon ? 'you won! 🎉' : 'better luck next night!'}`),

@@ -2167,9 +2167,8 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 }
 
 /* The waiting note carries its own art: it is the single most-seen idle state in the
-   app, shown to every guest in every game while the owner decides something. */
-.waiting-wrap { position: relative; overflow: hidden; border-radius: var(--r-md); padding: 14px 12px; }
-.waiting-wrap .waiting-note { margin: 0; }
+   app, shown to every guest in every game while the owner decides something. It renders
+   through the hero treatment now — see .scene-hero below. */
 
 /* Reveal and verdict heroes need room for the art band behind them. */
 .reveal-pop.has-art, .sl-verdict-hero.has-art { position: relative; overflow: hidden; border-radius: var(--r-md); padding: 16px 14px; }
@@ -2203,3 +2202,54 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
   width: auto; height: 78px; margin: -10px -10px 4px;
   border-radius: var(--r-md) var(--r-md) 0 0;
 }
+
+/* ---------- hero scene art ----------
+   The image is the scene, shown whole and at nearly full strength; the copy lives in a
+   fade along one edge of it. Replaces the washed-out background blend everywhere the
+   photograph is the moment being announced. */
+.scene-hero {
+  position: relative; overflow: hidden; border-radius: var(--r-md);
+  min-height: 200px; display: flex; border: 1px solid rgba(255, 255, 255, 0.07);
+}
+.scene-hero.hero-sm { min-height: 132px; }
+.scene-hero.hero-tall { min-height: 262px; }
+.scene-hero .sh-pic { position: absolute; inset: 0; }
+.scene-hero .sh-pic img {
+  width: 100%; height: 100%; object-fit: cover; object-position: center 30%;
+  mix-blend-mode: screen; opacity: 0.96;
+}
+.scene-hero .sh-copy {
+  position: relative; z-index: 1; width: 100%; padding: 12px 16px 14px;
+  display: flex; flex-direction: column; gap: 4px; justify-content: flex-end;
+  text-shadow: 0 1px 14px rgba(11, 14, 26, 0.95), 0 1px 4px rgba(11, 14, 26, 0.8);
+}
+.scene-hero .sh-title { font-weight: 800; font-size: 16.5px; }
+/* The words rise out of the foot of the picture. */
+.hero-bottom .sh-copy {
+  margin-top: auto; align-items: center; text-align: center; padding-top: 54px;
+  background: linear-gradient(0deg, rgba(11, 14, 26, 0.94) 0%, rgba(11, 14, 26, 0.6) 58%, transparent 100%);
+}
+/* Or hold one side of it, leaving the subject in the clear. */
+.hero-left .sh-copy, .hero-right .sh-copy { max-width: 66%; justify-content: center; padding-top: 14px; }
+.hero-left .sh-copy {
+  align-items: flex-start; text-align: left; padding-right: 46px;
+  background: linear-gradient(90deg, rgba(11, 14, 26, 0.95) 0%, rgba(11, 14, 26, 0.68) 60%, transparent 100%);
+}
+.hero-right { justify-content: flex-end; }
+.hero-right .sh-copy {
+  align-items: flex-end; text-align: right; padding-left: 46px;
+  background: linear-gradient(270deg, rgba(11, 14, 26, 0.95) 0%, rgba(11, 14, 26, 0.68) 60%, transparent 100%);
+}
+/* Full-bleed to the top edge of the card it opens. `align-self` covers flex cards,
+   where a centred child would otherwise shrink-wrap instead of spanning the card. */
+.card > .hero-bleed {
+  margin: calc(-1 * var(--card-pad)) calc(-1 * var(--card-pad)) 14px;
+  align-self: stretch;
+  border-radius: var(--r-lg) var(--r-lg) 0 0; border: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.card.win-screen > .hero-bleed { margin-top: -8px; }
+/* The waiting note keeps its compact footprint wherever it is dropped in. */
+.waiting-wrap .waiting-note { margin: 0; font-size: 14px; }
+/* The boat's re-read notice, shown as its own hero above the audit controls. */
+.audit-hero { margin-bottom: 8px; }
+.audit-hero .audit-spinner { margin-right: 8px; }

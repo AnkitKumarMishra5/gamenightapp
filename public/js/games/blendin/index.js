@@ -1,6 +1,6 @@
 // Blend In screen rendering. Receives the personalized room snapshot and a ctx
 // with { emit, me, isHost, player(id) } from main.js.
-import { h, shake, animOnce, waitingFor, aiThinking, sceneArt } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, aiThinking, sceneHero } from '../../core/ui.js';
 
 const REACTIONS = ['😂', '🤔', '😱', '🧐', '🔥', '💀'];
 // How long the reaction palette stays reachable after the pointer leaves it.
@@ -308,9 +308,10 @@ function describeBar(bi, ctx) {
     );
   }
   return h('div', { class: 'action-bar' },
-    h('div', { class: 'card has-art art-faint' },
-      sceneArt('clue'),
-      h('div', { class: 'turn-banner', style: 'margin:0' }, p ? `🎤 ${p.avatar} ${p.name} is thinking of a clue…` : '…'),
+    h('div', { class: 'card' },
+      sceneHero('clue',
+        h('div', { class: 'sh-title' }, p ? `🎤 ${p.avatar} ${p.name} is thinking of a clue…` : '…'),
+        { size: 'sm', cls: 'hero-bleed' }),
       ctx.isHost && p && !p.connected && h('button', {
         class: 'btn btn-ghost btn-sm btn-block', style: 'margin-top:10px',
         onClick: () => ctx.emit('bi:skipTurn'),
@@ -332,9 +333,10 @@ function skipToVoteButton(bi, ctx) {
 
 function discussionBar(bi, ctx) {
   return h('div', { class: 'action-bar' },
-    h('div', { class: 'card has-art art-faint', style: 'text-align:center' },
-      sceneArt('discussion'),
-      h('div', { class: 'turn-banner', style: 'margin:0 0 10px' }, '🗣️ Everyone has spoken, discuss! Who sounds suspicious?'),
+    h('div', { class: 'card', style: 'text-align:center' },
+      sceneHero('discussion',
+        h('div', { class: 'sh-title' }, '🗣️ Everyone has spoken, discuss! Who sounds suspicious?'),
+        { size: 'sm', cls: 'hero-bleed' }),
       ctx.isHost
         ? h('button', { class: 'btn btn-bi btn-lg btn-block', onClick: () => ctx.emit('bi:startVote') }, '🗳️ Start the vote')
         : h('p', { class: 'hint' }, 'The room owner starts the vote when you\'re ready.'),
@@ -355,18 +357,19 @@ function votePhase(bi, ctx) {
 
   const target = pendingVote ? ctx.player(pendingVote) : null;
 
-  return h('div', { class: 'card has-art art-faint' },
-    sceneArt('vote'),
-    h('h2', { class: 'subtitle', style: 'text-align:center' },
-      isRunoff ? '⚖️ Tie-breaker! Vote between the tied players' : '🗳️ Who is the impostor?'),
-    isRunoff && h('p', { class: 'hint', style: 'text-align:center; color:var(--amber); margin:4px 0 8px' },
-      '⚠️ Last chance: if this vote ties again, the outsiders win on the spot.'),
-    h('p', { class: 'hint', style: 'text-align:center; margin:6px 0 14px' },
-      bi.you?.alive
-        ? (bi.youVoted ? `Vote locked in ✅ (${bi.votesCast}/${bi.votersNeeded})`
-          : pendingVote ? 'Confirm below, or pick someone else.'
-          : 'Tap a player to vote them out. Votes are anonymous.')
-        : 'You\'re spectating this vote.'),
+  return h('div', { class: 'card' },
+    sceneHero('vote', [
+      h('h2', { class: 'subtitle' },
+        isRunoff ? '⚖️ Tie-breaker! Vote between the tied players' : '🗳️ Who is the impostor?'),
+      isRunoff && h('p', { class: 'hint', style: 'color:var(--amber); margin:4px 0 0' },
+        '⚠️ Last chance: if this vote ties again, the outsiders win on the spot.'),
+      h('p', { class: 'hint', style: 'margin:4px 0 0' },
+        bi.you?.alive
+          ? (bi.youVoted ? `Vote locked in ✅ (${bi.votesCast}/${bi.votersNeeded})`
+            : pendingVote ? 'Confirm below, or pick someone else.'
+            : 'Tap a player to vote them out. Votes are anonymous.')
+          : 'You\'re spectating this vote.'),
+    ], { cls: 'hero-bleed' }),
     playersStrip(bi, ctx, {
       selectable,
       selected: pendingVote || bi.yourVote,
@@ -412,23 +415,21 @@ function blankGuessPhase(bi, ctx) {
       if (!res.ok) shake(input);
     };
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
-    return h('div', { class: 'card has-art', style: 'text-align:center' },
-      sceneArt('blank-guess', 'band'),
-      h('div', { class: 'reveal-pop' },
+    return h('div', { class: 'card', style: 'text-align:center' },
+      sceneHero('blank-guess', [
         h('span', { class: 'rp-avatar' }, '🎩'),
-        h('h2', { class: 'subtitle', style: 'margin-top:10px' }, 'Caught! One shot left.'),
-        h('p', { class: 'hint', style: 'margin:8px 0 14px' }, 'One last power move: guess the insiders\' word to steal the win!'),
-      ),
+        h('h2', { class: 'subtitle', style: 'margin-top:6px' }, 'Caught! One shot left.'),
+        h('p', { class: 'hint', style: 'margin:4px 0 0' }, 'One last power move: guess the insiders\' word to steal the win!'),
+      ], { size: 'tall', cls: 'hero-bleed' }),
       h('div', { class: 'inline-form' }, input, h('button', { class: 'btn btn-bi', onClick: submit }, 'Guess!')),
     );
   }
-  return h('div', { class: 'card has-art', style: 'text-align:center' },
-    sceneArt('blank-guess', 'band'),
-    h('div', { class: 'reveal-pop' },
+  return h('div', { class: 'card', style: 'text-align:center' },
+    sceneHero('blank-guess', [
       h('span', { class: 'rp-avatar' }, blankP.avatar),
       h('div', {}, h('b', {}, blankP.name), ' was… ', h('span', { class: 'rp-role blank' }, '🃏 the Blank')),
-      h('p', { class: 'rp-quip' }, 'Hold your breath. The Blank gets one guess at the secret word. 😱'),
-    ),
+      h('p', { class: 'rp-quip', style: 'margin-top:6px' }, 'Hold your breath. The Blank gets one guess at the secret word. 😱'),
+    ], { size: 'tall', cls: 'hero-bleed' }),
     ctx.isHost
       ? h('button', {
           class: 'btn btn-ghost btn-sm', style: 'margin-top:10px',
@@ -442,16 +443,14 @@ function roundResult(bi, ctx) {
   const r = bi.lastResult;
   let content;
   if (!r || r.type === 'none') {
-    content = h('div', { class: 'reveal-pop has-art' },
-      sceneArt('tie', 'band'),
+    content = sceneHero('tie', [
       h('span', { class: 'rp-avatar' }, '🤷'),
-      h('h2', { class: 'subtitle', style: 'margin-top:8px' }, 'Nobody was eliminated!'),
-      h('p', { class: 'rp-quip' }, r?.quip || 'The vote tied twice, suspicion carries to the next round.'),
-    );
+      h('h2', { class: 'subtitle', style: 'margin-top:6px' }, 'Nobody was eliminated!'),
+      h('p', { class: 'rp-quip', style: 'margin-top:4px' }, r?.quip || 'The vote tied twice, suspicion carries to the next round.'),
+    ], { size: 'tall', cls: 'hero-bleed reveal-pop' });
   } else {
     const p = ctx.player(r.playerId);
-    content = h('div', { class: 'reveal-pop has-art' },
-      sceneArt(OUT_ART[r.role] || 'reveal', 'band'),
+    content = sceneHero(OUT_ART[r.role] || 'reveal', [
       h('span', { class: 'rp-avatar' }, p.avatar),
       h('div', { style: 'font-weight:800; font-size:19px; margin-top:6px' }, `${p.name} ${r.quip || 'is out!'}`),
       h('div', {}, h('span', { class: `rp-role ${r.role}` }, `${ROLE_EMOJI[r.role]} ${ROLE_LABEL[r.role]}`)),
@@ -462,7 +461,7 @@ function roundResult(bi, ctx) {
           ? `You guessed “${r.blankGuess.text}”, ${r.blankGuess.correct ? 'CORRECT!' : 'wrong.'}`
           : `The Blank took their shot, ${r.blankGuess.correct ? 'and nailed it!' : 'and missed. The word stays secret.'}`),
       r.tally && voteTally(r.tally, bi, ctx),
-    );
+    ], { size: 'tall', cls: 'hero-bleed reveal-pop' });
   }
   return h('div', { class: 'card', style: 'text-align:center' },
     content,
@@ -488,11 +487,12 @@ function gameOver(bi, snap, ctx) {
   const myRole = bi.reveal.roles[ctx.me.id];
   const iWon = myRole && ((civWin && myRole === 'insider') || (!civWin && myRole !== 'insider'));
 
-  return h('div', { class: 'card win-screen has-art' },
-    sceneArt(civWin ? 'win-together' : 'win-alone', 'band'),
-    h('span', { class: 'ws-emoji' }, civWin ? '😇' : '🕵️'),
-    h('h2', { class: civWin ? '' : 'gradient-text' }, civWin ? 'Insiders win!' : 'Outsiders win!'),
-    h('p', { class: 'ws-reason' }, bi.winReason),
+  return h('div', { class: 'card win-screen' },
+    sceneHero(civWin ? 'win-together' : 'win-alone', [
+      h('span', { class: 'ws-emoji' }, civWin ? '😇' : '🕵️'),
+      h('h2', { class: civWin ? '' : 'gradient-text' }, civWin ? 'Insiders win!' : 'Outsiders win!'),
+      h('p', { class: 'ws-reason' }, bi.winReason),
+    ], { size: 'tall', cls: 'hero-bleed' }),
     h('p', { class: 'ws-reason', style: 'font-weight:700' }, bi.endQuip),
     myRole && h('p', { style: 'margin-top:10px; font-size:15px' },
       `You were ${ROLE_EMOJI[myRole]} ${ROLE_LABEL[myRole]}, ${iWon ? 'you won! 🎉' : 'better luck next time!'}`),
