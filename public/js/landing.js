@@ -43,6 +43,7 @@ const state = {
   trayOpen: false,
   avatar: null,          // committed pick; prefs.avatar is random-per-read when unset
   inviteCode: null,      // remembered after applyPrefill clears sessionStorage
+  autoJoined: false,     // the one automatic join attempt an invite gets
   entered: false,        // the hero entrance plays once per session, not per render
   helloSent: false,
   revealed: new Set(),   // sections already revealed stay revealed across re-renders
@@ -451,10 +452,28 @@ function buildConsole(deps) {
 
   // The invited player's one-tap entrance: joins the invited room directly, by the
   // invite's own code, even if the boxes below were edited toward somewhere else.
+  // A returning player with a saved name shouldn't have to tap anything: opening the
+  // invite IS the intent. Join the moment the socket is up — once. If the room is full
+  // or gone, the toast explains and the console stays for the manual path.
+  const autoJoining = Boolean(state.inviteCode && deps.prefs.name && !state.autoJoined);
+
   const inviteGo = state.inviteCode ? h('button', {
     class: 'lp-act lp-invitego', disabled: !deps.connected(),
     onClick: (e) => join(e.currentTarget, state.inviteCode),
-  }, h('span', { class: 'lp-act-emoji', 'aria-hidden': 'true' }, '🎟️'), `Join room ${state.inviteCode}`) : null;
+  }, h('span', { class: 'lp-act-emoji', 'aria-hidden': 'true' }, '🎟️'),
+    autoJoining && deps.connected() ? `Joining room ${state.inviteCode}…` : `Join room ${state.inviteCode}`) : null;
+
+  if (autoJoining && deps.connected()) {
+    state.autoJoined = true;
+    setTimeout(async () => {
+      await join(inviteGo, state.inviteCode);
+      // Still here and re-enabled means the join was refused: the button goes back to
+      // being an ordinary button instead of claiming to be mid-join forever.
+      if (inviteGo && !inviteGo.disabled && inviteGo.isConnected) {
+        inviteGo.lastChild.textContent = `Join room ${state.inviteCode}`;
+      }
+    }, 120);
+  }
 
   const joinPanel = h('div', { class: 'lp-joinpanel' },
     h('div', { class: 'lp-joinrow' }, codeInput, joinBtn),
@@ -495,7 +514,8 @@ function buildConsole(deps) {
       h('span', { class: 'lp-invite-key', 'aria-hidden': 'true' }, '🔑'),
       h('div', {},
         h('div', { class: 'lp-invite-title' }, `You're invited to room ${state.inviteCode}`),
-        h('div', { class: 'lp-invite-sub' }, 'Add a name and jump straight in.'),
+        h('div', { class: 'lp-invite-sub' },
+          autoJoining ? `Jumping straight in as ${deps.prefs.name}…` : 'Add a name and jump straight in.'),
       ),
     ),
     h('div', { class: 'lp-idrow' },
