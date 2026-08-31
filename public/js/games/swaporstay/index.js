@@ -79,7 +79,7 @@ function buildRound(key, ss, ctx) {
     laugh: ss.round === 1,
     peekMs: 4000,
     holdHint: 'Hold to peek at your card',
-    deckName: `${ss.deckLeft} cards left`,
+    deckName: 'Deck',
     onDone: () => {
       api.tableDone = true;
       for (const fn of api.afterDeal.splice(0)) fn();
@@ -125,7 +125,6 @@ function updateRound(ss, ctx) {
   const table = api.table;
   const youPlay = ss.order.includes(ctx.me.id);
 
-  setDeckLabel(table, `${ss.deckLeft} cards left`);
   syncLog(api, ss, ctx);
   setTurn(table, ss.phase === 'acting' ? ss.turnId : null);
 
@@ -152,6 +151,9 @@ function updateRound(ss, ctx) {
   // "swap with the deck" in the control bar.
   const canDraw = ss.phase === 'acting' && ss.turnId === ctx.me.id && ss.dealerId === ctx.me.id;
   setDeckPickable(table, canDraw, canDraw ? () => tapChoice(api, ss, ctx, 'swap') : undefined);
+  // How many cards remain is trivia nobody plays off, so the stock is just "the deck" —
+  // and it speaks up only for the dealer, in the one moment it is theirs to tap.
+  setDeckLabel(table, canDraw ? 'Deck · tap to draw' : 'Deck');
 
   // A swap may have handed the viewer a different card; the face has to tell the truth
   // the next time they peek.

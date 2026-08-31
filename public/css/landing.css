@@ -199,8 +199,9 @@
 .lp-avopt:hover { background: var(--glass-2); transform: scale(1.08); }
 .lp-avopt.lp-sel { border-color: rgba(var(--lp-gold), 0.6); background: rgba(var(--lp-gold), 0.12); }
 
+/* One decision per row: the primary action, then the expandable join section. A
+   two-column split would leave the expanded code entry orphaned under both buttons. */
 .lp-actions { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 12px; }
-@media (min-width: 520px) { .lp-actions { grid-template-columns: 1fr 1fr; } }
 .lp-act {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   padding: 15px 18px; border-radius: 16px;
@@ -218,25 +219,46 @@
   box-shadow: 0 10px 30px rgba(var(--lp-gold), 0.28);
 }
 .lp-act-create:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(var(--lp-gold), 0.38); }
-.lp-act-join:hover, .lp-act-join.lp-active {
-  background: var(--glass-2); border-color: rgba(var(--lp-gold), 0.45);
+/* The join section: header and code entry share one outlined shell, so the row of
+   letter boxes visibly belongs to the control that revealed it. */
+.lp-joinbox {
+  border: 1px solid var(--stroke); border-radius: 16px; background: var(--glass);
+  overflow: hidden; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
 }
-/* Arriving on an invite flips the emphasis: joining is the main event. */
+.lp-joinbox:hover { background: var(--glass-2); }
+.lp-joinbox.lp-open {
+  background: var(--glass-2); border-color: rgba(var(--lp-gold), 0.45);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+.lp-joinbox .lp-act-toggle {
+  width: 100%; position: relative; border: 0; border-radius: 0; background: transparent;
+}
+.lp-act-chev {
+  position: absolute; right: 18px; top: 50%;
+  transform: translateY(-50%); transition: transform 0.25s cubic-bezier(0.3, 1.2, 0.4, 1);
+  color: var(--ink-dim); font-size: 15px;
+}
+.lp-joinbox.lp-open .lp-act-chev { transform: translateY(-50%) rotate(180deg); color: var(--ink); }
+.lp-joinpanel { padding: 2px 12px 12px; }
+.lp-joinpanel[hidden] { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .lp-joinpanel { animation: lp-pop 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+}
+
+/* Arriving on an invite flips the emphasis: joining THIS room is the main event. */
 .lp-invited .lp-act-create { background: var(--glass); color: var(--ink); border-color: var(--stroke); box-shadow: none; }
 .lp-invited .lp-act-create:hover { background: var(--glass-2); transform: none; }
-.lp-invited .lp-act-join {
+.lp-invitego {
   background: linear-gradient(160deg, #f2dc94 0%, #d4af37 48%, #a87f1f 100%);
   color: #241a02; border-color: transparent;
   box-shadow: 0 10px 30px rgba(var(--lp-gold), 0.28);
 }
+.lp-invitego:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(var(--lp-gold), 0.38); }
 
-.lp-joinrow { display: flex; gap: 10px; margin-top: 10px; }
+.lp-joinrow { display: flex; gap: 10px; margin-top: 8px; }
 .lp-joinrow[hidden] { display: none; }
-.lp-joinrow-wrap[hidden] { display: none; }
 .lp-join-hint { font-size: 12.5px; color: var(--ink-dim); margin-top: 8px; text-align: center; }
-@media (prefers-reduced-motion: no-preference) {
-  .lp-joinrow { animation: lp-pop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
-}
+
 .lp-code {
   flex: 1; min-width: 0; width: 100%;
   padding: 13px 8px 13px 14px; border-radius: 16px;
@@ -1157,8 +1179,8 @@
 /* Invited flips emphasis to Join: the create button goes quiet, ring and all,
    and the join button inherits the orbit instead. */
 .lp-invited .lp-act-create::before, .lp-invited .lp-act-create::after { display: none; }
-.lp-invited .lp-act-join { position: relative; overflow: hidden; isolation: isolate; }
-.lp-invited .lp-act-join::before {
+.lp-invitego { position: relative; overflow: hidden; isolation: isolate; }
+.lp-invitego::before {
   content: ''; position: absolute; z-index: -2; left: 50%; top: 50%;
   width: 240%; aspect-ratio: 1;
   transform: translate(-50%, -50%);
@@ -1166,20 +1188,20 @@
     transparent 0 38%, rgba(255, 249, 224, 0.95) 50%, transparent 62% 100%);
   pointer-events: none;
 }
-.lp-invited .lp-act-join::after {
+.lp-invitego::after {
   content: ''; position: absolute; z-index: -1; inset: 2px;
   border-radius: 14px;
   background: linear-gradient(160deg, #f2dc94 0%, #d4af37 48%, #a87f1f 100%);
   pointer-events: none;
 }
 @media (prefers-reduced-motion: no-preference) {
-  .lp-invited .lp-act-join::before { animation: lp-orbit 5.5s linear infinite; }
+  .lp-invitego::before { animation: lp-orbit 5.5s linear infinite; }
 }
 /* The spark coin-flips when you hover the deal. */
 .lp-act-emoji { display: inline-block; }
 @media (prefers-reduced-motion: no-preference) {
   .lp-act-create:hover .lp-act-emoji,
-  .lp-invited .lp-act-join:hover .lp-act-emoji {
+  .lp-invitego:hover .lp-act-emoji {
     animation: lp-coin 0.65s cubic-bezier(0.3, 1.2, 0.4, 1);
   }
 }
@@ -1260,7 +1282,7 @@
   .lp-gslot.lp-reveal { transform: translateY(30px); }
   .lp-gslot.lp-reveal.lp-on, .lp-trust-item.lp-reveal.lp-on { transform: none; }
   .lp-trust-item.lp-reveal { transform: translateY(22px); }
-  .lp-act-create::before, .lp-invited .lp-act-join::before { animation-duration: 8s; }
+  .lp-act-create::before, .lp-invitego::before { animation-duration: 8s; }
 }
 
 /* ============================================================
