@@ -309,7 +309,7 @@ function dealingPhase(sl, ctx) {
     node: h('div', { class: 'stack sl-wrap sl-deal' },
       table,
       h('div', { class: 'card sl-deal-card' },
-        sceneHero('shuffling', note, { size: 'sm', cls: 'hero-bleed' }),
+        sceneHero('shuffling', note, { size: 'tall', cls: 'hero-bleed' }),
         sl.you ? readyBtn : null),
     ),
   };
