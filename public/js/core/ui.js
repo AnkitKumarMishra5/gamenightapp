@@ -105,8 +105,8 @@ export function shake(el) {
 // copy is kept clear of it — a side scrim, or a band across the bottom.
 export function sceneArt(name, place = 'side') {
   return h('picture', { class: `scene-art scene-${place}`, 'aria-hidden': 'true' },
-    h('source', { srcset: `/media/games/${name}.webp`, type: 'image/webp' }),
-    h('img', { src: `/media/games/${name}.jpg`, alt: '', loading: 'lazy', decoding: 'async' }),
+    h('source', { srcset: `/media/art/${name}.webp`, type: 'image/webp' }),
+    h('img', { src: `/media/art/${name}.jpg`, alt: '', loading: 'lazy', decoding: 'async' }),
   );
 }
 
@@ -115,8 +115,8 @@ export function sceneArt(name, place = 'side') {
 // background blend buries the image behind text and it reads as mud rather than art.
 export function sceneFrame(name, cls = '') {
   return h('picture', { class: `scene-frame ${cls}`, 'aria-hidden': 'true' },
-    h('source', { srcset: `/media/games/${name}.webp`, type: 'image/webp' }),
-    h('img', { src: `/media/games/${name}.jpg`, alt: '', loading: 'lazy', decoding: 'async' }),
+    h('source', { srcset: `/media/art/${name}.webp`, type: 'image/webp' }),
+    h('img', { src: `/media/art/${name}.jpg`, alt: '', loading: 'lazy', decoding: 'async' }),
   );
 }
 
@@ -129,8 +129,8 @@ export function sceneFrame(name, cls = '') {
 export function sceneHero(name, content, { align = 'bottom', size = '', cls = '' } = {}) {
   return h('div', { class: `scene-hero hero-${align}${size ? ` hero-${size}` : ''}${cls ? ` ${cls}` : ''}` },
     h('picture', { class: 'sh-pic', 'aria-hidden': 'true' },
-      h('source', { srcset: `/media/games/${name}.webp`, type: 'image/webp' }),
-      h('img', { src: `/media/games/${name}.jpg`, alt: '', loading: 'lazy', decoding: 'async' }),
+      h('source', { srcset: `/media/art/${name}.webp`, type: 'image/webp' }),
+      h('img', { src: `/media/art/${name}.jpg`, alt: '', loading: 'lazy', decoding: 'async' }),
     ),
     h('div', { class: 'sh-copy' }, content),
   );
@@ -140,7 +140,7 @@ export function sceneHero(name, content, { align = 'bottom', size = '', cls = ''
 // Without it a guest sits on a screen with nothing on it, waiting for something they
 // cannot see is coming.
 export function waitingFor(hostName, what) {
-  return sceneHero('waiting',
+  return sceneHero('room/waiting',
     h('p', { class: 'waiting-note' }, `⏳ ${hostName || 'The room owner'} ${what}`),
     { cls: 'waiting-wrap' });
 }
@@ -157,6 +157,17 @@ export function roomReactionBar(ctx) {
   );
 }
 
+// An ending photograph, shown clean. The art is the point of a finale screen, so it runs
+// edge to edge with nothing written across it and the headline takes its own space below.
+export function endArt(name, cls = 'hero-bleed') {
+  return h('div', { class: `gn-endart ${cls}` },
+    h('picture', { 'aria-hidden': 'true' },
+      h('source', { srcset: `/media/art/${name}.webp`, type: 'image/webp' }),
+      h('img', { src: `/media/art/${name}.jpg`, alt: '', decoding: 'async' }),
+    ),
+  );
+}
+
 // A reveal scene: the photograph is the story, so nothing is written across it. The art
 // runs clean, the role card lands tilted against its corner like a card tossed on the
 // table, and the words sit underneath in their own band, tinted by what just happened.
@@ -164,13 +175,13 @@ export function roomReactionBar(ctx) {
 //       | 'good' (the room got it right)
 //       | 'calm' (nothing happened)
 export function sceneReveal(art, {
-  tone = 'calm', card = null, mark = null, headline, sub = null, kicker = null, cls = '',
+  tone = 'calm', card = null, mark = null, headline, sub = null, kicker = null, seal = null, cls = '',
 } = {}) {
   return h('div', { class: `gn-reveal tone-${tone} ${cls}` },
     h('div', { class: 'gn-reveal-art' },
       h('picture', { class: 'gn-reveal-pic', 'aria-hidden': 'true' },
-        h('source', { srcset: `/media/games/${art}.webp`, type: 'image/webp' }),
-        h('img', { src: `/media/games/${art}.jpg`, alt: '', decoding: 'async' }),
+        h('source', { srcset: `/media/art/${art}.webp`, type: 'image/webp' }),
+        h('img', { src: `/media/art/${art}.jpg`, alt: '', decoding: 'async' }),
       ),
       card && h('div', { class: 'gn-reveal-card' },
         card,
@@ -180,6 +191,13 @@ export function sceneReveal(art, {
     h('div', { class: 'gn-reveal-copy' },
       kicker && h('div', { class: 'gn-reveal-kicker' }, kicker),
       h('p', { class: 'gn-reveal-line' }, headline),
+      // The one thing everybody leans in for. Always the same shape, always the same
+      // place: a stamped seal in capitals, so finding out what somebody was becomes
+      // muscle memory rather than a sentence to read.
+      seal && h('div', { class: 'gn-seal' },
+        h('span', { class: 'gn-seal-emoji' }, seal.emoji),
+        h('span', { class: 'gn-seal-word' }, String(seal.word).toUpperCase()),
+      ),
       sub && h('p', { class: 'gn-reveal-sub' }, sub),
     ),
   );

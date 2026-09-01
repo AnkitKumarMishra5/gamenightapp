@@ -495,7 +495,7 @@ function render() {
 // dropped you on a vote with "0 of 0 votes are in" and no control that did anything.
 function stalledEscape() {
   return h('div', { class: 'card stalled-card', 'data-overlay': 'stalled' },
-    sceneHero('reconnecting', [
+    sceneHero('room/reconnecting', [
       h('span', { class: 'sc-emoji' }, '🫥'),
       h('div', { class: 'sc-title' }, 'This round was abandoned'),
       h('div', { class: 'sc-sub' }, 'Everyone who was playing has gone. Nothing here can move forward.'),
@@ -1226,7 +1226,7 @@ function renderLobby() {
   );
 
   const parts = [
-    sceneHero('invite', [
+    sceneHero('room/invite', [
       h('div', { class: 'lobby-kicker' }, h('span', { class: 'pulse-dot' }), 'Lobby · live'),
       h('div', { class: 'lobby-count' },
         // Keyed by the count, so the number pops exactly when somebody walks in or out.

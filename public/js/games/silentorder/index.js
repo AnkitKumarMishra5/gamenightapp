@@ -8,7 +8,7 @@
 // then updated imperatively from snapshot deltas. One-shot moments (a mistake, a level
 // clear, the end of the run) are detected by comparing snapshot fields against markers
 // kept here, never from fx events, so they survive reconnects and missed packets.
-import { h, shake, animOnce, waitingFor, sceneFrame, sceneHero, scoringDetails } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, sceneFrame, sceneHero, scoringDetails, endArt } from '../../core/ui.js';
 import { cardTable, cardTableDuration, flingCard } from '../../core/cards.js';
 import { memes, playMeme } from '../../core/memes.js';
 import { confettiBurst, confettiRain } from '../../core/fx.js';
@@ -233,10 +233,10 @@ function dealingScreen(so, ctx) {
     // A level cleared without a burn is the only way to gain a life, so it gets the
     // taper catching a fresh wick — framed above the caption, not buried behind it.
     !dealMistake && clearedLevel >= 1 && h('div', { class: 'so-banner so-good so-moment' },
-      sceneFrame('life-earned', 'so-moment-art'),
+      sceneFrame('moments/life-earned', 'so-moment-art'),
       h('span', {}, `Level ${clearedLevel} cleared, a life earned. ${so.lives} now burning.`)),
     dealMistake && h('div', { class: 'so-banner so-bad so-moment' },
-      sceneFrame('life-lost', 'so-moment-art'),
+      sceneFrame('moments/life-lost', 'so-moment-art'),
       h('span', {}, `${dealMistake.by === ctx.me.id ? 'You' : ctx.player(dealMistake.by).name} played ${dealMistake.card}, ${dealMistake.burned.join(', ')} burned`)),
     table,
     handFan,
@@ -560,12 +560,7 @@ function overScreen(so, snap, ctx) {
     .sort((a, b) => (b.silentorder || 0) - (a.silentorder || 0));
 
   return h('div', { class: 'card win-screen so-over' },
-    h('div', { class: 'gn-endart hero-bleed' },
-      h('picture', { 'aria-hidden': 'true' },
-        h('source', { srcset: `/media/games/${so.won ? 'win-silentorder-held' : 'win-silentorder-broke'}.webp`, type: 'image/webp' }),
-        h('img', { src: `/media/games/${so.won ? 'win-silentorder-held' : 'win-silentorder-broke'}.jpg`, alt: '', decoding: 'async' }),
-      ),
-    ),
+    endArt(so.won ? 'endings/win-silentorder-held' : 'endings/win-silentorder-broke'),
     candleRow(so.won ? so.lives : 0),
     h('span', { class: 'ws-emoji' }, so.won ? '🏆' : '🌑'),
     h('h2', { class: so.won ? 'gradient-text' : '' },

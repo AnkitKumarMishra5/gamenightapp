@@ -14,7 +14,7 @@ import { rulesNode as sleeplessRules } from './sleepless/rules.js';
 export const GAMES = [
   {
     id: 'blendin',
-    art: '/media/games/blendin',
+    art: '/media/art/games/blendin',
     title: 'Blend In',
     emoji: '🕵️',
     accent: 'bi',
@@ -27,7 +27,7 @@ export const GAMES = [
   },
   {
     id: 'island',
-    art: '/media/games/island',
+    art: '/media/art/games/island',
     title: 'Island Rules',
     emoji: '🏝️',
     accent: 'island',
@@ -40,7 +40,7 @@ export const GAMES = [
   },
   {
     id: 'silentorder',
-    art: '/media/games/silentorder',
+    art: '/media/art/games/silentorder',
     title: 'Silent Order',
     emoji: '🕯️',
     accent: 'so',
@@ -53,7 +53,7 @@ export const GAMES = [
   },
   {
     id: 'swaporstay',
-    art: '/media/games/swaporstay',
+    art: '/media/art/games/swaporstay',
     title: 'Swap or Stay',
     emoji: '🃏',
     accent: 'ss',
@@ -66,7 +66,7 @@ export const GAMES = [
   },
   {
     id: 'sleepless',
-    art: '/media/games/sleepless',
+    art: '/media/art/games/sleepless',
     title: 'Sleepless',
     emoji: '🌙',
     accent: 'sl',

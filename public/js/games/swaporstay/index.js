@@ -4,7 +4,7 @@
 // Everything that changes within a round — the turn arrow, the hearts, the control bar,
 // the flying cards — is driven imperatively off snapshot deltas, so it all still works
 // after a reconnect, where transient fx events would be long gone.
-import { h, shake, waitingFor, sceneHero, scoringDetails } from '../../core/ui.js';
+import { h, shake, waitingFor, sceneHero, scoringDetails, endArt } from '../../core/ui.js';
 import { cardTable, setTurn, setDeckLabel, setDeckPickable } from '../../core/cards.js';
 import { playMeme } from '../../core/memes.js';
 import { confettiRain } from '../../core/fx.js';
@@ -346,8 +346,8 @@ function animateAction(api, act, ctx) {
     setTimeout(() => playMeme('dun'), 320);
     const slam = h('div', { class: 'ss-slam', 'aria-hidden': 'true' },
       h('picture', { class: 'ss-slam-art' },
-        h('source', { srcset: '/media/games/sentinel.webp', type: 'image/webp' }),
-        h('img', { src: '/media/games/sentinel.jpg', alt: '' })),
+        h('source', { srcset: '/media/art/sentinel.webp', type: 'image/webp' }),
+        h('img', { src: '/media/art/sentinel.jpg', alt: '' })),
       h('span', { class: 'ss-slam-shield' }, '🛡️'),
       h('span', { class: 'ss-slam-text' }, 'DENIED'),
     );
@@ -597,7 +597,7 @@ function enterOnce(api, el, tag) {
 function updateDock(api, ss, ctx) {
   // While the reveal is playing out, the dock holds its breath with everyone else.
   if (api.revealBusy) {
-    api.dock.replaceChildren(sceneHero('ss-reveal',
+    api.dock.replaceChildren(sceneHero('moments/ss-reveal',
       h('p', { class: 'ss-note' }, '👀 Cards up…'), { size: 'sm' }));
     return;
   }
@@ -695,7 +695,7 @@ function resultCard(api, ss, ctx) {
     // withdrawing-hand image, in its fade, the same hero language as everywhere else.
     ss.spared
       ? h('p', { class: 'ss-verdict' }, verdict)
-      : sceneHero('heart-lost',
+      : sceneHero('moments/heart-lost',
           h('p', { class: 'ss-verdict', style: 'margin:0' }, verdict),
           { cls: 'hero-bleed' }),
     ctx.isHost
@@ -718,12 +718,7 @@ function winnerCard(ss, ctx) {
   return h('div', { class: 'ss-winner card' },
     // The one ending screen in the app that had no art at all: the last hand still
     // holding a card, with everyone else's seat abandoned around it.
-    h('div', { class: 'gn-endart hero-bleed' },
-      h('picture', { 'aria-hidden': 'true' },
-        h('source', { srcset: `/media/games/${'win-swaporstay-last'}.webp`, type: 'image/webp' }),
-        h('img', { src: `/media/games/${'win-swaporstay-last'}.jpg`, alt: '', decoding: 'async' }),
-      ),
-    ),
+    endArt('endings/win-swaporstay-last'),
     h('span', { class: 'ss-win-emoji' }, '🏆'),
     h('h2', { class: 'ss-win-title' },
       winner ? `${winner.avatar} ${winner.name} wins!` : 'Nobody survived the deck!'),

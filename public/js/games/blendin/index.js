@@ -1,6 +1,6 @@
 // Blend In screen rendering. Receives the personalized room snapshot and a ctx
 // with { emit, me, isHost, player(id) } from main.js.
-import { h, shake, animOnce, waitingFor, aiThinking, sceneHero, scoringDetails } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, aiThinking, sceneHero, scoringDetails, endArt } from '../../core/ui.js';
 
 const REACTIONS = ['😂', '🤔', '😱', '🧐', '🔥', '💀', '😭'];
 // How long the reaction palette stays reachable after the pointer leaves it.
@@ -13,7 +13,7 @@ const openDrawers = new Set();
 const ROLE_LABEL = { insider: 'Insider', outsider: 'Outsider', blank: 'Blank' };
 // Who the vote actually removed decides which reveal the room sees. Every role the
 // dealer can assign has an entry, so there is no fallback to keep in step.
-const OUT_ART = { insider: 'out-insider', outsider: 'out-outsider', blank: 'out-blank' };
+const OUT_ART = { insider: 'moments/out-insider', outsider: 'moments/out-outsider', blank: 'moments/out-blank' };
 const ROLE_EMOJI = { insider: '😇', outsider: '🕵️', blank: '🃏' };
 
 export function renderBlendIn(snap, ctx) {
@@ -310,7 +310,7 @@ function describeBar(bi, ctx) {
   }
   return h('div', { class: 'action-bar' },
     h('div', { class: 'card' },
-      sceneHero('clue',
+      sceneHero('moments/clue',
         h('div', { class: 'sh-title' }, p ? `🎤 ${p.avatar} ${p.name} is thinking of a clue…` : '…'),
         { size: 'sm', cls: 'hero-bleed' }),
       ctx.isHost && p && !p.connected && h('button', {
@@ -335,7 +335,7 @@ function skipToVoteButton(bi, ctx) {
 function discussionBar(bi, ctx) {
   return h('div', { class: 'action-bar' },
     h('div', { class: 'card', style: 'text-align:center' },
-      sceneHero('discussion',
+      sceneHero('moments/discussion',
         h('div', { class: 'sh-title' }, '🗣️ Everyone has spoken, discuss! Who sounds suspicious?'),
         { size: 'sm', cls: 'hero-bleed' }),
       ctx.isHost
@@ -359,7 +359,7 @@ function votePhase(bi, ctx) {
   const target = pendingVote ? ctx.player(pendingVote) : null;
 
   return h('div', { class: 'card' },
-    sceneHero('vote', [
+    sceneHero('moments/vote', [
       h('h2', { class: 'subtitle' },
         isRunoff ? '⚖️ Tie-breaker! Vote between the tied players' : '🗳️ Who is the impostor?'),
       isRunoff && h('p', { class: 'hint', style: 'color:var(--amber); margin:4px 0 0' },
@@ -417,7 +417,7 @@ function blankGuessPhase(bi, ctx) {
     };
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
     return h('div', { class: 'card', style: 'text-align:center' },
-      sceneHero('blank-guess', [
+      sceneHero('moments/blank-guess', [
         h('span', { class: 'rp-avatar' }, '🎩'),
         h('h2', { class: 'subtitle', style: 'margin-top:6px' }, 'Caught! One shot left.'),
         h('p', { class: 'hint', style: 'margin:4px 0 0' }, 'One last power move: guess the insiders\' word to steal the win!'),
@@ -426,7 +426,7 @@ function blankGuessPhase(bi, ctx) {
     );
   }
   return h('div', { class: 'card', style: 'text-align:center' },
-    sceneHero('blank-guess', [
+    sceneHero('moments/blank-guess', [
       h('span', { class: 'rp-avatar' }, blankP.avatar),
       h('div', {}, h('b', {}, blankP.name), ' was… ', h('span', { class: 'rp-role blank' }, '🃏 the Blank')),
       h('p', { class: 'rp-quip', style: 'margin-top:6px' }, 'Hold your breath. The Blank gets one guess at the secret word. 😱'),
@@ -447,7 +447,7 @@ function blankGuessPhase(bi, ctx) {
 function revealHero(bi, ctx) {
   const r = bi.lastResult;
   if (!r || r.type === 'none') {
-    return sceneHero('tie', [
+    return sceneHero('moments/tie', [
       h('span', { class: 'rp-avatar' }, '🤷'),
       h('h2', { class: 'subtitle', style: 'margin-top:6px' }, 'Nobody was eliminated!'),
       h('p', { class: 'rp-quip', style: 'margin-top:4px' }, r?.quip || 'The vote tied twice, suspicion carries to the next round.'),
@@ -506,12 +506,7 @@ function gameOver(bi, snap, ctx) {
       revealHero(bi, ctx),
     ),
     h('div', { class: `card win-screen ${endedOnVote ? 'bi-after-reveal' : ''}` },
-    h('div', { class: 'gn-endart hero-bleed' },
-      h('picture', { 'aria-hidden': 'true' },
-        h('source', { srcset: `/media/games/${civWin ? 'win-together' : 'win-alone'}.webp`, type: 'image/webp' }),
-        h('img', { src: `/media/games/${civWin ? 'win-together' : 'win-alone'}.jpg`, alt: '', decoding: 'async' }),
-      ),
-    ),
+    endArt(civWin ? 'endings/win-blendin-insiders' : 'endings/win-blendin-outsiders'),
     h('span', { class: 'ws-emoji' }, civWin ? '😇' : '🕵️'),
     h('h2', { class: civWin ? '' : 'gradient-text' }, civWin ? 'Insiders win!' : 'Outsiders win!'),
     h('p', { class: 'ws-reason' }, bi.winReason),
