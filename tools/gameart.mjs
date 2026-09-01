@@ -30,8 +30,8 @@ const ART = {
   sleepless: 'sleepless',
   // Shared scenes, used by whichever screen needs them.
   'empty-lobby': 'lobby',
-  'village-wins': 'win-together',
-  'hidden-player-wins': 'win-alone',
+  'win-together': 'win-together',
+  'win-alone': 'win-alone',
   'night-falls': 'night',
   'vote-out': 'vote',
   eliminated: 'eliminated',
