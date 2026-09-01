@@ -755,7 +755,8 @@ export function peekCard({ face, hidden = '', hint = 'Hold to look', onPeek } = 
   wireCardGestures(btn, inner, {
     live: () => true,
     onPeek,
-    onTurn: (on) => { label.textContent = on ? face : hint; },
+    // A face can be a DOM node (a photo card); only string faces belong in the caption.
+    onTurn: (on) => { label.textContent = on && typeof face === 'string' ? face : hint; },
   });
 
   return btn;

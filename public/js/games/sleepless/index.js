@@ -47,6 +47,20 @@ let nightTarget = null;      // Prowler/Medic tap target, before it is sent
 
 function roundKey(sl) { return `${sl.dealId}:${sl.round}`; }
 
+// The role card faces: hyper-real portraits from source-assets, one per role, with the
+// role emoji as a small corner chip so the icon language stays consistent everywhere.
+const ROLE_ART = { prowler: 'role-prowler', medic: 'role-medic', sleeper: 'role-sleeper' };
+function roleFace(roleId, { chip = true } = {}) {
+  if (!ROLE_ART[roleId]) return null;
+  return h('div', { class: 'sl-roleface' },
+    h('picture', {},
+      h('source', { srcset: `/media/games/${ROLE_ART[roleId]}.webp`, type: 'image/webp' }),
+      h('img', { src: `/media/games/${ROLE_ART[roleId]}.jpg`, alt: '', decoding: 'async' }),
+    ),
+    chip && h('span', { class: 'sl-roleface-chip' }, ROLES[roleId].emoji),
+  );
+}
+
 // A new round (or a new deal) invalidates every choice the player was mid-way through.
 function resetRoundState(sl) {
   if (seen.round === roundKey(sl)) return;
@@ -173,7 +187,7 @@ function openRoleModal(sl, ctx) {
   const r = ROLES[sl.you.role];
   openModal(h('div', { class: 'sl-role-modal' },
     h('div', { class: 'modal-title' }, '🤫 Between you and the night'),
-    peekCard({ face: r.emoji, hint: 'Hold to look' }),
+    peekCard({ face: roleFace(sl.you.role), hint: 'Hold to look' }),
     h('p', { class: 'sl-role-word' }, `You are the ${r.word}`),
     h('p', { class: 'hint', style: 'text-align:center' }, r.blurb),
     h('button', { class: 'btn btn-ghost btn-block', style: 'margin-top:12px', onClick: closeModal }, 'Tuck it away'),
@@ -244,7 +258,7 @@ function dealingPhase(sl, ctx) {
   const table = cardTable({
     seats,
     myId: ctx.me.id,
-    myFace: role ? role.emoji : null,
+    myFace: role ? roleFace(sl.you.role) : null,
     myLabel: role ? `You are the ${role.word}` : 'You joined mid-game',
     caption: sl.startQuip || 'Shuffling the roles…',
     peekMs: 6000,
@@ -412,7 +426,7 @@ function dawnBanner(sl, ctx) {
         h('div', { class: 'sl-dawn-head' }, '🌅 Dawn'),
         h('div', { class: `sl-flip ${animOnce(`sl-dawnflip:${sl.dealId}:${d.seq}`, 'sl-flipping')}` },
           h('div', { class: 'sl-flip-face sl-flip-front' }, p.avatar),
-          h('div', { class: 'sl-flip-face sl-flip-back' }, r.emoji),
+          h('div', { class: 'sl-flip-face sl-flip-back' }, roleFace(d.role) || r.emoji),
         ),
         h('p', { class: 'sl-dawn-line' },
           h('b', {}, p.name), ` did not wake up — they were the ${r.word} ${r.emoji}`),
@@ -502,7 +516,7 @@ function verdictPhase(sl, ctx) {
     ? sceneHero(v.role === 'prowler' ? 'out-prowler' : 'out-innocent', [
         h('div', { class: `sl-flip ${animOnce(`sl-verdictflip:${roundKey(sl)}`, 'sl-flipping')}` },
           h('div', { class: 'sl-flip-face sl-flip-front' }, out.avatar),
-          h('div', { class: 'sl-flip-face sl-flip-back' }, role.emoji),
+          h('div', { class: 'sl-flip-face sl-flip-back' }, roleFace(v.role) || role.emoji),
         ),
         h('p', { class: 'sl-dawn-line' },
           h('b', {}, out.name), ` was sent to bed early — they were the ${role.word} ${role.emoji}`),
@@ -571,6 +585,7 @@ function gameOver(sl, ctx, rules) {
           class: `role-line ${animOnce(`sl-role:${sl.dealId}:${p.id}`, 'anim-slide')}`,
           style: `animation-delay:${i * 50}ms`,
         },
+          role && h('span', { class: 'sl-mini-card' }, roleFace(role, { chip: false })),
           h('span', {}, info.avatar),
           h('span', { class: 'rl-name' }, info.name, p.left ? ' (left)' : (!p.alive ? ' 💀' : '')),
           role && h('span', { class: `sl-role-tag sl-role-${role}` }, `${ROLES[role].emoji} ${ROLES[role].word}`),

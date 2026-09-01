@@ -62,6 +62,11 @@ const ART = {
   // The rest.
   'pattern-written': 'pattern-written',
   'swap-or-stay-reveal': 'ss-reveal',
+  // Sleepless role cards — portrait faces for the dealt card, the reveals and the
+  // end-of-game roster minis.
+  prowler: 'role-prowler',
+  medic: 'role-medic',
+  sleeper: 'role-sleeper',
   // Island's core loop, and the rest.
   'island-item-accepted': 'item-yes',
   'island-item-rejected': 'item-no',
