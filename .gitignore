@@ -16,3 +16,8 @@ npm-debug.log*
 .claude/
 .vscode/
 .idea/
+
+# Local-only dev scratch (scenario browser, throwaway harnesses)
+public/__dev/
+public/__*.html
+public/__*.js

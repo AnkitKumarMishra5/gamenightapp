@@ -217,16 +217,6 @@ function ogFor(req) {
   };
 }
 
-// Dev-only scenario browser: every dramatic screen rendered from a fixed snapshot, so a
-// reveal can be looked at without playing a whole game to reach it. Never mounted in
-// production, and it lives in tools/ rather than public/ so it cannot ship by accident.
-if (process.env.NODE_ENV !== 'production') {
-  const DEV_DIR = path.join(__dirname, '..', 'tools', 'dev');
-  app.get('/dev/scenarios', (_req, res) => res.sendFile(path.join(DEV_DIR, 'scenarios.html')));
-  app.get('/dev/scenarios.js', (_req, res) => res.type('application/javascript')
-    .sendFile(path.join(DEV_DIR, 'scenarios.js')));
-}
-
 app.get(['/', '/index.html'], (req, res) => {
   // No visit is logged here on purpose. The page reports itself a moment later via
   // /api/hello, carrying the browser id that makes one person one row instead of two.
