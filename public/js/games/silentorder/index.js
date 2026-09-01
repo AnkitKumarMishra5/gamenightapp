@@ -150,7 +150,7 @@ function dealingScreen(so, ctx) {
         h('div', { class: 'so-level-pill' }, `Level ${so.level} of ${so.maxLevel}`),
       ),
       h('div', { class: 'card', style: 'text-align:center' },
-        sceneFrame(dealMistake ? 'life-lost' : (clearedLevel >= 1 ? 'life-earned' : 'shuffling')),
+        sceneFrame(dealMistake ? 'moments/life-lost' : (clearedLevel >= 1 ? 'moments/life-earned' : 'moments/shuffling')),
         h('p', { class: 'so-quip', style: 'margin-top:10px' }, `Level ${so.level} is being dealt…`),
         h('p', { class: 'hint' }, 'You joined mid-run. You\'ll be dealt in next run!'),
       ),

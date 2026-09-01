@@ -1240,8 +1240,11 @@ function renderLobby() {
       }, '📤 Invite friends'),
     ], { align: 'left', cls: 'lobby-hero' }),
     h('div', { class: 'card' },
-      sceneHero(connectedCount > 1 ? 'joined' : 'lobby', [
-        h('h2', { class: 'subtitle' }, '👥 Players'),
+      sceneHero(connectedCount > 1 ? 'room/joined' : 'room/lobby', [
+        h('div', { class: 'sh-head' },
+          h('div', { class: 'sh-eyebrow' }, 'The table'),
+          h('h2', { class: 'sh-name' }, 'Players'),
+        ),
         h('p', { class: 'hint', style: 'margin:4px 0 0' },
           isHost ? 'You\'re the room owner 👑. Pick a game below and start when everyone\'s in.' : `Waiting in the lobby, ${c.player(snap.hostId).name} picks the game.`),
       ], { cls: 'hero-bleed' }),

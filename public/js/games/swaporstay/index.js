@@ -606,7 +606,7 @@ function updateDock(api, ss, ctx) {
 
   const lastTwo = ss.aliveIds.length === 2;
   if (ss.phase === 'dealing') {
-    content = sceneHero(lastTwo ? 'lasttwo' : 'shuffling', youPlay
+    content = sceneHero(lastTwo ? 'moments/lasttwo' : 'moments/shuffling', youPlay
       ? h('p', { class: 'ss-note' }, ss.youReady
           ? `Waiting for the table… (${ss.readyCount}/${ss.aliveIds.length})`
           : 'The cards are going out. Sneak a look at yours!')

@@ -162,10 +162,10 @@
 }
 /* End-of-game roster: the role's card, small and slightly tilted, beside the name. */
 .sl-mini-card {
-  position: relative; width: 34px; aspect-ratio: 5 / 7; flex: none;
-  border-radius: 5px; overflow: hidden; margin-right: 2px;
-  border: 1.5px solid rgba(212, 175, 55, 0.6); transform: rotate(-7deg);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+  position: relative; width: 54px; aspect-ratio: 5 / 7; flex: none;
+  border-radius: 8px; overflow: hidden; margin-right: 6px;
+  border: 1.5px solid rgba(212, 175, 55, 0.65); transform: rotate(-6deg);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.6);
 }
 /* At thumbnail size a candle-lit portrait is mostly shadow, so the crop sits on the
    subject and the exposure is lifted — otherwise all three read as identical dark
@@ -236,7 +236,6 @@
 .sl-verdict-hero { text-align: center; margin-top: 8px; }
 /* Game over reached by a vote: the catch is announced first, then the winner arrives a
    beat later so the two reveals read as a sequence rather than one crowded screen. */
-.sl-final-verdict { text-align: center; }
 
 .sl-vote-reveal { display: grid; gap: 6px; margin-top: 16px; }
 .sl-vote-row {
