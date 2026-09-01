@@ -117,13 +117,6 @@
 .sl-dawn-line { margin-top: 10px; font-size: 16px; }
 .sl-saved-mark { font-size: 44px; margin-top: 10px; }
 
-/* Rise-in for the morning's news. */
-.sl-rise { animation: sl-rise 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
-@keyframes sl-rise {
-  from { opacity: 0; transform: translateY(14px) scale(0.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
 /* ---------- the role flip ----------
    The victim's avatar turns over into their role card. The resting pose is already
    turned (back face up), so a mid-flight re-render lands on the answer, never back on
@@ -233,7 +226,6 @@
 }
 
 /* ---------- verdict ---------- */
-.sl-verdict-hero { text-align: center; margin-top: 8px; }
 /* Game over reached by a vote: the catch is announced first, then the winner arrives a
    beat later so the two reveals read as a sequence rather than one crowded screen. */
 
@@ -293,7 +285,7 @@
 @media (prefers-reduced-motion: reduce) {
   .sl-star, .sl-dots i { animation: none; opacity: 0.7; }
   .sl-moonrise .sl-moon, .sl-dawnfx.sl-sweep, .sl-redveil.sl-veil-in,
-  .sl-flip.sl-flipping, .sl-rise, .sl-vote-row { animation: none; }
+  .sl-flip.sl-flipping, .sl-vote-row { animation: none; }
   .sl-dawnfx { opacity: 0; }
   .sl-redveil { opacity: 1; }
   .sl-progress-fill { transition: none; }

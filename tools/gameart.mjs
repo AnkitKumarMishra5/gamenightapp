@@ -30,8 +30,6 @@ const ART = {
   sleepless: 'sleepless',
   // Shared scenes, used by whichever screen needs them.
   'empty-lobby': 'lobby',
-  'win-together': 'win-together',
-  'win-alone': 'win-alone',
   'night-falls': 'night',
   'vote-out': 'vote',
   eliminated: 'eliminated',
@@ -61,8 +59,8 @@ const ART = {
   // The rest.
   'pattern-written': 'pattern-written',
   'swap-or-stay-reveal': 'ss-reveal',
-  // Per-game ending art: each game's finale is its own moment, so only the games
-  // without bespoke art fall back to win-together / win-alone.
+  // Per-game ending art: every game's finale is its own moment, so there is no
+  // shared fallback left to keep.
   'win-sleepless-village': 'win-sleepless-village',
   'win-sleepless-prowler': 'win-sleepless-prowler',
   'win-silentorder-held': 'win-silentorder-held',
@@ -127,14 +125,12 @@ const GROUP = {
   'tie': 'moments',
   'vote': 'moments',
   'waiting': 'room',
-  'win-alone': 'endings',
   'win-island-cracked': 'endings',
   'win-silentorder-broke': 'endings',
   'win-silentorder-held': 'endings',
   'win-sleepless-prowler': 'endings',
   'win-sleepless-village': 'endings',
   'win-swaporstay-last': 'endings',
-  'win-together': 'endings',
   'win-blendin-insiders': 'endings',
   'win-blendin-outsiders': 'endings',
   'win-blendin-blank': 'endings',

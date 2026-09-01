@@ -198,7 +198,6 @@ button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 h1.title, h2.subtitle { font-family: var(--display); }
 h1.title { font-size: clamp(30px, 7vw, 42px); font-weight: 800; line-height: 1.08; letter-spacing: -0.02em; }
 h2.subtitle { font-size: clamp(19px, 4.6vw, 24px); font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; }
-.gradient-text { background: var(--grad-brand); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 .badge {
   display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px;
@@ -332,7 +331,7 @@ h2.subtitle { font-size: clamp(19px, 4.6vw, 24px); font-weight: 800; letter-spac
 .game-card.selected-ss { border-color: var(--amber); box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.4), 0 14px 40px rgba(251, 191, 36, 0.18); }
 .game-card.selected-sl { border-color: #818cf8; box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.4), 0 14px 40px rgba(129, 140, 248, 0.18); }
 .game-card .gc-emoji { font-size: 38px; }
-.game-card h3 { font-size: 19px; font-weight: 800; margin: 10px 0 4px; }
+.game-card h3 { font-family: var(--display); font-size: 19px; font-weight: 800; letter-spacing: -0.01em; margin: 10px 0 4px; }
 .game-card p { font-size: 13.5px; color: var(--ink-dim); line-height: 1.5; }
 .game-card .gc-meta { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
 .game-card .gc-glow { position: absolute; inset: -40%; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
@@ -435,22 +434,10 @@ h2.subtitle { font-size: clamp(19px, 4.6vw, 24px); font-weight: 800; letter-spac
 .starter-banner .sb-items { font-size: 19px; font-weight: 800; color: #86efac; }
 
 /* ---------- result overlays ---------- */
-.reveal-pop { text-align: center; padding: 10px 0; }
-.reveal-pop .rp-avatar { font-size: 64px; display: inline-block; animation: drop-bounce 0.7s cubic-bezier(0.3, 1.6, 0.4, 1); }
-.reveal-pop .rp-role {
-  display: inline-block; margin-top: 12px; padding: 8px 20px; border-radius: 999px; font-weight: 800; font-size: 15px;
-  letter-spacing: 1px; text-transform: uppercase; animation: pop-in 0.5s 0.25s cubic-bezier(0.2, 1.5, 0.4, 1) backwards;
-}
-.rp-role.insider { background: rgba(52, 211, 153, 0.18); color: #86efac; border: 1px solid rgba(52, 211, 153, 0.45); }
-.rp-role.outsider { background: rgba(244, 114, 182, 0.16); color: #f9a8d4; border: 1px solid rgba(244, 114, 182, 0.5); }
-.rp-role.blank { background: rgba(255, 255, 255, 0.9); color: #111; }
-.reveal-pop .rp-quip { margin-top: 12px; color: var(--ink-dim); font-size: 14.5px; }
-@keyframes drop-bounce { 0% { transform: translateY(-60px) scale(0.6); opacity: 0; } 60% { transform: translateY(6px) scale(1.05); opacity: 1; } 100% { transform: none; } }
+.rp-quip { margin-top: 12px; color: var(--ink-dim); font-size: 14.5px; }
 
-.win-screen { text-align: center; padding: 8px var(--card-pad); }
-.win-screen .ws-emoji { font-size: 72px; display: inline-block; animation: drop-bounce 0.8s cubic-bezier(0.3, 1.6, 0.4, 1); }
+.win-screen { padding: 8px var(--card-pad); }
 .win-screen h2 { font-family: var(--display); font-size: clamp(28px, 7.4vw, 40px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.08; margin-top: 8px; }
-.win-screen .ws-reason { color: var(--ink-dim); margin-top: 6px; font-size: 15px; }
 
 .role-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; text-align: left; }
 .role-line { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; background: var(--glass); border: 1px solid var(--stroke); animation: slide-in-left 0.3s ease backwards; }
@@ -497,7 +484,9 @@ h2.subtitle { font-size: clamp(19px, 4.6vw, 24px); font-weight: 800; letter-spac
 .rules-body h4 { margin: 18px 0 6px; font-size: 15.5px; color: var(--ink); display: flex; align-items: center; gap: 8px; }
 .rules-body ul { padding-left: 20px; margin: 6px 0; }
 .rules-body li { margin: 5px 0; }
-.rules-body .example { padding: 12px 14px; border-radius: 12px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); margin: 10px 0; font-size: 14px; }
+/* Not scoped to the rules sheet: Island's game over shows the pattern in one of these
+   too, and there it was rendering as bare text with no box at all. */
+.example { padding: 12px 14px; border-radius: 12px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); margin: 10px 0; font-size: 14px; }
 .rules-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
 .rules-tab { flex: 1; padding: 10px; border-radius: 12px; font-weight: 700; font-size: 14px; background: var(--glass); border: 1px solid var(--stroke); transition: all 0.2s; }
 .rules-tab.active { background: rgba(139, 92, 246, 0.22); border-color: var(--violet); }
@@ -1343,7 +1332,7 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 }
 .score-how summary {
   cursor: pointer; font-weight: 700; font-size: 13.5px; color: var(--ink-dim);
-  list-style: none; text-align: center;
+  list-style: none;
 }
 .score-how summary::-webkit-details-marker { display: none; }
 .score-how[open] summary { color: var(--ink); margin-bottom: 4px; }
@@ -2230,7 +2219,21 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 .bi-reveal-row .rl-av { font-size: 20px; line-height: 1; }
 .bi-reveal-row .rl-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
 .bi-reveal-row .rl-name { font-weight: 700; }
-.bi-reveal-row .rl-word { font-size: 12.5px; color: var(--ink-faint); }
+.bi-reveal-row .rl-word {
+  align-self: flex-start; display: inline-flex; align-items: baseline; gap: 7px;
+  margin-top: 3px; padding: 3px 11px 4px 9px; border-radius: 999px;
+  background: var(--glass-2); border: 1px solid var(--stroke);
+}
+.bi-reveal-row .rl-word-label {
+  font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+.bi-reveal-row .rl-word b { font-family: var(--display); font-weight: 800; font-size: 14.5px; color: var(--ink); }
+/* The Blank never had a word, so there is nothing to put in a chip. */
+.bi-reveal-row .rl-word.none {
+  border: 0; background: none; padding: 0; margin-top: 2px;
+  font-size: 12.5px; color: var(--ink-faint);
+}
 .bi-reveal-row .rl-tail { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; margin-left: auto; }
 .bi-reveal-row .rl-pts {
   font-size: 12.5px; font-weight: 700; color: var(--ink-dim);
@@ -2330,7 +2333,6 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
    through the hero treatment now — see .scene-hero below. */
 
 /* Reveal and verdict heroes need room for the art band behind them. */
-.reveal-pop.has-art, .sl-verdict-hero.has-art { position: relative; overflow: hidden; border-radius: var(--r-md); padding: 16px 14px; }
 
 /* The packing list's two columns each carry their own side of the boat's rail, so the
    rule reads as a boundary even before you work out what it is. */
@@ -2438,7 +2440,6 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
    winner card arrives a beat later so the pair reads as a sequence, not one crowded
    screen. Shared by Blend In and Sleepless, so the keyframe lives here rather than in
    either game's sheet. */
-.bi-final-reveal { text-align: center; }
 @keyframes gn-stage-in {
   from { opacity: 0; transform: translateY(14px) scale(0.97); }
   to { opacity: 1; transform: none; }
@@ -2511,6 +2512,7 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 .gn-reveal.tone-grim { --tone: var(--red); }
 .gn-reveal.tone-good { --tone: var(--emerald); }
 .gn-reveal.tone-calm { --tone: var(--amber); }
+.gn-reveal.no-card .gn-reveal-copy { padding-top: 18px; }
 .gn-reveal.tone-grim { background: rgba(248, 113, 113, 0.05); }
 .gn-reveal.tone-good { background: rgba(52, 211, 153, 0.05); }
 
@@ -2557,6 +2559,35 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 @media (prefers-reduced-motion: no-preference) {
   .gn-seal { animation: gn-seal-stamp 0.5s cubic-bezier(0.3, 1.5, 0.4, 1) 0.35s both; }
 }
+/* The entrance a reveal makes: it rises into place rather than appearing. Shared by
+   every game that mounts .gn-reveal. */
+.gn-rise { animation: gn-rise 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+@keyframes gn-rise {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) { .gn-rise { animation: none; } }
+
+/* ---------- the finale header ----------
+   One shape for every ending: eyebrow, title, seal, reason, quip. The seal lands in the
+   same place here as on the reveal screens, which is the whole point — the room looks
+   at one spot to find out how it went. */
+.gn-win { margin-top: 12px; }
+.gn-win-kicker {
+  font-family: var(--display); font-weight: 800; font-size: 11.5px;
+  letter-spacing: 0.22em; text-transform: uppercase; color: var(--tone, var(--ink-dim));
+}
+.gn-win-title {
+  font-family: var(--display); font-weight: 800; letter-spacing: -0.02em;
+  font-size: clamp(28px, 7.4vw, 40px); line-height: 1.06; margin-top: 4px; color: var(--ink);
+}
+.gn-win .gn-seal { margin-top: 10px; }
+.gn-win-reason { color: var(--ink-dim); margin-top: 10px; font-size: 15px; line-height: 1.5; }
+.gn-win-quip { margin-top: 6px; font-size: 15px; font-weight: 700; color: var(--ink); }
+.gn-win.tone-good { --tone: var(--emerald); }
+.gn-win.tone-grim { --tone: var(--red); }
+.gn-win.tone-calm { --tone: var(--amber); }
+
 @keyframes gn-seal-stamp {
   from { opacity: 0; transform: scale(1.5) rotate(-6deg); }
   to { opacity: 1; transform: none; }

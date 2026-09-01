@@ -177,7 +177,7 @@ export function endArt(name, cls = 'hero-bleed') {
 export function sceneReveal(art, {
   tone = 'calm', card = null, mark = null, headline, sub = null, kicker = null, seal = null, cls = '',
 } = {}) {
-  return h('div', { class: `gn-reveal tone-${tone} ${cls}` },
+  return h('div', { class: `gn-reveal tone-${tone}${card ? '' : ' no-card'} ${cls}` },
     h('div', { class: 'gn-reveal-art' },
       h('picture', { class: 'gn-reveal-pic', 'aria-hidden': 'true' },
         h('source', { srcset: `/media/art/${art}.webp`, type: 'image/webp' }),
@@ -200,6 +200,23 @@ export function sceneReveal(art, {
       ),
       sub && h('p', { class: 'gn-reveal-sub' }, sub),
     ),
+  );
+}
+
+// The finale header. Every game ends in the same shape: a tracked eyebrow, the headline
+// in the display face, then the outcome stamped in capitals — the same seal the reveal
+// screens use, so "did we win?" is answered in the same place on every ending screen.
+// The art above carries the picture, so nothing here is a giant floating emoji.
+export function winHeader({ tone = 'good', kicker = null, title, seal = null, reason = null, quip = null }) {
+  return h('div', { class: `gn-win tone-${tone}` },
+    kicker && h('div', { class: 'gn-win-kicker' }, kicker),
+    h('h2', { class: 'gn-win-title' }, title),
+    seal && h('div', { class: 'gn-seal' },
+      h('span', { class: 'gn-seal-emoji' }, seal.emoji),
+      h('span', { class: 'gn-seal-word' }, String(seal.word).toUpperCase()),
+    ),
+    reason && h('p', { class: 'gn-win-reason' }, reason),
+    quip && h('p', { class: 'gn-win-quip' }, quip),
   );
 }
 

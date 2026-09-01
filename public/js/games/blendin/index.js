@@ -1,6 +1,6 @@
 // Blend In screen rendering. Receives the personalized room snapshot and a ctx
 // with { emit, me, isHost, player(id) } from main.js.
-import { h, shake, animOnce, waitingFor, aiThinking, sceneHero, scoringDetails, endArt } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, aiThinking, sceneHero, sceneReveal, scoringDetails, endArt, winHeader } from '../../core/ui.js';
 
 const REACTIONS = ['😂', '🤔', '😱', '🧐', '🔥', '💀', '😭'];
 // How long the reaction palette stays reachable after the pointer leaves it.
@@ -311,7 +311,7 @@ function describeBar(bi, ctx) {
   return h('div', { class: 'action-bar' },
     h('div', { class: 'card' },
       sceneHero('moments/clue',
-        h('div', { class: 'sh-title' }, p ? `🎤 ${p.avatar} ${p.name} is thinking of a clue…` : '…'),
+        h('div', { class: 'sh-title' }, p ? `${p.avatar} ${p.name} is thinking of a clue…` : '…'),
         { size: 'sm', cls: 'hero-bleed' }),
       ctx.isHost && p && !p.connected && h('button', {
         class: 'btn btn-ghost btn-sm btn-block', style: 'margin-top:10px',
@@ -336,7 +336,7 @@ function discussionBar(bi, ctx) {
   return h('div', { class: 'action-bar' },
     h('div', { class: 'card', style: 'text-align:center' },
       sceneHero('moments/discussion',
-        h('div', { class: 'sh-title' }, '🗣️ Everyone has spoken, discuss! Who sounds suspicious?'),
+        h('div', { class: 'sh-title' }, 'Everyone has spoken, discuss! Who sounds suspicious?'),
         { size: 'sm', cls: 'hero-bleed' }),
       ctx.isHost
         ? h('button', { class: 'btn btn-bi btn-lg btn-block', onClick: () => ctx.emit('bi:startVote') }, '🗳️ Start the vote')
@@ -361,7 +361,7 @@ function votePhase(bi, ctx) {
   return h('div', { class: 'card' },
     sceneHero('moments/vote', [
       h('h2', { class: 'subtitle' },
-        isRunoff ? '⚖️ Tie-breaker! Vote between the tied players' : '🗳️ Who is the impostor?'),
+        isRunoff ? 'Tie-breaker! Vote between the tied players' : 'Who is the impostor?'),
       isRunoff && h('p', { class: 'hint', style: 'color:var(--amber); margin:4px 0 0' },
         '⚠️ Last chance: if this vote ties again, the outsiders win on the spot.'),
       h('p', { class: 'hint', style: 'margin:4px 0 0' },
@@ -418,19 +418,23 @@ function blankGuessPhase(bi, ctx) {
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
     return h('div', { class: 'card', style: 'text-align:center' },
       sceneHero('moments/blank-guess', [
-        h('span', { class: 'rp-avatar' }, '🎩'),
-        h('h2', { class: 'subtitle', style: 'margin-top:6px' }, 'Caught! One shot left.'),
-        h('p', { class: 'hint', style: 'margin:4px 0 0' }, 'One last power move: guess the insiders\' word to steal the win!'),
+        h('div', { class: 'sh-head' },
+          h('div', { class: 'sh-eyebrow' }, 'One shot left'),
+          h('h2', { class: 'sh-name' }, 'Caught!'),
+        ),
+        h('p', { class: 'hint', style: 'margin:6px 0 0' }, 'Guess the insiders\' word and you steal the whole game.'),
       ], { size: 'tall', cls: 'hero-bleed' }),
       h('div', { class: 'inline-form' }, input, h('button', { class: 'btn btn-bi', onClick: submit }, 'Guess!')),
     );
   }
-  return h('div', { class: 'card', style: 'text-align:center' },
-    sceneHero('moments/blank-guess', [
-      h('span', { class: 'rp-avatar' }, blankP.avatar),
-      h('div', {}, h('b', {}, blankP.name), ' was… ', h('span', { class: 'rp-role blank' }, '🃏 the Blank')),
-      h('p', { class: 'rp-quip', style: 'margin-top:6px' }, 'Hold your breath. The Blank gets one guess at the secret word. 😱'),
-    ], { size: 'tall', cls: 'hero-bleed' }),
+  return h('div', { class: 'card' },
+    sceneReveal('moments/blank-guess', {
+      tone: 'calm',
+      kicker: 'Caught',
+      headline: [h('b', {}, `${blankP.avatar} ${blankP.name}`), ' had no word at all.'],
+      seal: { emoji: '🃏', word: 'Blank' },
+      sub: 'Hold your breath. The Blank gets one guess at the insiders\' word to steal the whole game.',
+    }),
     ctx.isHost
       ? h('button', {
           class: 'btn btn-ghost btn-sm', style: 'margin-top:10px',
@@ -444,34 +448,53 @@ function blankGuessPhase(bi, ctx) {
 // round-result screen and by game over, because the vote that ENDS the game skips
 // roundResult entirely (the server goes straight to gameOver) and that reveal is the
 // whole payoff of the round.
+// What the room did to the person they voted out, per role. The wording is the
+// consequence, never the joke — the quip carries the joke, the seal carries the fact.
+const OUT_LINE = {
+  insider: 'One of your own, gone on your own vote. The outsiders are still sitting here.',
+  outsider: 'The room read it right. One outsider down, and the word is still safe.',
+  blank: 'No word, no team, no warning. The Blank never had anything to work with.',
+};
+
 function revealHero(bi, ctx) {
   const r = bi.lastResult;
+  const anim = animOnce(`bi-reveal:${bi.round}:${r?.playerId || 'none'}`, 'gn-rise');
+
   if (!r || r.type === 'none') {
-    return sceneHero('moments/tie', [
-      h('span', { class: 'rp-avatar' }, '🤷'),
-      h('h2', { class: 'subtitle', style: 'margin-top:6px' }, 'Nobody was eliminated!'),
-      h('p', { class: 'rp-quip', style: 'margin-top:4px' }, r?.quip || 'The vote tied twice, suspicion carries to the next round.'),
-    ], { size: 'tall', cls: 'hero-bleed reveal-pop' });
+    return sceneReveal('moments/tie', {
+      tone: 'calm',
+      kicker: 'The vote',
+      headline: 'Nobody was eliminated.',
+      seal: { emoji: '🤝', word: 'Nobody' },
+      sub: r?.quip || 'The vote tied twice, so the suspicion carries into the next round.',
+      cls: anim,
+    });
   }
-  {
-    const p = ctx.player(r.playerId);
-    return sceneHero(OUT_ART[r.role], [
-      h('span', { class: 'rp-avatar' }, p.avatar),
-      h('div', { style: 'font-weight:800; font-size:19px; margin-top:6px' }, `${p.name} ${r.quip || 'is out!'}`),
-      h('div', {}, h('span', { class: `rp-role ${r.role}` }, `${ROLE_EMOJI[r.role]} ${ROLE_LABEL[r.role]}`)),
-      // The wrong guess is often a near-miss on the insider word, so only the Blank
-      // sees what was actually said — otherwise the surviving outsiders get it free.
-      r.blankGuess && h('p', { class: 'rp-quip' },
-        r.blankGuess.guesserId === ctx.me.id
-          ? `You guessed “${r.blankGuess.text}”, ${r.blankGuess.correct ? 'CORRECT!' : 'wrong.'}`
-          : `The Blank took their shot, ${r.blankGuess.correct ? 'and nailed it!' : 'and missed. The word stays secret.'}`),
-      r.tally && voteTally(r.tally, bi, ctx),
-    ], { size: 'tall', cls: 'hero-bleed reveal-pop' });
-  }
+
+  const p = ctx.player(r.playerId);
+  // The room caught somebody who was not one of theirs, or it turned on itself.
+  const caught = r.role !== 'insider';
+  return [
+    sceneReveal(OUT_ART[r.role], {
+      tone: caught ? 'good' : 'grim',
+      kicker: 'The vote',
+      headline: [h('b', {}, `${p.avatar} ${p.name}`), ` ${r.quip || 'is out.'}`],
+      seal: { emoji: ROLE_EMOJI[r.role], word: ROLE_LABEL[r.role] },
+      sub: OUT_LINE[r.role],
+      cls: anim,
+    }),
+    // The wrong guess is often a near-miss on the insider word, so only the Blank
+    // sees what was actually said — otherwise the surviving outsiders get it free.
+    r.blankGuess && h('p', { class: 'rp-quip', style: 'margin-top:12px' },
+      r.blankGuess.guesserId === ctx.me.id
+        ? `You guessed “${r.blankGuess.text}”, ${r.blankGuess.correct ? 'CORRECT!' : 'wrong.'}`
+        : `The Blank took their shot, ${r.blankGuess.correct ? 'and nailed it!' : 'and missed. The word stays secret.'}`),
+    r.tally && voteTally(r.tally, bi, ctx),
+  ];
 }
 
 function roundResult(bi, ctx) {
-  return h('div', { class: 'card', style: 'text-align:center' },
+  return h('div', { class: 'card' },
     revealHero(bi, ctx),
     ctx.isHost
       ? h('button', { class: 'btn btn-bi btn-lg btn-block', style: 'margin-top:14px', onClick: () => ctx.emit('bi:nextRound') }, `▶️ Start round ${bi.round + 1}`)
@@ -499,18 +522,27 @@ function gameOver(bi, snap, ctx) {
   // round stamp keeps a stale result (a game ended by a double tie, or by everyone
   // leaving) from being replayed as if it were the final beat.
   const endedOnVote = bi.lastResult?.round === bi.round;
+  // The Blank naming the word ends the game for the outsiders' side, but it is not the
+  // outsiders' win: it is the one with no word taking everything, and it has its own art.
+  const blankStole = Boolean(bi.lastResult?.blankGuess?.correct);
 
   return [
-    endedOnVote && h('div', { class: 'card bi-final-reveal', style: 'text-align:center' },
-      h('h2', { class: 'subtitle' }, '⚖️ The final vote'),
+    endedOnVote && h('div', { class: 'card' },
+      h('h2', { class: 'subtitle' }, 'The final vote'),
       revealHero(bi, ctx),
     ),
     h('div', { class: `card win-screen ${endedOnVote ? 'bi-after-reveal' : ''}` },
-    endArt(civWin ? 'endings/win-blendin-insiders' : 'endings/win-blendin-outsiders'),
-    h('span', { class: 'ws-emoji' }, civWin ? '😇' : '🕵️'),
-    h('h2', { class: civWin ? '' : 'gradient-text' }, civWin ? 'Insiders win!' : 'Outsiders win!'),
-    h('p', { class: 'ws-reason' }, bi.winReason),
-    h('p', { class: 'ws-reason', style: 'font-weight:700' }, bi.endQuip),
+    endArt(blankStole ? 'endings/win-blendin-blank'
+      : civWin ? 'endings/win-blendin-insiders' : 'endings/win-blendin-outsiders'),
+    winHeader({
+      tone: blankStole ? 'calm' : civWin ? 'good' : 'grim',
+      kicker: blankStole ? 'One guess' : 'The last vote',
+      title: blankStole ? 'The Blank steals it!' : civWin ? 'Insiders win!' : 'Outsiders win!',
+      seal: blankStole ? { emoji: '🃏', word: 'Blank' }
+        : civWin ? { emoji: '😇', word: 'Insiders' } : { emoji: '🕵️', word: 'Outsiders' },
+      reason: bi.winReason,
+      quip: bi.endQuip,
+    }),
     myRole && h('p', { style: 'margin-top:10px; font-size:15px' },
       `You were ${ROLE_EMOJI[myRole]} ${ROLE_LABEL[myRole]}, ${iWon ? 'you won! 🎉' : 'better luck next time!'}`),
     h('div', { class: 'role-list' },
@@ -524,7 +556,13 @@ function gameOver(bi, snap, ctx) {
           h('span', { class: 'rl-av' }, p.avatar),
           h('span', { class: 'rl-main' },
             h('span', { class: 'rl-name' }, p.name),
-            h('span', { class: 'rl-word' }, word ? ['their word: ', h('b', {}, word)] : 'no word at all'),
+            // The word is the punchline of the whole game, so it gets a chip of its own
+            // rather than a line of grey subtext under the name.
+            word
+              ? h('span', { class: 'rl-word' },
+                  h('span', { class: 'rl-word-label' }, 'word'),
+                  h('b', {}, word))
+              : h('span', { class: 'rl-word none' }, 'never had one'),
           ),
           h('span', { class: 'rl-tail' },
             h('span', { class: `rl-role ${role}` }, `${ROLE_EMOJI[role]} ${ROLE_LABEL[role]}`),

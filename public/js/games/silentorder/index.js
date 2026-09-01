@@ -8,7 +8,7 @@
 // then updated imperatively from snapshot deltas. One-shot moments (a mistake, a level
 // clear, the end of the run) are detected by comparing snapshot fields against markers
 // kept here, never from fx events, so they survive reconnects and missed packets.
-import { h, shake, animOnce, waitingFor, sceneFrame, sceneHero, scoringDetails, endArt } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, sceneFrame, sceneHero, scoringDetails, endArt, winHeader } from '../../core/ui.js';
 import { cardTable, cardTableDuration, flingCard } from '../../core/cards.js';
 import { memes, playMeme } from '../../core/memes.js';
 import { confettiBurst, confettiRain } from '../../core/fx.js';
@@ -561,15 +561,16 @@ function overScreen(so, snap, ctx) {
 
   return h('div', { class: 'card win-screen so-over' },
     endArt(so.won ? 'endings/win-silentorder-held' : 'endings/win-silentorder-broke'),
-    candleRow(so.won ? so.lives : 0),
-    h('span', { class: 'ws-emoji' }, so.won ? '🏆' : '🌑'),
-    h('h2', { class: so.won ? 'gradient-text' : '' },
-      so.won ? 'The order held!' : 'The order broke'),
-    h('p', { class: 'ws-reason' },
-      so.won
+    winHeader({
+      tone: so.won ? 'good' : 'grim',
+      kicker: 'The run',
+      title: so.won ? 'The order held!' : 'The order broke',
+      seal: so.won ? { emoji: '🏆', word: 'Held' } : { emoji: '💀', word: 'Broke' },
+      reason: so.won
         ? `All ${so.maxLevel} levels cleared with ${so.lives} ${so.lives === 1 ? 'life' : 'lives'} to spare.`
-        : `The run ended on level ${so.level} of ${so.maxLevel}.`),
-    so.endQuip && h('p', { class: 'ws-reason', style: 'font-weight:700' }, so.endQuip),
+        : `The run ended on level ${so.level} of ${so.maxLevel}.`,
+      quip: so.endQuip,
+    }),
     rows.length > 0 && h('div', { class: 'role-list' },
       rows.map((e, i) => h('div', {
         // The screen is rebuilt every snapshot; the entrance cascade should not be. Keyed

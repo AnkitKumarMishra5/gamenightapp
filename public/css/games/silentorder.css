@@ -244,7 +244,6 @@
 .so-chip-off { font-size: 11px; }
 
 /* ---------- over screen ---------- */
-.so-over .so-lives { justify-content: center; margin-bottom: 6px; }
 /* style.css animates every .lb-row on sight, but this screen is rebuilt per snapshot —
    only rows animOnce has stamped with .anim-slide get the entrance cascade. */
 .so-over .lb-row { animation: none; }

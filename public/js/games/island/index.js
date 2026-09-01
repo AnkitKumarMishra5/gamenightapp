@@ -1,5 +1,5 @@
 // The Island screen rendering.
-import { h, shake, animOnce, waitingFor, aiThinking, sceneFrame, sceneHero, scoringDetails, roomReactionBar, endArt } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, aiThinking, sceneFrame, sceneHero, scoringDetails, roomReactionBar, endArt, winHeader } from '../../core/ui.js';
 
 export function renderIsland(snap, ctx) {
   const is = snap.island;
@@ -296,7 +296,7 @@ function auditPanel(is, ctx) {
   const last = is.lastAudit;
   return h('div', { class: 'audit-box' },
     is.auditing && sceneHero('moments/audit', [
-      h('span', {}, h('span', { class: 'audit-spinner', 'aria-hidden': 'true' }), h('b', {}, '👁 The boat is re-reading the round…')),
+      h('span', {}, h('span', { class: 'audit-spinner', 'aria-hidden': 'true' }), h('b', {}, 'The boat is re-reading the round…')),
       h('span', { class: 'hint' },
         'Every call judged again from scratch, over and over, until two passes agree. Nothing can be played until it is done.'),
     ], { align: 'left', cls: 'audit-hero' }),
@@ -392,7 +392,7 @@ function actionBar(is, ctx) {
   } else if (is.youKnockedOut) {
     parts.push(
       sceneHero('moments/eliminated', [
-        h('div', { class: 'sh-title' }, '💀 You used all three pattern guesses, out for this round'),
+        h('div', { class: 'sh-title' }, 'You used all three pattern guesses, out for this round'),
         h('p', { class: 'hint', style: 'margin:2px 0 0' }, 'Watch the rest unfold; you\'re back in next round.'),
       ], { cls: 'hero-bleed' }),
     );
@@ -406,7 +406,7 @@ function actionBar(is, ctx) {
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
       parts.push(
         sceneHero('moments/cracked',
-          h('div', { class: 'sh-title' }, `🎤 Your turn! You cracked it (#${is.yourRank}), help the others with a hint`),
+          h('div', { class: 'sh-title' }, `Your turn! You cracked it (#${is.yourRank}), help the others with a hint`),
           { cls: 'hero-bleed' }),
         h('div', { class: 'inline-form' }, input, h('button', { class: 'btn btn-island', onClick: submit }, 'Ask')),
         h('button', { class: 'btn btn-ghost btn-sm btn-block', style: 'margin-top:8px', onClick: () => ctx.emit('is:pass') }, '⏭️ Pass'),
@@ -591,10 +591,15 @@ function revealPhase(is, ctx, rules) {
     // owner cut short is not a triumph either, so the celebration art is kept for the
     // ending that earns it and the rest get the game's own key art.
     endArt(is.endedBy === 'all-solved' ? 'endings/win-island-cracked' : 'games/island'),
-    h('span', { class: 'ws-emoji' }, '🏝️'),
-    h('h2', { class: 'gradient-text' },
-      is.endedBy === 'all-solved' ? 'Everyone cracked it!' : (is.endedBy === 'gm-left' ? 'The gamemaster left!' : 'Round over!')),
-    is.endedBy === 'gm-left' && h('p', { class: 'ws-reason' }, 'They took the secret with them. So here it is.'),
+    winHeader({
+      tone: is.endedBy === 'all-solved' ? 'good' : 'calm',
+      kicker: 'The crossing',
+      title: is.endedBy === 'all-solved' ? 'Everyone cracked it!'
+        : (is.endedBy === 'gm-left' ? 'The gamemaster left!' : 'Round over!'),
+      seal: is.endedBy === 'all-solved' ? { emoji: '🔓', word: 'Cracked' }
+        : (is.endedBy === 'gm-left' ? { emoji: '🚪', word: 'Abandoned' } : { emoji: '🏁', word: 'Called' }),
+      reason: is.endedBy === 'gm-left' ? 'They took the secret with them. So here it is.' : null,
+    }),
     is.pattern && h('div', { class: 'example', style: 'margin-top:12px; text-align:left' },
       h('b', {}, `The pattern was: ${is.pattern.name}`),
       h('p', { style: 'margin-top:4px' }, is.pattern.description),
