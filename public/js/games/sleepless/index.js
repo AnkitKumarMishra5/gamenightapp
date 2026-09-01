@@ -160,11 +160,17 @@ function playPhaseCues(sl) {
     // A game that ended on a vote opens with the reveal beat, so the fanfare lands
     // after the table has seen who it caught rather than talking over the flip.
     const endedOnVote = Boolean(sl.verdict?.outId);
+    const endedAtDawn = !endedOnVote && sl.dawn?.round === sl.round;
     if (endedOnVote) {
       playMeme('drumroll');
       setTimeout(() => playMeme('boom'), 1400);
+    } else if (endedAtDawn && sl.dawn.kind === 'death') {
+      // The morning that ended it still tolls: the same bell-and-gasp the day phase
+      // would have played, before the winner is announced over it.
+      playMeme('bellToll');
+      setTimeout(() => playMeme('gasp'), 900);
     }
-    const fanfare = endedOnVote ? 2300 : 0;
+    const fanfare = endedOnVote || endedAtDawn ? 2300 : 0;
     if (sl.winner?.side === 'village') {
       setTimeout(() => { playMeme('winInsiders'); confettiRain(2600); }, fanfare);
       setTimeout(() => playMeme('dhol'), fanfare + 500);
@@ -589,6 +595,10 @@ function gameOver(sl, ctx, rules) {
   // caught, and only then who won. beginNight clears the verdict, so one surviving to
   // game over means this very vote ended it; a game ended at dawn has none.
   const endedOnVote = Boolean(sl.verdict?.outId);
+  // The other way a game ends is the kill itself: the win check runs before the day
+  // begins, so that last dawn never gets its screen either. A verdict outranks it —
+  // both belong to the same round, and the vote is what actually finished the game.
+  const endedAtDawn = !endedOnVote && sl.dawn?.round === sl.round;
 
   return [
     endedOnVote && h('div', { class: 'card sl-final-verdict' },
@@ -596,7 +606,8 @@ function gameOver(sl, ctx, rules) {
       verdictHero(sl, ctx),
       voteRevealList(sl, ctx),
     ),
-    h('div', { class: `card win-screen sl-over ${endedOnVote ? 'sl-after-verdict' : ''}` },
+    endedAtDawn && dawnBanner(sl, ctx),
+    h('div', { class: `card win-screen sl-over ${endedOnVote || endedAtDawn ? 'sl-after-verdict' : ''}` },
     sceneHero(villageWon ? 'win-together' : 'win-alone', [
       h('span', { class: 'ws-emoji' }, villageWon ? '🌅' : '🥷'),
       h('h2', { class: villageWon ? '' : 'gradient-text' },
