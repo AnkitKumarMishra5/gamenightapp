@@ -478,7 +478,7 @@ function buildConsole(deps) {
   const joinPanel = h('div', { class: 'lp-joinpanel' },
     h('div', { class: 'lp-joinrow' }, codeInput, joinBtn),
     h('p', { class: 'lp-join-hint' },
-      'Ask whoever created the room for their 5-character code — it\'s on their screen.'),
+      'Ask whoever created the room for their 5-character code, it\'s on their screen.'),
   );
 
   const joinToggle = h('button', {
@@ -701,7 +701,7 @@ function buildWatch(deps, rm, cardBack) {
     ws(15, 'lp-ws-attempt',
       h('span', { class: 'lp-ws-atv', 'aria-hidden': 'true' }, '🃏'),
       h('span', {},
-        h('span', { class: 'lp-ws-att' }, 'Ankit had the option to stay or swap with Saaru. His number was 2 — of course he swapped.'),
+        h('span', { class: 'lp-ws-att' }, 'Ankit had the option to stay or swap with Saaru. His number was 2, of course he swapped.'),
         h('span', { class: 'lp-ws-atr' }, 'Saaru peeks at what she got, gasps, and swaps it on to Ranjani.'),
       ),
     ),
@@ -710,14 +710,14 @@ function buildWatch(deps, rm, cardBack) {
       h('span', { class: 'lp-ws-atv', 'aria-hidden': 'true' }, '🛡️'),
       h('span', {},
         h('span', { class: 'lp-ws-att' }, 'Ranjani tries to pass it to Mrunali… BLOCKED!'),
-        h('span', { class: 'lp-ws-atr' }, 'Mrunali holds a Sentinel 🛡️ — the guard card that refuses every swap and never loses. Dinesh stays put.'),
+        h('span', { class: 'lp-ws-atr' }, 'Mrunali holds a Sentinel 🛡️, the guard card that refuses every swap and never loses. Dinesh stays put.'),
       ),
     ),
     ws(17.6, 'lp-ws-rxline', rxBar([['😱', 3], ['😂', 2]])),
     ws(18.4, 'lp-ws-attempt lp-ws-ok',
       h('span', { class: 'lp-ws-atv', 'aria-hidden': 'true' }, '🎲'),
       h('span', {},
-        h('span', { class: 'lp-ws-att' }, 'Trupti sits in the last seat — nobody left to swap with. Her rule: stay, or draw blind from the deck.'),
+        h('span', { class: 'lp-ws-att' }, 'Trupti sits in the last seat, nobody left to swap with. Her rule: stay, or draw blind from the deck.'),
         h('span', { class: 'lp-ws-atr' }, 'Her 3 feels dangerously low, and she has no idea what the lowest card is. She throws it back and tries her luck.'),
       ),
     ),
@@ -731,28 +731,28 @@ function buildWatch(deps, rm, cardBack) {
       dealSeat(20.8, 'Dinesh', false, '41'),
       dealSeat(20.8, 'Trupti', false, '47'),
     ),
-    verdict(22.6, '💔 Ranjani\'s 2 is the lowest card — she loses a heart. And Trupti\'s gamble paid off: the deck handed her a 47.'),
+    verdict(22.6, '💔 Ranjani\'s 2 is the lowest card, she loses a heart. And Trupti\'s gamble paid off: the deck handed her a 47.'),
   ];
 
   // Sleepless: first the cast — every role explained — then the night/dawn/day
   // loop with all four points of view side by side, so a stranger watching
   // understands both who does what and how a round actually flows.
   const sleeplessScene = () => [
-    ws(0, 'lp-ws-round', 'Sleepless · 6 players, three roles dealt in secret — here is what each one does'),
+    ws(0, 'lp-ws-round', 'Sleepless · 6 players, three roles dealt in secret, here is what each one does'),
     h('div', { class: 'lp-ws-tiles' },
       tile(0.6, '🥷', 'Dinesh', false, '', h('span', {}, h('b', {}, 'Prowler · '), 'taps one name each night; that player never wakes')),
-      tile(1.1, '🩺', 'Mrunali', false, '', h('span', {}, h('b', {}, 'Medic · '), 'taps one door to guard; a guarded kill fails — never the same door twice in a row')),
-      tile(1.6, '😴', 'Ankit', true, '', h('span', {}, h('b', {}, 'Sleeper · '), 'everyone else — no night power at all. Their game is the daytime.')),
+      tile(1.1, '🩺', 'Mrunali', false, '', h('span', {}, h('b', {}, 'Medic · '), 'taps one door to guard; a guarded kill fails, never the same door twice in a row')),
+      tile(1.6, '😴', 'Ankit', true, '', h('span', {}, h('b', {}, 'Sleeper · '), 'everyone else, no night power at all. Their game is the daytime.')),
     ),
     ws(2.4, 'lp-ws-round', '🌙 Night 1 · 6 asleep · everyone answers the same sum and taps “ready to sleep”'),
     h('div', { class: 'lp-ws-tiles' },
-      tile(2.8, '🧮', 'Everyone', false, '⌨️', '“7 × 6 + 4 = ?” — six phones, six people typing'),
+      tile(2.8, '🧮', 'Everyone', false, '⌨️', '“7 × 6 + 4 = ?”, six phones, six people typing'),
       tile(3.2, '🥷', 'Dinesh', false, '🤫', 'answers 46… and quietly taps Tushita'),
       tile(3.6, '🩺', 'Mrunali', false, '🤫', 'answers 46… and quietly taps Ankit'),
     ),
     ws(4.4, 'lp-ws-banner', '🌙 Nobody can tell who did what. Every screen was busy, every thumb was moving, and the night only ends when the last answer lands.'),
-    ws(5.1, 'lp-ws-banner', '🌅 Dawn 1: Tushita is dead — the guard was on the wrong door. Death reveals her card: she was a Sleeper. Nobody learned anything else in the night.'),
-    ws(5.8, 'lp-ws-round', '☀️ Day 1 · 5 alive · argue, then vote — sealed until everyone has cast one'),
+    ws(5.1, 'lp-ws-banner', '🌅 Dawn 1: Tushita is dead, the guard was on the wrong door. Death reveals her card: she was a Sleeper. Nobody learned anything else in the night.'),
+    ws(5.8, 'lp-ws-round', '☀️ Day 1 · 5 alive · argue, then vote, sealed until everyone has cast one'),
     clueRow(6.2, '🐢', 'Trupti', false, 'Dinesh answered in four seconds flat. Nobody is that fast AND innocent.', [['😂', 3]]),
     clueRow(6.7, '🥷', 'Dinesh', false, 'I am good at maths. That is the entire accusation? Really?', [['😂', 4]]),
     clueRow(7.2, '🦊', 'Saaru', false, 'Careful. Whoever we burn today, we lose one more tonight.', [['🧐', 3]]),
@@ -765,13 +765,13 @@ function buildWatch(deps, rm, cardBack) {
     ),
     ws(8.4, 'lp-ws-round', '🌙 Night 2 · 5 asleep · a new sum, and the Medic must move'),
     h('div', { class: 'lp-ws-tiles' },
-      tile(8.8, '🧮', 'Everyone', false, '⌨️', '“9 + 8 + 3 = ?” — five phones, five people typing'),
+      tile(8.8, '🧮', 'Everyone', false, '⌨️', '“9 + 8 + 3 = ?”, five phones, five people typing'),
       tile(9.2, '🥷', 'Dinesh', false, '🤫', 'taps Saaru'),
-      tile(9.6, '🩺', 'Mrunali', false, '🤫', 'taps Saaru — a different door from last night'),
+      tile(9.6, '🩺', 'Mrunali', false, '🤫', 'taps Saaru, a different door from last night'),
     ),
-    ws(10.4, 'lp-ws-banner', '🌅 Dawn 2: nobody died. Someone was attacked and survived — the table is never told who was hit, or who guarded. The Medic stays hidden.'),
+    ws(10.4, 'lp-ws-banner', '🌅 Dawn 2: nobody died. Someone was attacked and survived, the table is never told who was hit, or who guarded. The Medic stays hidden.'),
     ws(11.0, 'lp-ws-round', '☀️ Day 2 · 5 alive · the argument gets sharper'),
-    clueRow(11.4, '😴', 'Ankit', true, 'Two nights, one save. Somebody here is guarding well — and somebody is hunting. Neither will say so.', [['🧐', 3]]),
+    clueRow(11.4, '😴', 'Ankit', true, 'Two nights, one save. Somebody here is guarding well, and somebody is hunting. Neither will say so.', [['🧐', 3]]),
     clueRow(11.9, '🐢', 'Trupti', false, 'Dinesh has talked past every question so far. That is my vote.', [['😱', 2]]),
     ws(12.5, 'lp-ws-attempt lp-ws-ok',
       h('span', { class: 'lp-ws-atv', 'aria-hidden': 'true' }, '🗳️'),
@@ -780,14 +780,14 @@ function buildWatch(deps, rm, cardBack) {
         h('span', { class: 'lp-ws-atr' }, 'Four names point the same way. No proof, just a read.'),
       ),
     ),
-    verdict(13.2, '🌅 Dinesh is voted out — his card flips: the Prowler, all along. The village guessed right, on nothing but the talking.'),
+    verdict(13.2, '🌅 Dinesh is voted out, his card flips: the Prowler, all along. The village guessed right, on nothing but the talking.'),
   ];
 
   const SCENES = [
     { name: 'Blend In', emoji: '🕵️', build: blendIn, cap: 'One of them got a different word. Watch the clues give it away.' },
     { name: 'Island Rules', emoji: '🏝️', build: island, cap: 'The boat has a secret rule. Guess items, read the pattern, crack it.' },
     { name: 'Silent Order', emoji: '🃏', build: cardsScene, cap: 'A cooperative trick: everyone must play in silence, in order.' },
-    { name: 'Swap or Stay', emoji: '🔁', build: swapScene, cap: 'One card each. Swap it, keep it, or guard it — lowest card pays.' },
+    { name: 'Swap or Stay', emoji: '🔁', build: swapScene, cap: 'One card each. Swap it, keep it, or guard it, lowest card pays.' },
     { name: 'Sleepless', emoji: '🌙', build: sleeplessScene, cap: 'Social deduction after dark: someone prowls, the village votes.' },
   ];
 
@@ -807,7 +807,7 @@ function buildWatch(deps, rm, cardBack) {
     const s = SCENES[idx];
     title.replaceChildren(`${s.emoji} ${s.name}`);
     cap.replaceChildren(s.cap);
-    pinNote.replaceChildren(pinned ? '📌 holding this one — scroll on to resume the tour' : '');
+    pinNote.replaceChildren(pinned ? '📌 holding this one, scroll on to resume the tour' : '');
     dots.replaceChildren(...SCENES.map((sc, d) =>
       h('button', {
         class: `lp-watch-tab ${d === idx ? 'lp-on' : ''}`,
@@ -855,7 +855,7 @@ function buildWatch(deps, rm, cardBack) {
 
   return h('section', { class: 'lp-sec lp-watch', id: 'lp-watch', 'aria-label': 'Watch a round' },
     sectionHead(h, 'Watch a round', 'See a round play itself.',
-      'These are the real game screens with a real crew — clues, reactions and verdicts exactly as they land on your phones.'),
+      'These are the real game screens with a real crew, clues, reactions and verdicts exactly as they land on your phones.'),
     frame,
   );
 }

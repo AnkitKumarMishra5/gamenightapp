@@ -234,10 +234,10 @@ function dealingScreen(so, ctx) {
     // taper catching a fresh wick — framed above the caption, not buried behind it.
     !dealMistake && clearedLevel >= 1 && h('div', { class: 'so-banner so-good so-moment' },
       sceneFrame('life-earned', 'so-moment-art'),
-      h('span', {}, `Level ${clearedLevel} cleared — a life earned. ${so.lives} now burning.`)),
+      h('span', {}, `Level ${clearedLevel} cleared, a life earned. ${so.lives} now burning.`)),
     dealMistake && h('div', { class: 'so-banner so-bad so-moment' },
       sceneFrame('life-lost', 'so-moment-art'),
-      h('span', {}, `${dealMistake.by === ctx.me.id ? 'You' : ctx.player(dealMistake.by).name} played ${dealMistake.card} — ${dealMistake.burned.join(', ')} burned`)),
+      h('span', {}, `${dealMistake.by === ctx.me.id ? 'You' : ctx.player(dealMistake.by).name} played ${dealMistake.card}, ${dealMistake.burned.join(', ')} burned`)),
     table,
     handFan,
     h('div', { class: 'so-ready-row' },
@@ -282,7 +282,7 @@ function playingScreen(so, ctx) {
   const stackEl = h('div', { class: 'so-stack', 'aria-hidden': 'true' });
   const topBox = h('div', { class: 'so-card-box' },
     h('div', { class: `ct-face front so-top-face ${so.topCard ? '' : 'so-empty'}` },
-      so.topCard ? String(so.topCard) : '—'),
+      so.topCard ? String(so.topCard) : ', '),
   );
   const pileLabel = h('p', { class: 'so-pile-label' },
     so.played ? `${so.played} played` : 'Nothing played yet. Cards run 1 to 100.');
@@ -337,7 +337,7 @@ function playingScreen(so, ctx) {
 
   const commitTop = (fresh) => {
     const face = topBox.firstElementChild;
-    face.textContent = fresh.topCard ? String(fresh.topCard) : '—';
+    face.textContent = fresh.topCard ? String(fresh.topCard) : ', ';
     face.classList.toggle('so-empty', !fresh.topCard);
     pileLabel.textContent = fresh.played ? `${fresh.played} played` : 'Nothing played yet. Cards run 1 to 100.';
     // The depth stack behind the top card: one ghost per previous play, capped where the
@@ -439,7 +439,7 @@ function playingScreen(so, ctx) {
     if (!fresh.youPlay) return;
     const low = fresh.yourHand[0];
     if (low == null) status.textContent = 'Nothing left to play. Deep breaths for the others.';
-    else if (fresh.topCard && low <= fresh.topCard) status.textContent = 'Too late for that one — it will burn if anything higher lands.';
+    else if (fresh.topCard && low <= fresh.topCard) status.textContent = 'Too late for that one, it will burn if anything higher lands.';
     else if (fresh.topCard && low - fresh.topCard <= 3) status.textContent = `Your ${low} is right on top of the pile. Now or never?`;
     else status.textContent = `Tap your lowest card to play it. Only play when you believe nothing lower is out there.`;
   };
@@ -450,7 +450,7 @@ function playingScreen(so, ctx) {
     shake(root);
     const who = c.player(m.by);
     const name = m.by === c.me.id ? 'You' : who.name;
-    showBanner(`${name} played ${m.card} — ${m.burned.join(', ')} burned`, 'bad');
+    showBanner(`${name} played ${m.card}, ${m.burned.join(', ')} burned`, 'bad');
     // The burned cards fly out of the pile and land in the discard row. On a level's
     // first burn that row is still display:none and would measure as (0,0), sending the
     // cards to the top-left corner — so unhide the box now and let the cards fill it.
@@ -523,7 +523,7 @@ function playingScreen(so, ctx) {
       playMeme('applause');
       confettiBurst({ count: 90 });
       glint();
-      showBanner(`✨ Level ${fresh.level} cleared — a life earned. Next level coming up…`, 'good');
+      showBanner(`✨ Level ${fresh.level} cleared, a life earned. Next level coming up…`, 'good');
     }
   };
 
@@ -560,12 +560,16 @@ function overScreen(so, snap, ctx) {
     .sort((a, b) => (b.silentorder || 0) - (a.silentorder || 0));
 
   return h('div', { class: 'card win-screen so-over' },
-    sceneHero(so.won ? 'win-silentorder-held' : 'win-silentorder-broke', [
-      candleRow(so.won ? so.lives : 0),
-      h('span', { class: 'ws-emoji' }, so.won ? '🏆' : '🌑'),
-      h('h2', { class: so.won ? 'gradient-text' : '' },
-        so.won ? 'The order held!' : 'The order broke'),
-    ], { size: 'tall', cls: 'hero-bleed' }),
+    h('div', { class: 'gn-endart hero-bleed' },
+      h('picture', { 'aria-hidden': 'true' },
+        h('source', { srcset: `/media/games/${so.won ? 'win-silentorder-held' : 'win-silentorder-broke'}.webp`, type: 'image/webp' }),
+        h('img', { src: `/media/games/${so.won ? 'win-silentorder-held' : 'win-silentorder-broke'}.jpg`, alt: '', decoding: 'async' }),
+      ),
+    ),
+    candleRow(so.won ? so.lives : 0),
+    h('span', { class: 'ws-emoji' }, so.won ? '🏆' : '🌑'),
+    h('h2', { class: so.won ? 'gradient-text' : '' },
+      so.won ? 'The order held!' : 'The order broke'),
     h('p', { class: 'ws-reason' },
       so.won
         ? `All ${so.maxLevel} levels cleared with ${so.lives} ${so.lives === 1 ? 'life' : 'lives'} to spare.`

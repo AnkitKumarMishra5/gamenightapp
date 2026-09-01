@@ -32,7 +32,7 @@ const chip = (id) => (id
   ? `<a class="pid ${id.startsWith('A-') ? 'anon' : ''}" href="#${esc(id)}" title="${
     id.startsWith('A-') ? 'No browser id, grouped by IP + browser for one day only' : 'Same browser, tracked across days'
   }">${esc(id)}</a>`
-  : '<span class="pid off">—</span>');
+  : '<span class="pid off">, </span>');
 
 const TYPE_LABEL = {
   visit: 'opened the app',
@@ -215,7 +215,7 @@ nav .danger { margin-left: auto; background: #3a1520; color: #ff9c9c; border: 1p
   ${stat('games finished', m.play.gamesFinished, `${m.play.completionPct}% of games started`)}
   ${stat('came via invite', `${m.reach.invitePct}%`, `${m.reach.viaInvite} people`)}
   ${stat('installed as app', m.reach.installed, `${m.reach.countries} countries`)}
-  ${stat('median session', m.play.medianSessionMin ? `${m.play.medianSessionMin}m` : '—',
+  ${stat('median session', m.play.medianSessionMin ? `${m.play.medianSessionMin}m` : ', ',
     m.play.medianGameMin ? `${m.play.medianGameMin}m per game` : 'no finished games yet')}
   ${stat('players per game', m.reach.avgPlayersPerRoom, `${m.play.gamesPerRoom} games per room`)}
   ${stat('rooms created', m.reach.rooms)}
@@ -306,8 +306,8 @@ ${roomCount === 0 ? '<p class="muted">No rooms open right now.</p>' : live.map((
     showDate ? `<small>${esc(istDate(e.t))}</small>` : ''}</td>
     <td><span class="pill ${esc(e.type)}">${esc(TYPE_LABEL[e.type] || e.type)}</span></td>
     <td>${chip(e.person)}</td>
-    <td class="who">${e.name ? `<b>${esc(e.name)}</b>` : '<span class="muted">—</span>'}</td>
-    <td class="nowrap">${e.code ? `<b>${esc(e.code)}</b>` : '<span class="muted">—</span>'}</td>
+    <td class="who">${e.name ? `<b>${esc(e.name)}</b>` : '<span class="muted">, </span>'}</td>
+    <td class="nowrap">${e.code ? `<b>${esc(e.code)}</b>` : '<span class="muted">, </span>'}</td>
     <td class="nowrap">${esc(e.game || '')}</td>
     <td class="num-cell">${e.players ?? ''}</td>
     <td class="nowrap">${esc(e.result || '')}</td>
@@ -336,7 +336,7 @@ ${roomCount === 0 ? '<p class="muted">No rooms open right now.</p>' : live.map((
     <td class="num-cell">${p.activeDays}</td>
     <td class="num-cell">${p.visits}</td>
     <td class="num-cell">${p.sessions}</td>
-    <td class="num-cell nowrap">${p.secondsOnSite ? `${Math.round(p.secondsOnSite / 6) / 10}m` : '—'}</td>
+    <td class="num-cell nowrap">${p.secondsOnSite ? `${Math.round(p.secondsOnSite / 6) / 10}m` : ', '}</td>
     <td class="num-cell">${p.rooms}</td>
     <td class="num-cell">${p.gamesStarted}</td>
     <td class="nowrap">${esc(p.source || 'direct')}</td>

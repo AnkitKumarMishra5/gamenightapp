@@ -167,7 +167,7 @@ const GAME_HOOK = {
 };
 const INVITE_TAILS = [
   'No download, no sign-up, just the code.',
-  'Nothing to install — the code is the whole key.',
+  'Nothing to install, the code is the whole key.',
   'Free, in the browser, ready in ten seconds.',
   'Your phone is the ticket. This link is the door.',
   'No app store between you and the table.',
@@ -215,6 +215,16 @@ function ogFor(req) {
     title: INVITE_LINES[(h >>> 3) % INVITE_LINES.length](name, room.hostAvatar || '🎭'),
     desc: `${crowd}${game ? ` Tonight: ${game}.` : ''}${hook} ${INVITE_TAILS[(h >>> 7) % INVITE_TAILS.length]}`,
   };
+}
+
+// Dev-only scenario browser: every dramatic screen rendered from a fixed snapshot, so a
+// reveal can be looked at without playing a whole game to reach it. Never mounted in
+// production, and it lives in tools/ rather than public/ so it cannot ship by accident.
+if (process.env.NODE_ENV !== 'production') {
+  const DEV_DIR = path.join(__dirname, '..', 'tools', 'dev');
+  app.get('/dev/scenarios', (_req, res) => res.sendFile(path.join(DEV_DIR, 'scenarios.html')));
+  app.get('/dev/scenarios.js', (_req, res) => res.type('application/javascript')
+    .sendFile(path.join(DEV_DIR, 'scenarios.js')));
 }
 
 app.get(['/', '/index.html'], (req, res) => {
@@ -519,7 +529,7 @@ async function judgeIslandAttempt(room, attempt) {
           io.to(player.socketId).emit('fx', {
             kind: 'item-invalid',
             playerId: rejected.playerId,
-            message: `“${rejected.text}” isn't one thing the boat can take — name a real item, or use “Guess the pattern”.`,
+            message: `“${rejected.text}” isn't one thing the boat can take, name a real item, or use “Guess the pattern”.`,
           });
         }
       }
@@ -833,7 +843,7 @@ io.on('connection', (socket) => {
       const emoji = String(payload?.emoji || '');
       if (!ROOM_REACTIONS.includes(emoji)) throw new GameError('Unknown reaction.');
       if (room.game === 'silentorder' && room.state && !room.state.over) {
-        throw new GameError('Silent Order is played in silence — save it for the scoreboard.');
+        throw new GameError('Silent Order is played in silence, save it for the scoreboard.');
       }
       if (room.game === 'sleepless' && room.state?.phase === 'night') {
         throw new GameError('The village is asleep. Reactions wake with the sun.');

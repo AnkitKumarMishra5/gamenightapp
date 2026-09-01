@@ -28,6 +28,6 @@ export function rulesNode() {
       h('li', {}, 'A card played with nothing lower still out there scores for you.'),
       h('li', {}, 'Clearing a level scores for everyone, and finishing the run scores big for the whole table.'),
     ),
-    h('p', { class: 'hint' }, 'Fewer players means more levels, so a run lasts about the same either way. Silence, patience, and one shared heartbeat — that\'s the whole game.'),
+    h('p', { class: 'hint' }, 'Fewer players means more levels, so a run lasts about the same either way. Silence, patience, and one shared heartbeat, that\'s the whole game.'),
   );
 }

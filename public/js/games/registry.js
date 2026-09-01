@@ -70,7 +70,7 @@ export const GAMES = [
     title: 'Sleepless',
     emoji: '🌙',
     accent: 'sl',
-    tagline: 'Prowlers hunt by night while everyone answers the same sum. No powers, no proof — just the argument.',
+    tagline: 'Prowlers hunt by night while everyone answers the same sum. No powers, no proof, just the argument.',
     minPlayers: 4, maxPlayers: 16,
     tags: ['4–16 players', 'social deduction', '🎥 play on a group call'],
     render: renderSleepless,

@@ -490,7 +490,7 @@ async function gmHintModal(ctx) {
       btn.disabled = true; btn.textContent = 'Drafting…';
       const res = await ctx.emit('is:hint');
       btn.disabled = false; btn.textContent = '🤖 Draft with AI';
-      if (!res.ok || !res.items?.length) { note.textContent = res.error || 'No draft right now — write your own.'; return; }
+      if (!res.ok || !res.items?.length) { note.textContent = res.error || 'No draft right now, write your own.'; return; }
       a.value = res.items[0] || '';
       b.value = res.items[1] || '';
       note.textContent = 'Draft only. Check both words really fit before you send them.';
@@ -542,7 +542,7 @@ function turnMovePicker(is, ctx) {
   }, label);
 
   const head = h('div', { class: 'turn-banner your-turn', style: 'margin:0 0 10px' },
-    '🎤 Your turn! One move — pick which:');
+    '🎤 Your turn! One move, pick which:');
   const tabs = h('div', { class: 'is-segrow' },
     seg('item', '🎒 Ask for an item'),
     seg('pattern', `💡 Guess the pattern (${is.yourGuessesLeft} left)`),
@@ -558,7 +558,7 @@ function turnMovePicker(is, ctx) {
     return [head, tabs,
       h('div', { class: 'inline-form' }, input, h('button', { class: 'btn btn-island', onClick: submit }, 'Ask')),
       h('p', { class: 'hint', style: 'text-align:center; margin:8px 0 2px' },
-        'Name ONE concrete thing, like “kettle” — the boat answers yes or no. Describing a rule? That belongs in Guess the pattern.'),
+        'Name ONE concrete thing, like “kettle”, the boat answers yes or no. Describing a rule? That belongs in Guess the pattern.'),
     ];
   }
 
@@ -569,7 +569,7 @@ function turnMovePicker(is, ctx) {
     h('p', { class: `hint ${left === 1 ? 'danger-hint' : ''}`, style: 'text-align:center; margin:8px 0' },
       left === 1
         ? '⚠️ This is your LAST guess. Get it wrong and you are out for the round.'
-        : `Your guess stays hidden from other players. ${left} of ${is.maxGuesses} guesses left — use all three and you are out for the round.`),
+        : `Your guess stays hidden from other players. ${left} of ${is.maxGuesses} guesses left, use all three and you are out for the round.`),
     h('button', {
       class: 'btn btn-island btn-block',
       onClick: async (e) => {
@@ -587,14 +587,19 @@ function turnMovePicker(is, ctx) {
 function revealPhase(is, ctx, rules) {
   const ranking = [...is.order].sort((a, b) => (is.scores[b] || 0) - (is.scores[a] || 0));
   return h('div', { class: 'card win-screen' },
-    // A round the owner cut short is not a triumph, so the celebration art is kept for
-    // the ending that earns it and the others get the game's own key art.
-    sceneHero(is.endedBy === 'all-solved' ? 'win-island-cracked' : 'island', [
-      h('span', { class: 'ws-emoji' }, '🏝️'),
-      h('h2', { class: 'gradient-text' },
-        is.endedBy === 'all-solved' ? 'Everyone cracked it!' : (is.endedBy === 'gm-left' ? 'The gamemaster left!' : 'Round over!')),
-      is.endedBy === 'gm-left' && h('p', { class: 'ws-reason' }, 'They took the secret with them. So here it is.'),
-    ], { size: 'tall', cls: 'hero-bleed' }),
+    // The photograph carries the moment, so nothing is written across it. A round the
+    // owner cut short is not a triumph either, so the celebration art is kept for the
+    // ending that earns it and the rest get the game's own key art.
+    h('div', { class: 'gn-endart hero-bleed' },
+      h('picture', { 'aria-hidden': 'true' },
+        h('source', { srcset: `/media/games/${is.endedBy === 'all-solved' ? 'win-island-cracked' : 'island'}.webp`, type: 'image/webp' }),
+        h('img', { src: `/media/games/${is.endedBy === 'all-solved' ? 'win-island-cracked' : 'island'}.jpg`, alt: '', decoding: 'async' }),
+      ),
+    ),
+    h('span', { class: 'ws-emoji' }, '🏝️'),
+    h('h2', { class: 'gradient-text' },
+      is.endedBy === 'all-solved' ? 'Everyone cracked it!' : (is.endedBy === 'gm-left' ? 'The gamemaster left!' : 'Round over!')),
+    is.endedBy === 'gm-left' && h('p', { class: 'ws-reason' }, 'They took the secret with them. So here it is.'),
     is.pattern && h('div', { class: 'example', style: 'margin-top:12px; text-align:left' },
       h('b', {}, `The pattern was: ${is.pattern.name}`),
       h('p', { style: 'margin-top:4px' }, is.pattern.description),
@@ -609,7 +614,7 @@ function revealPhase(is, ctx, rules) {
           class: `lb-row ${i === 0 && scored ? 'first' : ''} ${animOnce(`is-lb:${is.roundNum}:${id}`, 'anim-slide')}`,
           style: `animation-delay:${i * 60}ms`,
         },
-          h('span', { class: 'lb-rank' }, scored ? (['🥇', '🥈', '🥉'][i] || `${i + 1}.`) : '—'),
+          h('span', { class: 'lb-rank' }, scored ? (['🥇', '🥈', '🥉'][i] || `${i + 1}.`) : ', '),
           h('span', {}, p.avatar),
           h('span', { class: 'lb-name' }, p.name,
             rank ? h('span', { class: 'hint' }, `  · solved #${rank} this round`)

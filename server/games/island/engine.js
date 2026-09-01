@@ -279,7 +279,7 @@ export function attemptItem(room, playerId, payload) {
   const text = cleanText(payload?.text, 40);
   if (!text) throw new GameError('Name the thing you want to bring!');
   if (CATEGORY_SHAPE.test(text)) {
-    throw new GameError('Name ONE thing, like “kettle”. That reads like a rule — if you think you know the pattern, use “Guess the pattern” instead.');
+    throw new GameError('Name ONE thing, like “kettle”. That reads like a rule, if you think you know the pattern, use “Guess the pattern” instead.');
   }
   const norm = normalize(text);
   if (state.pattern.starters.some((s) => normalize(s) === norm)
@@ -403,7 +403,7 @@ export function requestAudit(room, playerId) {
 // The boat owning its mistakes. Nothing reaches the table until the judging has settled,
 // so an apology only ever follows a call that really was wrong.
 const AUDIT_SORRY = [
-  'Sorry — I am an AI and I do hallucinate. I judged the whole round again, over and over, until I stopped changing my mind, and past me was wrong.',
+  'Sorry, I am an AI and I do hallucinate. I judged the whole round again, over and over, until I stopped changing my mind, and past me was wrong.',
   'My apologies. I re-judged every item from scratch until two passes agreed, and this is where they landed.',
   'Awkward. I argued with myself until I settled, and I have to overrule my earlier self.',
   'Turns out I was confidently incorrect. I kept re-reading until I agreed with myself twice running.',
@@ -412,7 +412,7 @@ const AUDIT_SORRY = [
 ];
 const AUDIT_CLEAN = [
   'Hmm. I judged the whole round again from scratch, repeatedly, until I agreed with myself. Everything stands.',
-  'I checked myself properly this time — every item, several times over. Nothing to take back.',
+  'I checked myself properly this time, every item, several times over. Nothing to take back.',
   'Re-read it all until two passes matched. I am sticking with every call.',
   'Had a good long look. No changes: every item is already where it belongs.',
 ];

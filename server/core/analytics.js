@@ -508,7 +508,7 @@ export function activity(range = 'all', limit = 500) {
   return list.slice(-limit).reverse().map((e) => {
     const d = deviceByPerson.get(e.person) || {};
     return {
-      id: e.id || '—',
+      id: e.id || ', ',
       t: e.t,
       type: e.type,
       person: e.person || null,

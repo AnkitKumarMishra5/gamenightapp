@@ -45,7 +45,7 @@ const OUT_QUIPS = [
   'Three strikes. Enjoy the show!',
 ];
 const SPARED_QUIPS = [
-  'Everyone would have gone down — the table laughs it off 😅',
+  'Everyone would have gone down, the table laughs it off 😅',
   'Total wipeout averted. Nobody loses!',
   'The cards blinked first. Free round!',
   'Too brutal even for this deck. All spared.',
@@ -211,7 +211,7 @@ function maybeBegin(room, state) {
 export function choice(room, playerId, payload) {
   const state = st(room);
   requirePhase(state, 'acting');
-  if ((state.lives[playerId] || 0) <= 0) throw new GameError('You are out of this one — enjoy the show.');
+  if ((state.lives[playerId] || 0) <= 0) throw new GameError('You are out of this one, enjoy the show.');
   const turnId = state.actingOrder[state.turnIdx];
   if (playerId !== turnId) throw new GameError('Hold on, it is not your turn yet.');
   const act = payload?.action;

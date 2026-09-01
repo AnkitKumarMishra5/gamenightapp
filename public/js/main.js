@@ -552,7 +552,7 @@ function renderAppBar() {
 // Fifteen ways to say "get in here", drawn fresh each share, so inviting the same crew
 // twice never reads like a copy-pasted flyer.
 const INVITE_MESSAGES = [
-  (c) => `🎭 Game night is ON. Room ${c} — your seat already has your name on it.`,
+  (c) => `🎭 Game night is ON. Room ${c}, your seat already has your name on it.`,
   (c) => `🃏 I dealt you in. Room ${c}. Don't leave me alone with these people.`,
   (c) => `🕯️ Candles lit, cards shuffled. Room ${c}. Get in here.`,
   (c) => `🚪 One code between you and total chaos: ${c}`,
@@ -700,7 +700,7 @@ function showSoundPanel() {
       h('div', { class: 'sound-row master' },
         h('div', {},
           h('div', { class: 'sr-title' }, 'All sound'),
-          h('div', { class: 'sr-sub' }, 'The parent switch — nothing below plays while this is off'),
+          h('div', { class: 'sr-sub' }, 'The parent switch, nothing below plays while this is off'),
         ),
         h('button', {
           class: `switch ${on ? 'on' : ''}`, 'aria-label': 'Toggle all sound',
@@ -789,7 +789,7 @@ function showSoundPanel() {
             return [dd, h('p', { class: 'hint', style: 'margin-top:8px' }, `▶ ${active.blurb}`)];
           })(),
           h('p', { class: 'hint', style: 'margin-top:10px' },
-            'Every track is synthesized live in your browser — nothing is streamed. Music steps aside once a round starts.'),
+            'Every track is synthesized live in your browser, nothing is streamed. Music steps aside once a round starts.'),
         ),
       ),
 

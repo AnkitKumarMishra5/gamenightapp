@@ -196,7 +196,7 @@ function updateRound(ss, ctx) {
   // then would talk over their own death scene — they get the line next deal instead.
   if (api.spectator && !api.outCaptioned) {
     api.outCaptioned = true;
-    whenDealt(api, () => say(table, 'You are out — enjoy the show 🍿'));
+    whenDealt(api, () => say(table, 'You are out, enjoy the show 🍿'));
   }
 
   updateStatus(api, ss, ctx);
@@ -337,7 +337,7 @@ function animateAction(api, act, ctx) {
   }
 
   if (act.kind === 'blocked') {
-    say(table, `${name(act.with)} has a Sentinel — swap DENIED! 🛡`);
+    say(table, `${name(act.with)} has a Sentinel, swap DENIED! 🛡`);
     const target = seatOf(table, act.with);
     if (!target) return;
     // A block is the game's biggest single moment, so it gets the full treatment: the
@@ -502,7 +502,7 @@ function syncLog(api, ss, ctx) {
     const who = name(e.by);
     const text = e.kind === 'stay' ? `${who} kept their card.`
       : e.kind === 'draw' ? `${who} had nobody left to swap with, so they drew from the deck.`
-      : e.kind === 'blocked' ? `${who} tried to swap with ${name(e.with)} — blocked by a Sentinel 🛡️.`
+      : e.kind === 'blocked' ? `${who} tried to swap with ${name(e.with)}, blocked by a Sentinel 🛡️.`
       : `${who} swapped with ${name(e.with)}.`;
     return h('li', { class: `ss-log-row ss-log-${e.kind}` },
       h('span', { class: 'ss-log-round' }, `R${e.round}`),
@@ -610,10 +610,10 @@ function updateDock(api, ss, ctx) {
       ? h('p', { class: 'ss-note' }, ss.youReady
           ? `Waiting for the table… (${ss.readyCount}/${ss.aliveIds.length})`
           : 'The cards are going out. Sneak a look at yours!')
-      : h('p', { class: 'ss-note' }, 'You are out — enjoy the show 🍿'), { size: 'sm' });
+      : h('p', { class: 'ss-note' }, 'You are out, enjoy the show 🍿'), { size: 'sm' });
   } else if (ss.phase === 'acting') {
     if (!youPlay) {
-      content = h('p', { class: 'ss-note' }, 'You are out — enjoy the show 🍿');
+      content = h('p', { class: 'ss-note' }, 'You are out, enjoy the show 🍿');
     } else if (ss.turnId === ctx.me.id) {
       content = enterOnce(api, choiceBar(api, ss, ctx), `choice:${ss.turnId}`);
     } else {
@@ -670,10 +670,10 @@ function choiceBar(api, ss, ctx) {
   return h('div', { class: 'ss-choice card' },
     h('div', { class: 'ss-choice-title' }, '🎯 Your call!'),
     h('div', { class: 'ss-choice-row' },
-      btn('stay', '🪑 Stay', '🪑 Tap again — keep it', 'ss-stay'),
+      btn('stay', '🪑 Stay', '🪑 Tap again, keep it', 'ss-stay'),
       isDealer
-        ? btn('swap', '🎴 Draw from the deck', '🎴 Tap again — no take-backs', 'ss-swap')
-        : btn('swap', `⇄ Swap with ${target.name}`, '⇄ Tap again — no take-backs', 'ss-swap'),
+        ? btn('swap', '🎴 Draw from the deck', '🎴 Tap again, no take-backs', 'ss-swap')
+        : btn('swap', `⇄ Swap with ${target.name}`, '⇄ Tap again, no take-backs', 'ss-swap'),
     ),
     h('p', { class: 'ss-choice-hint' },
       api.sending ? 'Locking it in…'
@@ -718,12 +718,16 @@ function winnerCard(ss, ctx) {
   return h('div', { class: 'ss-winner card' },
     // The one ending screen in the app that had no art at all: the last hand still
     // holding a card, with everyone else's seat abandoned around it.
-    sceneHero('win-swaporstay-last', [
-      h('span', { class: 'ss-win-emoji' }, '🏆'),
-      h('h2', { class: 'ss-win-title' },
-        winner ? `${winner.avatar} ${winner.name} wins!` : 'Nobody survived the deck!'),
-      winner && ss.winnerId === ctx.me.id && h('p', { class: 'ss-win-you' }, 'That is you. Take the bow! 🎉'),
-    ], { size: 'tall', cls: 'hero-bleed' }),
+    h('div', { class: 'gn-endart hero-bleed' },
+      h('picture', { 'aria-hidden': 'true' },
+        h('source', { srcset: `/media/games/${'win-swaporstay-last'}.webp`, type: 'image/webp' }),
+        h('img', { src: `/media/games/${'win-swaporstay-last'}.jpg`, alt: '', decoding: 'async' }),
+      ),
+    ),
+    h('span', { class: 'ss-win-emoji' }, '🏆'),
+    h('h2', { class: 'ss-win-title' },
+      winner ? `${winner.avatar} ${winner.name} wins!` : 'Nobody survived the deck!'),
+    winner && ss.winnerId === ctx.me.id && h('p', { class: 'ss-win-you' }, 'That is you. Take the bow! 🎉'),
     h('p', { class: 'ss-win-quip' }, ss.endQuip),
     scoringDetails(scoringRules),
     ctx.isHost

@@ -157,6 +157,34 @@ export function roomReactionBar(ctx) {
   );
 }
 
+// A reveal scene: the photograph is the story, so nothing is written across it. The art
+// runs clean, the role card lands tilted against its corner like a card tossed on the
+// table, and the words sit underneath in their own band, tinted by what just happened.
+//   tone: 'grim' (someone was lost, or the room got it wrong)
+//       | 'good' (the room got it right)
+//       | 'calm' (nothing happened)
+export function sceneReveal(art, {
+  tone = 'calm', card = null, mark = null, headline, sub = null, kicker = null, cls = '',
+} = {}) {
+  return h('div', { class: `gn-reveal tone-${tone} ${cls}` },
+    h('div', { class: 'gn-reveal-art' },
+      h('picture', { class: 'gn-reveal-pic', 'aria-hidden': 'true' },
+        h('source', { srcset: `/media/games/${art}.webp`, type: 'image/webp' }),
+        h('img', { src: `/media/games/${art}.jpg`, alt: '', decoding: 'async' }),
+      ),
+      card && h('div', { class: 'gn-reveal-card' },
+        card,
+        mark && h('span', { class: 'gn-reveal-mark', 'aria-hidden': 'true' }, mark),
+      ),
+    ),
+    h('div', { class: 'gn-reveal-copy' },
+      kicker && h('div', { class: 'gn-reveal-kicker' }, kicker),
+      h('p', { class: 'gn-reveal-line' }, headline),
+      sub && h('p', { class: 'gn-reveal-sub' }, sub),
+    ),
+  );
+}
+
 // The game's scoring rules, folded under the final standings, so "why do I have
 // 7 points?" is answered right where the question happens. Rules arrive from the
 // server snapshot (core/scores.js), so the numbers can never drift from the truth.

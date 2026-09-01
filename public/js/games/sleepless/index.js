@@ -6,7 +6,7 @@
 // snapshot fields compared against module-level "last seen" markers rather than by fx
 // events. Markers key off dealId + round, so they survive other players' updates and a
 // replay in the same room starts clean.
-import { h, shake, animOnce, waitingFor, openModal, closeModal, sceneHero, scoringDetails, roomReactionBar } from '../../core/ui.js';
+import { h, shake, animOnce, waitingFor, openModal, closeModal, sceneHero, sceneReveal, scoringDetails, roomReactionBar } from '../../core/ui.js';
 import { cardTable, peekCard } from '../../core/cards.js';
 import { playMeme } from '../../core/memes.js';
 import { confettiRain } from '../../core/fx.js';
@@ -20,12 +20,12 @@ const ROLES = {
   medic: {
     emoji: '🩺', word: 'Medic',
     prompt: 'Answer the sum, then choose who to guard.',
-    blurb: 'Each night you answer the same sum as everyone else, and tap one door to guard — yours counts too. If the Prowler comes knocking there, nobody dies. But a guard that never moves is no guard: you cannot hold the same door two nights in a row.',
+    blurb: 'Each night you answer the same sum as everyone else, and tap one door to guard, yours counts too. If the Prowler comes knocking there, nobody dies. But a guard that never moves is no guard: you cannot hold the same door two nights in a row.',
   },
   sleeper: {
     emoji: '😴', word: 'Sleeper',
     prompt: 'Answer the sum, then sleep.',
-    blurb: 'You have no night power — and that is the point. You answer the same sum as everyone else and tap ready, so the Prowler is typing exactly when you are typing. Your weapon is the daytime: what people say, and how they vote.',
+    blurb: 'You have no night power, and that is the point. You answer the same sum as everyone else and tap ready, so the Prowler is typing exactly when you are typing. Your weapon is the daytime: what people say, and how they vote.',
   },
 };
 
@@ -127,10 +127,12 @@ function playPhaseCues(sl) {
     seen.dawn = `${sl.dealId}:${sl.dawn.seq}`;
     playMeme('serious');
     if (sl.dawn.kind === 'death') {
-      // A death morning sounds like one: the bell tolls, the room gasps, the news lands.
+      // A death morning sounds like one: the bell tolls, the room gasps, the news lands,
+      // and then the low note that says the Prowler is still sitting at this table.
       setTimeout(() => playMeme('bellToll'), 500);
       setTimeout(() => playMeme('gasp'), 1400);
       setTimeout(() => playMeme('boom'), 2300);
+      setTimeout(() => playMeme('dun'), 3100);
     } else {
       // A safe morning sounds like a farmyard: the rooster gets there before the relief.
       setTimeout(() => playMeme('rooster'), 600);
@@ -256,7 +258,7 @@ function grid(sl, ctx, { selectable = null, selected = null, onSelect = null, sk
     h('button', {
       class: `sl-skip-btn ${selected === 'skip' ? 'sl-skip-armed' : ''}`,
       onClick: () => onSelect('skip'),
-    }, selected === 'skip' ? '🤷 Skipping — confirm below' : '🤷 Skip today — I\'m ready to waste my vote'),
+    }, selected === 'skip' ? '🤷 Skipping, confirm below' : '🤷 Skip today, I\'m ready to waste my vote'),
   );
 }
 
@@ -301,7 +303,7 @@ function dealingPhase(sl, ctx) {
   const note = h('p', { class: 'hint sl-deal-note' },
     sl.you
       ? `One ${ROLES.prowler.emoji} Prowler walks tonight. One ${ROLES.medic.emoji} Medic stands watch. Everyone else just sleeps. Tell no one what you hold.`
-      : 'The roles are already out — you\'ll join the next game.');
+      : 'The roles are already out, you\'ll join the next game.');
 
   mount = {
     key,
@@ -440,28 +442,27 @@ function sleepDots() {
 function dawnBanner(sl, ctx) {
   const d = sl.dawn;
   if (!d) return null;
+  const anim = animOnce(`sl-dawncard:${sl.dealId}:${d.seq}`, 'sl-rise');
   if (d.kind === 'death') {
     const p = ctx.player(d.victimId);
     const r = ROLES[d.role];
-    return h('div', { class: `card sl-dawn-card ${animOnce(`sl-dawncard:${sl.dealId}:${d.seq}`, 'sl-rise')}` },
-      sceneHero('dawn-killed', [
-        h('div', { class: 'sl-dawn-head' }, '🌅 Dawn'),
-        h('div', { class: `sl-flip ${animOnce(`sl-dawnflip:${sl.dealId}:${d.seq}`, 'sl-flipping')}` },
-          h('div', { class: 'sl-flip-face sl-flip-front' }, p.avatar),
-          h('div', { class: 'sl-flip-face sl-flip-back' }, roleFace(d.role) || r.emoji),
-        ),
-        h('p', { class: 'sl-dawn-line' },
-          h('b', {}, p.name), ` did not wake up — they were the ${r.word} ${r.emoji}`),
-      ], { size: 'tall', cls: 'hero-bleed sl-dawn-hero' }),
-    );
+    return sceneReveal('dawn-killed', {
+      tone: 'grim',
+      kicker: '🌅 Dawn',
+      card: roleFace(d.role, { chip: false }),
+      mark: '✖️',
+      headline: [h('b', {}, `${p.avatar} ${p.name}`), ' did not wake up.'],
+      sub: `They were the ${r.word} ${r.emoji}. The Prowler is still at this table, and nobody knows which chair.`,
+      cls: anim,
+    });
   }
-  return h('div', { class: `card sl-dawn-card ${animOnce(`sl-dawncard:${sl.dealId}:${d.seq}`, 'sl-rise')}` },
-    sceneHero('dawn-saved', [
-      h('div', { class: 'sl-dawn-head' }, '🌅 Dawn'),
-      h('div', { class: 'sl-saved-mark' }, '🛡️'),
-      h('p', { class: 'sl-dawn-line' }, 'Everyone woke up. Someone was attacked in the night — and survived.'),
-    ], { size: 'tall', cls: 'hero-bleed sl-dawn-hero' }),
-  );
+  return sceneReveal('dawn-saved', {
+    tone: 'good',
+    kicker: '🌅 Dawn',
+    headline: 'Everyone woke up.',
+    sub: 'Someone was attacked in the night and lived. The Medic was standing at the right door.',
+    cls: anim,
+  });
 }
 
 function voteBoard(sl, ctx) {
@@ -536,20 +537,29 @@ function verdictHero(sl, ctx) {
   const v = sl.verdict;
   const out = v?.outId ? ctx.player(v.outId) : null;
   const role = v?.role ? ROLES[v.role] : null;
+  const anim = animOnce(`sl-verdict:${roundKey(sl)}`, 'sl-rise');
 
-  return out
-    ? sceneHero(v.role === 'prowler' ? 'out-prowler' : 'out-innocent', [
-        h('div', { class: `sl-flip ${animOnce(`sl-verdictflip:${roundKey(sl)}`, 'sl-flipping')}` },
-          h('div', { class: 'sl-flip-face sl-flip-front' }, out.avatar),
-          h('div', { class: 'sl-flip-face sl-flip-back' }, roleFace(v.role) || role.emoji),
-        ),
-        h('p', { class: 'sl-dawn-line' },
-          h('b', {}, out.name), ` was sent to bed early — they were the ${role.word} ${role.emoji}`),
-      ], { size: 'tall', cls: `sl-verdict-hero ${animOnce(`sl-verdict:${roundKey(sl)}`, 'sl-rise')}` })
-    : sceneHero('tie', [
-        h('div', { class: 'sl-saved-mark' }, '🤝'),
-        h('p', { class: 'sl-dawn-line' }, 'The village couldn\'t agree. Nobody was sent home.'),
-      ], { size: 'tall', cls: `sl-verdict-hero ${animOnce(`sl-verdict:${roundKey(sl)}`, 'sl-rise')}` });
+  if (!out) {
+    return sceneReveal('tie', {
+      tone: 'calm',
+      kicker: '⚖️ The vote',
+      headline: 'The table could not agree.',
+      sub: 'Nobody goes home tonight, and the Prowler gets another night to work with.',
+      cls: anim,
+    });
+  }
+  const caught = v.role === 'prowler';
+  return sceneReveal(caught ? 'out-prowler' : 'out-innocent', {
+    tone: caught ? 'good' : 'grim',
+    kicker: '⚖️ The vote',
+    card: roleFace(v.role, { chip: false }),
+    mark: '✖️',
+    headline: [h('b', {}, `${out.avatar} ${out.name}`), ' was sent to bed early.'],
+    sub: caught
+      ? `They were the ${role.word} ${role.emoji}. The table read it right, and the nights are quiet again.`
+      : `They were the ${role.word} ${role.emoji}. The Prowler sat right there and watched the table do their work.`,
+    cls: anim,
+  });
 }
 
 function verdictPhase(sl, ctx) {
@@ -608,15 +618,21 @@ function gameOver(sl, ctx, rules) {
     ),
     endedAtDawn && dawnBanner(sl, ctx),
     h('div', { class: `card win-screen sl-over ${endedOnVote || endedAtDawn ? 'sl-after-verdict' : ''}` },
-    sceneHero(villageWon ? 'win-sleepless-village' : 'win-sleepless-prowler', [
-      h('span', { class: 'ws-emoji' }, villageWon ? '🌅' : '🥷'),
-      h('h2', { class: villageWon ? '' : 'gradient-text' },
-        villageWon ? 'The village wins!' : 'The Prowler wins!'),
-      h('p', { class: 'ws-reason' },
-        villageWon
-          ? 'The Prowler is out. Everyone finally gets some sleep.'
-          : 'Too few left standing. The nights belong to the Prowler now.'),
-    ], { size: 'tall', cls: 'hero-bleed' }),
+    // The ending photograph is the point of the screen, so nothing is written over it:
+    // it runs clean and the headline takes the space underneath.
+    h('div', { class: 'gn-endart hero-bleed' },
+      h('picture', { 'aria-hidden': 'true' },
+        h('source', { srcset: `/media/games/${villageWon ? 'win-sleepless-village' : 'win-sleepless-prowler'}.webp`, type: 'image/webp' }),
+        h('img', { src: `/media/games/${villageWon ? 'win-sleepless-village' : 'win-sleepless-prowler'}.jpg`, alt: '', decoding: 'async' }),
+      ),
+    ),
+    h('span', { class: 'ws-emoji' }, villageWon ? '🌅' : '🥷'),
+    h('h2', { class: villageWon ? '' : 'gradient-text' },
+      villageWon ? 'The village wins!' : 'The Prowler wins!'),
+    h('p', { class: 'ws-reason' },
+      villageWon
+        ? 'The Prowler is out. Everyone finally gets some sleep.'
+        : 'Too few left standing. The nights belong to the Prowler now.'),
     h('p', { class: 'ws-reason', style: 'font-weight:700' }, sl.endQuip),
     myRole && h('p', { style: 'margin-top:10px; font-size:15px' },
       `You were the ${ROLES[myRole].emoji} ${ROLES[myRole].word}, ${iWon ? 'you won! 🎉' : 'better luck next night!'}`),

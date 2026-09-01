@@ -215,7 +215,7 @@ export function skipTurn(room, playerId) {
   requirePhase(state, 'describing');
   const current = state.queue[state.queuePos];
   if (!current) return;
-  state.clues.push({ round: state.round, playerId: current, text: '—', skipped: true, id: `c${state.clues.length}`, reactions: {} });
+  state.clues.push({ round: state.round, playerId: current, text: ', ', skipped: true, id: `c${state.clues.length}`, reactions: {} });
   advanceTurn(state);
 }
 
