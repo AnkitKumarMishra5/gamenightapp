@@ -142,6 +142,15 @@ function playPhaseCues(sl) {
     if (sl.verdict?.outId) {
       playMeme('drumroll');
       setTimeout(() => playMeme('boom'), 1400);
+      // The flip answers the only question that matters, so the room reacts with it:
+      // caught the Prowler — confetti and applause; sent an innocent to bed — the
+      // opposite, a room that knows it got it wrong.
+      if (sl.verdict.role === 'prowler') {
+        setTimeout(() => { playMeme('applause'); confettiRain(2400); }, 2100);
+      } else {
+        setTimeout(() => playMeme('sadTrombone'), 2100);
+        setTimeout(() => playMeme('aww'), 3000);
+      }
     } else {
       playMeme('crickets');
     }
