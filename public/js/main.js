@@ -534,7 +534,7 @@ function renderAppBar() {
     title: 'Sound settings',
     onClick: () => { armAmbience(); showSoundPanel(); },
   }, on ? '🔊' : '🔇'));
-  items.push(h('button', { class: 'icon-btn', title: 'How to play', onClick: () => showRules(store.snap?.game || 'blendin') }, '📖'));
+  items.push(h('button', { class: 'icon-btn', title: 'How to play', onClick: () => showRules(store.snap?.game || 'blendin', store.snap?.scoringRules) }, '📖'));
   items.push(h('button', { class: 'icon-btn', title: 'Report a bug or say thanks', onClick: showFeedback }, '💬'));
   items.push(h('button', { class: 'icon-btn', title: 'About', onClick: showAbout }, 'ℹ️'));
   if (store.snap) {
@@ -1198,7 +1198,7 @@ function renderLobby() {
         onClick: () => {
           // For a guest this is a rules button, not a choice, so say so rather than
           // silently doing nothing.
-          if (!isHost) { showRules(g.id); return; }
+          if (!isHost) { showRules(g.id, snap.scoringRules); return; }
           emit('room:setGame', { game: g.id });
           sound.tap();
         },
@@ -1218,7 +1218,7 @@ function renderLobby() {
           }, t)),
           h('span', {
             class: 'badge', role: 'button',
-            onClick: (e) => { e.stopPropagation(); showRules(g.id); },
+            onClick: (e) => { e.stopPropagation(); showRules(g.id, snap.scoringRules); },
           }, '📖 rules'),
         ),
       );

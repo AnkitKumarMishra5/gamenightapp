@@ -1327,6 +1327,10 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 .gn-dd-name { font-weight: 700; font-size: 14.5px; }
 .gn-dd-blurb { font-size: 12px; color: var(--ink-dim); margin-top: 2px; line-height: 1.35; }
 
+/* The rules sheet's closing section: how the game pays, right under how it plays. */
+.rules-scoring { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--stroke); }
+.rules-scoring h4 { font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+
 /* The end-screen fold-out: how the numbers above came to be, where the question is asked. */
 .score-how {
   margin-top: 14px; text-align: left;
