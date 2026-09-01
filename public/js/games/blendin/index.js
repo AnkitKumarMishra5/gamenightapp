@@ -11,7 +11,8 @@ const REACTION_MENU_LINGER_MS = 2500;
 const openDrawers = new Set();
 
 const ROLE_LABEL = { insider: 'Insider', outsider: 'Outsider', blank: 'Blank' };
-// Who the vote actually removed decides which reveal the room sees.
+// Who the vote actually removed decides which reveal the room sees. Every role the
+// dealer can assign has an entry, so there is no fallback to keep in step.
 const OUT_ART = { insider: 'out-insider', outsider: 'out-outsider', blank: 'out-blank' };
 const ROLE_EMOJI = { insider: '😇', outsider: '🕵️', blank: '🃏' };
 
@@ -454,7 +455,7 @@ function revealHero(bi, ctx) {
   }
   {
     const p = ctx.player(r.playerId);
-    return sceneHero(OUT_ART[r.role] || 'reveal', [
+    return sceneHero(OUT_ART[r.role], [
       h('span', { class: 'rp-avatar' }, p.avatar),
       h('div', { style: 'font-weight:800; font-size:19px; margin-top:6px' }, `${p.name} ${r.quip || 'is out!'}`),
       h('div', {}, h('span', { class: `rp-role ${r.role}` }, `${ROLE_EMOJI[r.role]} ${ROLE_LABEL[r.role]}`)),

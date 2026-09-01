@@ -43,7 +43,6 @@ const ART = {
   'room-fills-up': 'joined',
   'thinking-waiting': 'waiting',
   tie: 'tie',
-  'caught-reveal': 'reveal',
   'last-two': 'lasttwo',
   reconnecting: 'reconnecting',
   // Sleepless dawns and verdicts — one motif, four outcomes.
