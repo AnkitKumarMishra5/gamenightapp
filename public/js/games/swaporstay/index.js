@@ -716,10 +716,14 @@ function resultCard(api, ss, ctx) {
 function winnerCard(ss, ctx) {
   const winner = ss.winnerId ? ctx.player(ss.winnerId) : null;
   return h('div', { class: 'ss-winner card' },
-    h('span', { class: 'ss-win-emoji' }, '🏆'),
-    h('h2', { class: 'ss-win-title' },
-      winner ? `${winner.avatar} ${winner.name} wins!` : 'Nobody survived the deck!'),
-    winner && ss.winnerId === ctx.me.id && h('p', { class: 'ss-win-you' }, 'That is you. Take the bow! 🎉'),
+    // The one ending screen in the app that had no art at all: the last hand still
+    // holding a card, with everyone else's seat abandoned around it.
+    sceneHero('win-swaporstay-last', [
+      h('span', { class: 'ss-win-emoji' }, '🏆'),
+      h('h2', { class: 'ss-win-title' },
+        winner ? `${winner.avatar} ${winner.name} wins!` : 'Nobody survived the deck!'),
+      winner && ss.winnerId === ctx.me.id && h('p', { class: 'ss-win-you' }, 'That is you. Take the bow! 🎉'),
+    ], { size: 'tall', cls: 'hero-bleed' }),
     h('p', { class: 'ss-win-quip' }, ss.endQuip),
     scoringDetails(scoringRules),
     ctx.isHost

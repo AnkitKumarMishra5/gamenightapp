@@ -608,7 +608,7 @@ function gameOver(sl, ctx, rules) {
     ),
     endedAtDawn && dawnBanner(sl, ctx),
     h('div', { class: `card win-screen sl-over ${endedOnVote || endedAtDawn ? 'sl-after-verdict' : ''}` },
-    sceneHero(villageWon ? 'win-together' : 'win-alone', [
+    sceneHero(villageWon ? 'win-sleepless-village' : 'win-sleepless-prowler', [
       h('span', { class: 'ws-emoji' }, villageWon ? '🌅' : '🥷'),
       h('h2', { class: villageWon ? '' : 'gradient-text' },
         villageWon ? 'The village wins!' : 'The Prowler wins!'),

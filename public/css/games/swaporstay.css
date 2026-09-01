@@ -277,3 +277,6 @@
   mix-blend-mode: screen; opacity: 0.55;
 }
 .ss-slam > :not(.ss-slam-art) { position: relative; z-index: 1; }
+
+/* The winner card leads with its hero, so the art bleeds to the card's top corners. */
+.ss-winner > .hero-bleed { margin-top: -22px; }

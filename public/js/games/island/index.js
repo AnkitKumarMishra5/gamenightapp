@@ -587,7 +587,9 @@ function turnMovePicker(is, ctx) {
 function revealPhase(is, ctx, rules) {
   const ranking = [...is.order].sort((a, b) => (is.scores[b] || 0) - (is.scores[a] || 0));
   return h('div', { class: 'card win-screen' },
-    sceneHero('win-together', [
+    // A round the owner cut short is not a triumph, so the celebration art is kept for
+    // the ending that earns it and the others get the game's own key art.
+    sceneHero(is.endedBy === 'all-solved' ? 'win-island-cracked' : 'island', [
       h('span', { class: 'ws-emoji' }, '🏝️'),
       h('h2', { class: 'gradient-text' },
         is.endedBy === 'all-solved' ? 'Everyone cracked it!' : (is.endedBy === 'gm-left' ? 'The gamemaster left!' : 'Round over!')),

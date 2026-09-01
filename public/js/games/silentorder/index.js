@@ -560,7 +560,7 @@ function overScreen(so, snap, ctx) {
     .sort((a, b) => (b.silentorder || 0) - (a.silentorder || 0));
 
   return h('div', { class: 'card win-screen so-over' },
-    sceneHero(so.won ? 'win-together' : 'win-alone', [
+    sceneHero(so.won ? 'win-silentorder-held' : 'win-silentorder-broke', [
       candleRow(so.won ? so.lives : 0),
       h('span', { class: 'ws-emoji' }, so.won ? '🏆' : '🌑'),
       h('h2', { class: so.won ? 'gradient-text' : '' },

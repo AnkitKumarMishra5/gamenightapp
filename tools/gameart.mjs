@@ -61,6 +61,14 @@ const ART = {
   // The rest.
   'pattern-written': 'pattern-written',
   'swap-or-stay-reveal': 'ss-reveal',
+  // Per-game ending art: each game's finale is its own moment, so only the games
+  // without bespoke art fall back to win-together / win-alone.
+  'win-sleepless-village': 'win-sleepless-village',
+  'win-sleepless-prowler': 'win-sleepless-prowler',
+  'win-silentorder-held': 'win-silentorder-held',
+  'win-silentorder-broke': 'win-silentorder-broke',
+  'win-island-cracked': 'win-island-cracked',
+  'win-swaporstay-last': 'win-swaporstay-last',
   // Sleepless role cards — portrait faces for the dealt card, the reveals and the
   // end-of-game roster minis.
   prowler: 'role-prowler',
