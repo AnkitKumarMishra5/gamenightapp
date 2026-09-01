@@ -13,7 +13,7 @@ import { confettiRain } from '../../core/fx.js';
 
 const ROLES = {
   prowler: {
-    emoji: '🐾', word: 'Prowler',
+    emoji: '🥷', word: 'Prowler',
     prompt: 'Answer the sum, then choose who to kill.',
     blurb: 'Each night you answer the same sum as everyone else, and tap one name: that player will not wake up. On big tables you hunt as a pack. Stay calm by day. Vote like everyone else.',
   },
@@ -371,7 +371,7 @@ function nightPhase(sl, ctx) {
     sceneHero('night', [
       h('h2', { class: 'subtitle' }, `🌙 ${role.prompt}`),
       allies.length > 0 && h('p', { class: 'hint sl-allies', style: 'margin:2px 0 0; color:var(--amber)' },
-        `🐾 Hunting with ${allies.map((id) => ctx.player(id).name).join(' and ')}. The most-named door falls.`),
+        `🥷 Hunting with ${allies.map((id) => ctx.player(id).name).join(' and ')}. The most-named door falls.`),
     ], { cls: 'hero-bleed' }),
     // The sum everyone answers: the reason every screen looks equally busy tonight.
     h('div', { class: 'sl-sum' },
@@ -552,7 +552,7 @@ function gameOver(sl, ctx, rules) {
 
   return h('div', { class: 'card win-screen sl-over' },
     sceneHero(villageWon ? 'win-together' : 'win-alone', [
-      h('span', { class: 'ws-emoji' }, villageWon ? '🌅' : '🐾'),
+      h('span', { class: 'ws-emoji' }, villageWon ? '🌅' : '🥷'),
       h('h2', { class: villageWon ? '' : 'gradient-text' },
         villageWon ? 'The village wins!' : 'The Prowler wins!'),
       h('p', { class: 'ws-reason' },

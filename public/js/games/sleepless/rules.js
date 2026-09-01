@@ -5,7 +5,7 @@ export function rulesNode() {
   return h('div', { class: 'rules-body' },
     h('p', {}, 'A night-and-day deduction game for 4–16 players. Everyone gets a secret role card. Up to 8 players one Prowler hunts alone; from 9 it is a pack of two, from 14 a pack of three, and the pack knows its own:'),
     h('ul', {},
-      h('li', {}, h('b', {}, '🐾 Prowler'), ' — answers the night sum like everyone else, and taps one name. That player doesn\'t wake up.'),
+      h('li', {}, h('b', {}, '🥷 Prowler'), ' — answers the night sum like everyone else, and taps one name. That player doesn\'t wake up.'),
       h('li', {}, h('b', {}, '🩺 Medic'), ' — answers the night sum too, and taps one door to guard, their own included, but never the same door two nights in a row. A guarded player can\'t be taken.'),
       h('li', {}, h('b', {}, '😴 Sleepers'), ' — everyone else. No night power at all: they answer the sum and sleep. Their game is the daytime argument.'),
     ),

@@ -76,7 +76,7 @@ export const SCORING_RULES = {
     ['🌅', `+${POINTS.sleepless.villageWinAlive}`, 'Seeing the sun rise on a village win'],
     ['🪦', `+${POINTS.sleepless.villageWinDead}`, 'Falling before a village win'],
     ['🩺', `+${POINTS.sleepless.medicSave}`, 'Each night the Medic guarded the right door'],
-    ['🐾', `+${POINTS.sleepless.prowlerWin}`, 'The Prowler outlasting the village'],
+    ['🥷', `+${POINTS.sleepless.prowlerWin}`, 'The Prowler outlasting the village'],
     ['🗳️', `+${POINTS.sleepless.prowlerSurvivedVote}`, 'Each vote the Prowler stared down'],
     ['🧮', `+${POINTS.sleepless.puzzle}`, 'Each night-sum answered correctly'],
   ],
