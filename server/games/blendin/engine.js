@@ -351,6 +351,7 @@ function eliminate(room, state, targetId, counts) {
     type: 'elimination',
     playerId: targetId,
     role,
+    round: state.round,
     tally: counts || null,
     quip: pickQuip('elimination'),
   };
@@ -508,7 +509,7 @@ export function removePlayerFromGame(room, targetId) {
     if (state.runoff.candidates.length === 1) return eliminate(room, state, state.runoff.candidates[0], null);
     if (state.runoff.candidates.length === 0) {
       state.runoff = null;
-      state.lastResult = { type: 'none', tally: null, quip: pickQuip('voteTie') };
+      state.lastResult = { type: 'none', round: state.round, tally: null, quip: pickQuip('voteTie') };
       state.phase = 'roundResult';
       return { fx: [{ kind: 'no-elimination' }] };
     }

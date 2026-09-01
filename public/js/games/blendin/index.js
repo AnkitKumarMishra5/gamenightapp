@@ -439,18 +439,22 @@ function blankGuessPhase(bi, ctx) {
   );
 }
 
-function roundResult(bi, ctx) {
+// The elimination reveal — who went, and what they turned out to be. Shared by the
+// round-result screen and by game over, because the vote that ENDS the game skips
+// roundResult entirely (the server goes straight to gameOver) and that reveal is the
+// whole payoff of the round.
+function revealHero(bi, ctx) {
   const r = bi.lastResult;
-  let content;
   if (!r || r.type === 'none') {
-    content = sceneHero('tie', [
+    return sceneHero('tie', [
       h('span', { class: 'rp-avatar' }, '🤷'),
       h('h2', { class: 'subtitle', style: 'margin-top:6px' }, 'Nobody was eliminated!'),
       h('p', { class: 'rp-quip', style: 'margin-top:4px' }, r?.quip || 'The vote tied twice, suspicion carries to the next round.'),
     ], { size: 'tall', cls: 'hero-bleed reveal-pop' });
-  } else {
+  }
+  {
     const p = ctx.player(r.playerId);
-    content = sceneHero(OUT_ART[r.role] || 'reveal', [
+    return sceneHero(OUT_ART[r.role] || 'reveal', [
       h('span', { class: 'rp-avatar' }, p.avatar),
       h('div', { style: 'font-weight:800; font-size:19px; margin-top:6px' }, `${p.name} ${r.quip || 'is out!'}`),
       h('div', {}, h('span', { class: `rp-role ${r.role}` }, `${ROLE_EMOJI[r.role]} ${ROLE_LABEL[r.role]}`)),
@@ -463,8 +467,11 @@ function roundResult(bi, ctx) {
       r.tally && voteTally(r.tally, bi, ctx),
     ], { size: 'tall', cls: 'hero-bleed reveal-pop' });
   }
+}
+
+function roundResult(bi, ctx) {
   return h('div', { class: 'card', style: 'text-align:center' },
-    content,
+    revealHero(bi, ctx),
     ctx.isHost
       ? h('button', { class: 'btn btn-bi btn-lg btn-block', style: 'margin-top:14px', onClick: () => ctx.emit('bi:nextRound') }, `▶️ Start round ${bi.round + 1}`)
       : h('p', { class: 'hint', style: 'margin-top:12px' }, 'Waiting for the room owner to start the next round…'),
@@ -486,8 +493,18 @@ function gameOver(bi, snap, ctx) {
   const civWin = bi.winner === 'insiders';
   const myRole = bi.reveal.roles[ctx.me.id];
   const iWon = myRole && ((civWin && myRole === 'insider') || (!civWin && myRole !== 'insider'));
+  // The elimination that won the game never gets its own screen — the server goes
+  // straight from the vote to gameOver — so it is staged here ahead of the winner. The
+  // round stamp keeps a stale result (a game ended by a double tie, or by everyone
+  // leaving) from being replayed as if it were the final beat.
+  const endedOnVote = bi.lastResult?.round === bi.round;
 
-  return h('div', { class: 'card win-screen' },
+  return [
+    endedOnVote && h('div', { class: 'card bi-final-reveal', style: 'text-align:center' },
+      h('h2', { class: 'subtitle' }, '⚖️ The final vote'),
+      revealHero(bi, ctx),
+    ),
+    h('div', { class: `card win-screen ${endedOnVote ? 'bi-after-reveal' : ''}` },
     sceneHero(civWin ? 'win-together' : 'win-alone', [
       h('span', { class: 'ws-emoji' }, civWin ? '😇' : '🕵️'),
       h('h2', { class: civWin ? '' : 'gradient-text' }, civWin ? 'Insiders win!' : 'Outsiders win!'),
@@ -523,5 +540,6 @@ function gameOver(bi, snap, ctx) {
           h('button', { class: 'btn btn-ghost', onClick: () => ctx.emit('room:backToLobby') }, '🏠 Back to lobby'),
         )
       : waitingFor(ctx.player(ctx.hostId)?.name, 'decides whether to run it back or head to the lobby.'),
-  );
+    ),
+  ];
 }

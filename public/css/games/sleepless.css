@@ -162,13 +162,18 @@
 }
 /* End-of-game roster: the role's card, small and slightly tilted, beside the name. */
 .sl-mini-card {
-  position: relative; width: 30px; aspect-ratio: 5 / 7; flex: none;
+  position: relative; width: 34px; aspect-ratio: 5 / 7; flex: none;
   border-radius: 5px; overflow: hidden; margin-right: 2px;
   border: 1.5px solid rgba(212, 175, 55, 0.6); transform: rotate(-7deg);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
 }
-/* At 30px the full portrait reads as darkness; bias the crop up to the character. */
-.sl-mini-card .sl-roleface img { object-position: center 22%; }
+/* At thumbnail size a candle-lit portrait is mostly shadow, so the crop sits on the
+   subject and the exposure is lifted — otherwise all three read as identical dark
+   rectangles and the card stops saying anything. */
+.sl-mini-card .sl-roleface img {
+  object-position: center 30%;
+  filter: brightness(1.75) contrast(1.12) saturate(1.1);
+}
 
 /* ---------- private night notes (dream clue, role memo) ----------
    Violet and quiet: a small card under the dawn news that only ever exists on the
@@ -229,6 +234,10 @@
 
 /* ---------- verdict ---------- */
 .sl-verdict-hero { text-align: center; margin-top: 8px; }
+/* Game over reached by a vote: the catch is announced first, then the winner arrives a
+   beat later so the two reveals read as a sequence rather than one crowded screen. */
+.sl-final-verdict { text-align: center; }
+
 .sl-vote-reveal { display: grid; gap: 6px; margin-top: 16px; }
 .sl-vote-row {
   display: flex; align-items: center; gap: 10px;

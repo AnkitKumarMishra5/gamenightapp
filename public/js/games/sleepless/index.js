@@ -157,13 +157,20 @@ function playPhaseCues(sl) {
   }
   if (sl.phase === 'gameOver' && seen.over !== sl.dealId) {
     seen.over = sl.dealId;
+    // A game that ended on a vote opens with the reveal beat, so the fanfare lands
+    // after the table has seen who it caught rather than talking over the flip.
+    const endedOnVote = Boolean(sl.verdict?.outId);
+    if (endedOnVote) {
+      playMeme('drumroll');
+      setTimeout(() => playMeme('boom'), 1400);
+    }
+    const fanfare = endedOnVote ? 2300 : 0;
     if (sl.winner?.side === 'village') {
-      playMeme('winInsiders');
-      setTimeout(() => playMeme('dhol'), 500);
-      confettiRain(2600);
+      setTimeout(() => { playMeme('winInsiders'); confettiRain(2600); }, fanfare);
+      setTimeout(() => playMeme('dhol'), fanfare + 500);
     } else {
-      playMeme('winOutsiders');
-      setTimeout(() => playMeme('evilLaugh'), 1200);
+      setTimeout(() => playMeme('winOutsiders'), fanfare);
+      setTimeout(() => playMeme('evilLaugh'), fanfare + 1200);
     }
   }
 }
@@ -516,12 +523,15 @@ function voteBoard(sl, ctx) {
 
 // ---------- verdict ----------
 
-function verdictPhase(sl, ctx) {
+// The moment the table's choice is answered — reused by the verdict screen and by game
+// over, because a vote that ENDS the game must still show who it caught before the
+// winner is announced.
+function verdictHero(sl, ctx) {
   const v = sl.verdict;
   const out = v?.outId ? ctx.player(v.outId) : null;
   const role = v?.role ? ROLES[v.role] : null;
 
-  const headline = out
+  return out
     ? sceneHero(v.role === 'prowler' ? 'out-prowler' : 'out-innocent', [
         h('div', { class: `sl-flip ${animOnce(`sl-verdictflip:${roundKey(sl)}`, 'sl-flipping')}` },
           h('div', { class: 'sl-flip-face sl-flip-front' }, out.avatar),
@@ -534,10 +544,12 @@ function verdictPhase(sl, ctx) {
         h('div', { class: 'sl-saved-mark' }, '🤝'),
         h('p', { class: 'sl-dawn-line' }, 'The village couldn\'t agree. Nobody was sent home.'),
       ], { size: 'tall', cls: `sl-verdict-hero ${animOnce(`sl-verdict:${roundKey(sl)}`, 'sl-rise')}` });
+}
 
+function verdictPhase(sl, ctx) {
   return h('div', { class: 'card' },
     h('h2', { class: 'subtitle', style: 'text-align:center' }, '⚖️ The votes are in'),
-    headline,
+    verdictHero(sl, ctx),
     voteRevealList(sl, ctx),
     ctx.isHost
       ? h('button', {
@@ -572,8 +584,19 @@ function gameOver(sl, ctx, rules) {
   const villageWon = sl.winner?.side === 'village';
   const myRole = sl.winner?.roles?.[ctx.me.id];
   const iWon = myRole && (villageWon ? myRole !== 'prowler' : myRole === 'prowler');
+  // A vote that ends the game skips the verdict screen entirely — the server goes
+  // straight from day to gameOver — so the reveal is staged here instead: who the table
+  // caught, and only then who won. beginNight clears the verdict, so one surviving to
+  // game over means this very vote ended it; a game ended at dawn has none.
+  const endedOnVote = Boolean(sl.verdict?.outId);
 
-  return h('div', { class: 'card win-screen sl-over' },
+  return [
+    endedOnVote && h('div', { class: 'card sl-final-verdict' },
+      h('h2', { class: 'subtitle', style: 'text-align:center' }, '⚖️ The final vote'),
+      verdictHero(sl, ctx),
+      voteRevealList(sl, ctx),
+    ),
+    h('div', { class: `card win-screen sl-over ${endedOnVote ? 'sl-after-verdict' : ''}` },
     sceneHero(villageWon ? 'win-together' : 'win-alone', [
       h('span', { class: 'ws-emoji' }, villageWon ? '🌅' : '🥷'),
       h('h2', { class: villageWon ? '' : 'gradient-text' },
@@ -608,5 +631,6 @@ function gameOver(sl, ctx, rules) {
           h('button', { class: 'btn btn-ghost', onClick: () => ctx.emit('room:backToLobby') }, '🏠 Back to lobby'),
         )
       : waitingFor(ctx.player(ctx.hostId)?.name, 'decides whether to run it back or head to the lobby.'),
-  );
+    ),
+  ];
 }

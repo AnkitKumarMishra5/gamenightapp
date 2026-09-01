@@ -2416,3 +2416,17 @@ body.has-people-media .bg-canvas { opacity: 0.3; }
 /* The boat's re-read notice, shown as its own hero above the audit controls. */
 .audit-hero { margin-bottom: 8px; }
 .audit-hero .audit-spinner { margin-right: 8px; }
+
+/* A game that ends on the vote stages two reveals: who was caught, then who won. The
+   winner card arrives a beat later so the pair reads as a sequence, not one crowded
+   screen. Shared by Blend In and Sleepless, so the keyframe lives here rather than in
+   either game's sheet. */
+.bi-final-reveal { text-align: center; }
+@keyframes gn-stage-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bi-after-reveal,
+  .sl-after-verdict { animation: gn-stage-in 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.2) 1.6s both; }
+}
