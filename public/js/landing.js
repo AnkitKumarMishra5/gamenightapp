@@ -273,6 +273,7 @@ export function renderLanding(deps) {
           h('p', { class: 'lp-devcard-role' }, 'Creator & developer of Game Night'),
           h('blockquote', { class: 'lp-foot-quote' }, `\u201c${deps.ORIGIN_STORY}\u201d`),
           h('div', { class: 'lp-foot-devlinks' },
+            h('a', { class: 'lp-devlink', href: deps.DEV.portfolio, target: '_blank', rel: 'noopener noreferrer' }, deps.devIcons.site(), 'Portfolio'),
             h('a', { class: 'lp-devlink', href: `mailto:${deps.DEV.email}` }, deps.devIcons.mail(), 'Email'),
             h('a', { class: 'lp-devlink', href: deps.DEV.linkedin, target: '_blank', rel: 'noopener noreferrer' }, deps.devIcons.linkedin(), 'LinkedIn'),
             h('a', { class: 'lp-devlink', href: deps.DEV.github, target: '_blank', rel: 'noopener noreferrer' }, deps.devIcons.github(), 'GitHub'),

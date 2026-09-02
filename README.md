@@ -1,14 +1,11 @@
 # 🎭 Game Night
 
-*by Ankit Kumar Mishra*
+*by [Ankit Kumar Mishra](https://ankitkumarmishra.is-a.dev)*
 
 **Your crew, your rules. One room code away.**
 
 Real-time party games in a browser tab. Someone creates a room, everyone else types the
 five-letter code, and you play on your own phones. No download, no account, no timers.
-
-**Designed and built by Ankit Kumar Mishra**
-[LinkedIn](https://www.linkedin.com/in/ankitkumarmishra/) · [GitHub](https://github.com/AnkitKumarMishra5)
 
 ---
 
@@ -171,7 +168,9 @@ Every socket is capped at 120 events per 10 seconds. Intended for players 13 and
 
 ## Author
 
-**Ankit Kumar Mishra**  
+**Ankit Kumar Mishra** — designed and built Game Night, end to end.
+
+[**Portfolio**](https://ankitkumarmishra.is-a.dev) ·
 [LinkedIn](https://www.linkedin.com/in/ankitkumarmishra/) ·
 [GitHub](https://github.com/AnkitKumarMishra5)
 

@@ -653,9 +653,10 @@ h1.wordmark {
   animation: name-sheen 4.5s ease-in-out infinite;
 }
 @keyframes name-sheen { 0%, 25% { background-position: 120% 0; } 70%, 100% { background-position: -120% 0; } }
-.dev-links { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+.dev-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .dev-link {
-  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px 12px; border-radius: 10px; min-width: 0;
   background: var(--glass); border: 1px solid var(--stroke); color: var(--ink); text-decoration: none;
   font-size: 12.5px; font-weight: 700;
   transition: transform 0.18s cubic-bezier(0.3, 1.6, 0.5, 1), background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s;
@@ -665,6 +666,7 @@ h1.wordmark {
 .dev-link.dl-in:hover { background: rgba(10, 102, 194, 0.25); border-color: #38bdf8; color: #7dd3fc; box-shadow: 0 8px 22px rgba(14, 165, 233, 0.35); }
 .dev-link.dl-gh:hover { background: rgba(255, 255, 255, 0.12); border-color: #e5e7eb; color: #f9fafb; box-shadow: 0 8px 22px rgba(255, 255, 255, 0.15); }
 .dev-link.dl-mail:hover { background: rgba(251, 191, 36, 0.16); border-color: var(--amber); color: #fde68a; box-shadow: 0 8px 22px rgba(251, 191, 36, 0.25); }
+.dev-link.dl-site:hover { background: rgba(var(--gold), 0.18); border-color: rgb(var(--gold)); color: #fff6d8; box-shadow: 0 8px 22px rgba(var(--gold), 0.3); }
 @keyframes ico-wave { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-14deg) scale(1.15); } 65% { transform: rotate(10deg); } }
 .dev-ico { display: inline-flex; }
 .dev-links.sm .dev-link { padding: 5px 10px; }

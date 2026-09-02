@@ -220,13 +220,14 @@ export function winHeader({ tone = 'good', kicker = null, title, seal = null, re
   );
 }
 
-// The game's scoring rules, folded under the final standings, so "why do I have
-// 7 points?" is answered right where the question happens. Rules arrive from the
-// server snapshot (core/scores.js), so the numbers can never drift from the truth.
-export function scoringDetails(rules) {
+// The game's scoring rules. After a game they answer "why do I have 7 points?" right
+// where the question happens; in the lobby they answer "what is worth playing for?", so
+// the label follows the tense. Rules arrive from the server snapshot (core/scores.js),
+// so the numbers can never drift from the truth.
+export function scoringDetails(rules, { upcoming = false } = {}) {
   if (!rules?.length) return null;
   return h('details', { class: 'score-how' },
-    h('summary', {}, '🧮 How these points were scored'),
+    h('summary', {}, upcoming ? '🧮 How points are scored' : '🧮 How these points were scored'),
     h('div', { class: 'score-rules' },
       rules.map(([icon, pts, text]) => h('div', { class: 'score-rule' },
         h('span', { class: 'sr-icon' }, icon),

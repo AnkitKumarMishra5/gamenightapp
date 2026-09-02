@@ -15,7 +15,7 @@
     "gameart": "node tools/gameart.mjs"
   },
   "keywords": [],
-  "author": "Ankit Kumar Mishra <akmishra5514@gmail.com> (https://www.linkedin.com/in/ankitkumarmishra/)",
+  "author": "Ankit Kumar Mishra",
   "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "engines": {
