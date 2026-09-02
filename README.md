@@ -170,7 +170,7 @@ Every socket is capped at 120 events per 10 seconds. Intended for players 13 and
 
 **Ankit Kumar Mishra** — designed and built Game Night, end to end.
 
-[**Portfolio**](https://ankitkumarmishra.is-a.dev) ·
+[Portfolio](https://ankitkumarmishra.is-a.dev) ·
 [LinkedIn](https://www.linkedin.com/in/ankitkumarmishra/) ·
 [GitHub](https://github.com/AnkitKumarMishra5)
 
