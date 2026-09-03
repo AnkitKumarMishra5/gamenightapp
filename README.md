@@ -29,6 +29,25 @@ five-letter code, and you play on your own phones. No download, no account, no t
 
 ---
 
+## Get started in easy steps
+
+You need a phone or a laptop and at least one friend. Nothing to install, no sign-up.
+
+1. **Open it.** [gamenightapp.onrender.com](https://gamenightapp.onrender.com/) on any browser. It is free and it is hosted, so this is the whole install step.
+2. **One of you makes the room.** Tap *Create a room* and pick a game. You get a five-letter code.
+3. **Everyone else joins.** Same link, type the code, pick a name. Works on any phone on any network, you do not have to be in the same room.
+4. **Read the rules on the screen.** Every game has a *How to play* button. It takes about thirty seconds.
+5. **The room owner starts.** Whoever created the room controls the round: starting, calling the vote, spending a hint, handing the chair to someone else.
+6. **Play on your own phone.** Your secret word, your cards and your role are yours alone. Nobody else's device shows them.
+7. **Nobody is on a clock.** Rounds end when the table is ready, not when a timer runs out.
+8. **Somebody dropped out?** They can rejoin with the same code and pick up where they were. If the owner leaves, the chair passes automatically.
+9. **Play again.** Same room, same crew, new round. Scores and titles carry across the night.
+10. **Add it to your home screen.** It installs like an app and remembers your name.
+
+It is free, and the app never asks who you are.
+
+---
+
 ## The games
 
 ### 🕵️ Blend In (5 to 16 players)
@@ -61,20 +80,19 @@ and everything lower burns. A shared 3D card table deals every round with a riff
 
 ### 🃏 Swap or Stay (3 to 10 players)
 
-One card each, face down. Keep it, or force a swap with your neighbour — unless they are
-holding a Sentinel, which blocks you and outranks everything. Lowest card at the reveal
-loses a heart; last player standing wins.
+Everyone holds one card. On your turn, keep it or force the player to your left to trade.
+Lowest card at the end goes out. A King blocks the swap; a Jester sends it onward. Read
+the table, not the deck.
 
 ### 🌙 Sleepless (4 to 16 players)
 
-Prowlers hunt at night (a pack of up to three on big tables) and a Medic guards a door,
-never the same one two nights running. Everyone else just sleeps — no night powers. The
-night is a counting puzzle: every player answers the same kind of sum and taps ready, so
-every screen is equally busy and nothing betrays a role. Days are sealed votes with no
-private information to lean on, ties walk free, and the village wins when the last Prowler
-falls.
+The village sleeps, somebody does not. Night falls, roles act in order, morning comes with
+a body and an argument. Vote, defend, get it wrong. The classic, run by a server that never
+leaks a role.
 
-## Run it
+---
+
+## Run it locally
 
 ```bash
 npm install
@@ -94,9 +112,9 @@ Play against bots while you build:
 npm run bots -- ABCDE 4   # four bots join room ABCDE and play on their own
 ```
 
+---
 
-
-## What it is built on
+## Tech stack
 
 Node 18+, Express and Socket.IO on the server. Vanilla ES modules on the client, no
 framework and no build step, so what you edit is what runs. The server is authoritative:
@@ -133,8 +151,6 @@ tools/                  brand assets, backdrop pipeline, bots, link-preview chec
 source-assets/          full-resolution originals, deliberately outside public/
 ```
 
-
-
 ### Adding a game
 
 1. `server/games/<name>/engine.js` exporting `snapshot(room, playerId)`, your action
@@ -144,6 +160,8 @@ source-assets/          full-resolution originals, deliberately outside public/
 
 Nothing else in the app needs to know it exists.
 
+---
+
 ## Tests
 
 ```bash
@@ -151,10 +169,12 @@ npm test              # 220 checks, spawns a real server, no API key needed
 npm run test:ai       # 55 checks against the live OpenAI API, needs a key
 ```
 
-The suite drives real `socket.io-client` connections through full games: wins and losses on  
-both sides, ties and runoffs, players leaving mid-vote and mid-guess, host transfer,  
-rejoining, malformed payloads, scoring, the guess limit, hints, and the dashboard. It  
+The suite drives real `socket.io-client` connections through full games: wins and losses on
+both sides, ties and runoffs, players leaving mid-vote and mid-guess, host transfer,
+rejoining, malformed payloads, scoring, the guess limit, hints, and the dashboard. It
 writes to a temporary directory, so running it never touches your real usage log.
+
+---
 
 ## Privacy and legal
 
@@ -166,13 +186,23 @@ items you type go to OpenAI to be judged, with no name, room or identifier attac
 
 Every socket is capped at 120 events per 10 seconds. Intended for players 13 and over.
 
+---
+
+## Live app
+
+https://gamenightapp.onrender.com/
+
+---
+
 ## Author
 
-**Ankit Kumar Mishra** — designed and built Game Night, end to end.
+**Ankit Kumar Mishra**. Designed and built Game Night, end to end.
 
 [Portfolio](https://ankitkumarmishra.is-a.dev) ·
 [LinkedIn](https://www.linkedin.com/in/ankitkumarmishra/) ·
 [GitHub](https://github.com/AnkitKumarMishra5)
+
+---
 
 ## License
 
